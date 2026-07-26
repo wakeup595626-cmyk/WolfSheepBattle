@@ -34,6 +34,14 @@ const AI_MAX_UNITS_PER_LANE = 2;
 const SUPPLY_CAPTURE_RADIUS = 62;
 const SUPPLY_CAPTURE_SECONDS = 1.7;
 const SUPPLY_VALUE_PER_POINT_PER_SECOND = 2;
+const SUPPLY_MAX = 5;
+const SPRINT_SUPPLY_COST = 2;
+const SPRINT_DURATION_SECONDS = 6;
+const SPRINT_COOLDOWN_SECONDS = 10;
+const SPRINT_SPEED_MULTIPLIER = 1.5;
+const HEAL_SUPPLY_COST = 3;
+const HEAL_AMOUNT_RATIO = 0.4;
+const HEAL_COOLDOWN_SECONDS = 8;
 const SHOCK_UNLOCK_HEALTH = BASE_MAX_HEALTH * 0.5;
 const SHOCK_HEAVY_DAMAGE_RATIO = 0.55;
 const SHOCK_KNOCKBACK_DISTANCE = 145;
@@ -181,6 +189,12 @@ export class GameController extends Component {
     private aiShockUnlocked = false;
     private playerShockUsed = false;
     private aiShockUsed = false;
+    private playerSprintRemaining = 0;
+    private aiSprintRemaining = 0;
+    private playerSprintCooldown = 0;
+    private aiSprintCooldown = 0;
+    private playerHealCooldown = 0;
+    private aiHealCooldown = 0;
     private statusMessage = '选择兵种后，点击一条通道出兵。';
 
     private gameLayer!: Node;
@@ -194,6 +208,8 @@ export class GameController extends Component {
     private statusLabel!: Label;
     private resultPanel!: Node;
     private playerShockButton!: ButtonView;
+    private playerSprintButton!: ButtonView;
+    private playerHealButton!: ButtonView;
 
     onLoad(): void {
         view.setDesignResolutionSize(DESIGN_WIDTH, DESIGN_HEIGHT, ResolutionPolicy.SHOW_ALL);
@@ -215,6 +231,12 @@ export class GameController extends Component {
 
         this.playerSpawnCooldown = Math.max(0, this.playerSpawnCooldown - deltaTime);
         this.aiDecisionCooldown -= deltaTime;
+        this.playerSprintRemaining = Math.max(0, this.playerSprintRemaining - deltaTime);
+        this.aiSprintRemaining = Math.max(0, this.aiSprintRemaining - deltaTime);
+        this.playerSprintCooldown = Math.max(0, this.playerSprintCooldown - deltaTime);
+        this.aiSprintCooldown = Math.max(0, this.aiSprintCooldown - deltaTime);
+        this.playerHealCooldown = Math.max(0, this.playerHealCooldown - deltaTime);
+        this.aiHealCooldown = Math.max(0, this.aiHealCooldown - deltaTime);
         this.playerEnergy = Math.min(ENERGY_MAX, this.playerEnergy + ENERGY_RECOVERY_PER_SECOND * deltaTime);
         this.aiEnergy = Math.min(ENERGY_MAX, this.aiEnergy + ENERGY_RECOVERY_PER_SECOND * deltaTime);
 
@@ -224,6 +246,7 @@ export class GameController extends Component {
 
         this.updateUnits(deltaTime);
         this.updateSupplyPoints(deltaTime);
+        this.tryUseAITacticCards();
         this.tryUseAIShock();
         this.hudRefreshCooldown -= deltaTime;
         if (this.hudRefreshCooldown <= 0) {
@@ -242,7 +265,7 @@ export class GameController extends Component {
         this.createHud();
         this.createLaneButtons();
         this.createUnitTypeButtons();
-        this.createTacticButton();
+        this.createTacticButtons();
         this.createResultPanel();
         this.refreshHud(this.statusMessage);
     }
@@ -387,8 +410,10 @@ export class GameController extends Component {
             this.drawSupplyPoint(point);
         }
 
-        this.playerSupply += playerControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime;
-        this.aiSupply += aiControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime;
+        this.playerSupply = Math.min(SUPPLY_MAX,
+            this.playerSupply + playerControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime);
+        this.aiSupply = Math.min(SUPPLY_MAX,
+            this.aiSupply + aiControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime);
         if (captureMessage) {
             this.refreshHud(captureMessage);
         }
@@ -408,7 +433,7 @@ export class GameController extends Component {
         this.aiBaseLabel = this.createLabel(this.gameLayer, 'AIBaseHealth', '', 0, 260, 380, 28, 19, Color.WHITE);
         this.aiEnergyLabel = this.createLabel(this.gameLayer, 'AIEnergy', '', 405, 260, 260, 28, 17, new Color(255, 219, 132, 255));
         this.aiSupplyLabel = this.createLabel(this.gameLayer, 'AISupply', '', -350, 260, 280, 28, 17, new Color(255, 186, 150, 255));
-        this.aiTacticLabel = this.createLabel(this.gameLayer, 'AITactic', '', 0, 301, 520, 24, 16, new Color(255, 212, 172, 255));
+        this.aiTacticLabel = this.createLabel(this.gameLayer, 'AITactic', '', 0, 301, 960, 24, 14, new Color(255, 212, 172, 255));
         this.playerBaseLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealth', '', 0, -258, 380, 28, 19, Color.WHITE);
         this.playerEnergyLabel = this.createLabel(this.gameLayer, 'PlayerEnergy', '', 405, -258, 260, 28, 17, new Color(133, 220, 255, 255));
         this.playerSupplyLabel = this.createLabel(this.gameLayer, 'PlayerSupply', '', -350, -258, 280, 28, 17, new Color(141, 218, 255, 255));
@@ -435,9 +460,15 @@ export class GameController extends Component {
         }
     }
 
-    private createTacticButton(): void {
+    private createTacticButtons(): void {
+        this.playerSprintButton = this.createButton(this.gameLayer, 'PlayerSprintButton', '', -425, -292, 250, 32, 13, () => {
+            this.tryUseSprint(Team.Player);
+        });
         this.playerShockButton = this.createButton(this.gameLayer, 'PlayerShockButton', '', 0, -292, 300, 32, 14, () => {
             this.tryUseShock(Team.Player);
+        });
+        this.playerHealButton = this.createButton(this.gameLayer, 'PlayerHealButton', '', 425, -292, 250, 32, 13, () => {
+            this.tryUseHeal(Team.Player);
         });
     }
 
@@ -625,7 +656,8 @@ export class GameController extends Component {
             }
 
             const direction = unit.team === Team.Player ? 1 : -1;
-            unit.node.setPosition(unit.node.position.x, unit.node.position.y + direction * unit.definition.speed * deltaTime);
+            const movement = unit.definition.speed * this.getSprintMultiplier(unit.team) * deltaTime;
+            unit.node.setPosition(unit.node.position.x, unit.node.position.y + direction * movement);
             const hasReachedBase = (unit.team === Team.Player && unit.node.position.y >= AI_BASE_Y - 30)
                 || (unit.team === Team.AI && unit.node.position.y <= PLAYER_BASE_Y + 30);
             if (hasReachedBase) {
@@ -703,6 +735,12 @@ export class GameController extends Component {
         this.aiShockUnlocked = false;
         this.playerShockUsed = false;
         this.aiShockUsed = false;
+        this.playerSprintRemaining = 0;
+        this.aiSprintRemaining = 0;
+        this.playerSprintCooldown = 0;
+        this.aiSprintCooldown = 0;
+        this.playerHealCooldown = 0;
+        this.aiHealCooldown = 0;
         for (const point of this.supplyPoints) {
             point.owner = null;
             point.capturingTeam = null;
@@ -736,8 +774,8 @@ export class GameController extends Component {
         this.aiBaseLabel.string = `AI 基地  ${this.aiBaseHealth} / ${BASE_MAX_HEALTH}`;
         this.playerEnergyLabel.string = `玩家能量  ${Math.floor(this.playerEnergy)} / ${ENERGY_MAX}`;
         this.aiEnergyLabel.string = `AI 能量  ${Math.floor(this.aiEnergy)} / ${ENERGY_MAX}`;
-        this.playerSupplyLabel.string = `玩家补给  ${Math.floor(this.playerSupply)}  (+${this.getSupplyIncome(Team.Player)}/秒)`;
-        this.aiSupplyLabel.string = `AI 补给  ${Math.floor(this.aiSupply)}  (+${this.getSupplyIncome(Team.AI)}/秒)`;
+        this.playerSupplyLabel.string = `玩家补给  ${Math.floor(this.playerSupply)} / ${SUPPLY_MAX}  (+${this.getSupplyIncome(Team.Player)}/秒)`;
+        this.aiSupplyLabel.string = `AI 补给  ${Math.floor(this.aiSupply)} / ${SUPPLY_MAX}  (+${this.getSupplyIncome(Team.AI)}/秒)`;
         this.statusLabel.string = this.statusMessage;
         this.refreshUnitTypeButtons();
         this.refreshTacticUi();
@@ -881,8 +919,192 @@ export class GameController extends Component {
         }, 0.35);
     }
 
+    private getSprintMultiplier(team: Team): number {
+        const remaining = team === Team.Player ? this.playerSprintRemaining : this.aiSprintRemaining;
+        return remaining > 0 ? SPRINT_SPEED_MULTIPLIER : 1;
+    }
+
+    private tryUseSprint(team: Team): void {
+        if (this.isFinished) {
+            return;
+        }
+
+        const isPlayer = team === Team.Player;
+        const remaining = isPlayer ? this.playerSprintRemaining : this.aiSprintRemaining;
+        const cooldown = isPlayer ? this.playerSprintCooldown : this.aiSprintCooldown;
+        const supply = isPlayer ? this.playerSupply : this.aiSupply;
+        const tacticName = '\u5168\u7EBF\u51B2\u523A';
+        if (remaining > 0 || cooldown > 0) {
+            if (isPlayer) {
+                this.refreshHud(`${tacticName}\u6682\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7B49\u5F85 ${Math.max(1, Math.ceil(Math.max(remaining, cooldown)))} \u79D2\u3002`);
+            }
+            return;
+        }
+        if (supply < SPRINT_SUPPLY_COST) {
+            if (isPlayer) {
+                this.refreshHud(`${tacticName}\u9700\u8981 ${SPRINT_SUPPLY_COST} \u70B9\u8865\u7ED9\u3002`);
+            }
+            return;
+        }
+        if (!this.units.some((unit) => unit.team === team && unit.health > 0 && unit.node.isValid)) {
+            if (isPlayer) {
+                this.refreshHud('\u6218\u573A\u4E0A\u6CA1\u6709\u53EF\u51B2\u523A\u7684\u5DF1\u65B9\u5355\u4F4D\u3002');
+            }
+            return;
+        }
+
+        if (isPlayer) {
+            this.playerSupply -= SPRINT_SUPPLY_COST;
+            this.playerSprintRemaining = SPRINT_DURATION_SECONDS;
+            this.playerSprintCooldown = SPRINT_COOLDOWN_SECONDS;
+        } else {
+            this.aiSupply -= SPRINT_SUPPLY_COST;
+            this.aiSprintRemaining = SPRINT_DURATION_SECONDS;
+            this.aiSprintCooldown = SPRINT_COOLDOWN_SECONDS;
+        }
+        this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A\u5168\u90E8\u5B58\u6D3B\u5355\u4F4D\u79FB\u52A8\u901F\u5EA6 +50%\uFF0C\u6301\u7EED ${SPRINT_DURATION_SECONDS} \u79D2\u3002`);
+    }
+
+    private tryUseHeal(team: Team): void {
+        if (this.isFinished) {
+            return;
+        }
+
+        const isPlayer = team === Team.Player;
+        const cooldown = isPlayer ? this.playerHealCooldown : this.aiHealCooldown;
+        const supply = isPlayer ? this.playerSupply : this.aiSupply;
+        const tacticName = '\u6218\u5730\u6025\u6551';
+        if (cooldown > 0) {
+            if (isPlayer) {
+                this.refreshHud(`${tacticName}\u6682\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7B49\u5F85 ${Math.max(1, Math.ceil(cooldown))} \u79D2\u3002`);
+            }
+            return;
+        }
+        if (supply < HEAL_SUPPLY_COST) {
+            if (isPlayer) {
+                this.refreshHud(`${tacticName}\u9700\u8981 ${HEAL_SUPPLY_COST} \u70B9\u8865\u7ED9\u3002`);
+            }
+            return;
+        }
+
+        const damagedUnits = this.units.filter((unit) => unit.team === team && unit.health > 0 && unit.node.isValid
+            && unit.health < unit.definition.maxHealth);
+        if (damagedUnits.length === 0) {
+            if (isPlayer) {
+                this.refreshHud('\u6CA1\u6709\u53D7\u4F24\u7684\u5DF1\u65B9\u5355\u4F4D\u53EF\u4EE5\u6025\u6551\u3002');
+            }
+            return;
+        }
+
+        for (const unit of damagedUnits) {
+            const healAmount = Math.ceil(unit.definition.maxHealth * HEAL_AMOUNT_RATIO);
+            unit.health = Math.min(unit.definition.maxHealth, unit.health + healAmount);
+            this.drawUnit(unit);
+        }
+        if (isPlayer) {
+            this.playerSupply -= HEAL_SUPPLY_COST;
+            this.playerHealCooldown = HEAL_COOLDOWN_SECONDS;
+        } else {
+            this.aiSupply -= HEAL_SUPPLY_COST;
+            this.aiHealCooldown = HEAL_COOLDOWN_SECONDS;
+        }
+        this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A${damagedUnits.length} \u4E2A\u5B58\u6D3B\u5355\u4F4D\u6062\u590D\u4E86 40% \u6700\u5927\u751F\u547D\u3002`);
+    }
+
+    private tryUseAITacticCards(): void {
+        if (this.isFinished) {
+            return;
+        }
+
+        const aiUnits = this.units.filter((unit) => unit.team === Team.AI && unit.health > 0 && unit.node.isValid);
+        const injuredUnits = aiUnits.filter((unit) => unit.health / unit.definition.maxHealth <= 0.68);
+        if (injuredUnits.length >= 2 && this.aiSupply >= HEAL_SUPPLY_COST && this.aiHealCooldown <= 0) {
+            this.tryUseHeal(Team.AI);
+            return;
+        }
+
+        if (aiUnits.length < 2 || this.aiSupply < SPRINT_SUPPLY_COST
+            || this.aiSprintRemaining > 0 || this.aiSprintCooldown > 0) {
+            return;
+        }
+        const aiPower = this.getTeamBattlePower(Team.AI);
+        const playerPower = this.getTeamBattlePower(Team.Player);
+        const hasAdvancedUnit = aiUnits.some((unit) => unit.node.position.y < 140);
+        if (hasAdvancedUnit && aiPower >= Math.max(36, playerPower * 1.25)) {
+            this.tryUseSprint(Team.AI);
+        }
+    }
+
+    private getTeamBattlePower(team: Team): number {
+        return this.units.filter((unit) => unit.team === team && unit.health > 0 && unit.node.isValid)
+            .reduce((total, unit) => total + unit.definition.battlePower * unit.health / unit.definition.maxHealth, 0);
+    }
+
+    private refreshSprintButton(): void {
+        const tacticName = '\u5168\u7EBF\u51B2\u523A';
+        let text: string;
+        let fill: Color;
+        let border: Color;
+        if (this.playerSprintRemaining > 0) {
+            text = `${tacticName} \u00B7 \u5DF2\u542F\u52A8 ${Math.max(1, Math.ceil(this.playerSprintRemaining))}\u79D2`;
+            fill = new Color(47, 150, 184, 255);
+            border = new Color(195, 247, 255, 255);
+        } else if (this.playerSprintCooldown > 0) {
+            text = `${tacticName} \u00B7 \u51B7\u5374 ${Math.max(1, Math.ceil(this.playerSprintCooldown))}\u79D2`;
+            fill = new Color(57, 63, 71, 255);
+            border = new Color(105, 114, 126, 255);
+        } else if (this.playerSupply < SPRINT_SUPPLY_COST) {
+            text = `${tacticName} \u00B7 ${SPRINT_SUPPLY_COST}\u8865\u7ED9\uFF08\u4E0D\u8DB3\uFF09`;
+            fill = new Color(57, 63, 71, 255);
+            border = new Color(105, 114, 126, 255);
+        } else {
+            text = `${tacticName} \u00B7 ${SPRINT_SUPPLY_COST}\u8865\u7ED9`;
+            fill = new Color(47, 125, 190, 255);
+            border = new Color(194, 237, 255, 255);
+        }
+        this.playerSprintButton.label.string = text;
+        this.playerSprintButton.label.color = this.playerSprintRemaining > 0
+            || (this.playerSprintCooldown <= 0 && this.playerSupply >= SPRINT_SUPPLY_COST)
+            ? Color.WHITE : new Color(177, 184, 193, 255);
+        this.drawButton(this.playerSprintButton, fill, border);
+    }
+
+    private refreshHealButton(): void {
+        const tacticName = '\u6218\u5730\u6025\u6551';
+        let text: string;
+        let fill: Color;
+        let border: Color;
+        if (this.playerHealCooldown > 0) {
+            text = `${tacticName} \u00B7 \u51B7\u5374 ${Math.max(1, Math.ceil(this.playerHealCooldown))}\u79D2`;
+            fill = new Color(57, 63, 71, 255);
+            border = new Color(105, 114, 126, 255);
+        } else if (this.playerSupply < HEAL_SUPPLY_COST) {
+            text = `${tacticName} \u00B7 ${HEAL_SUPPLY_COST}\u8865\u7ED9\uFF08\u4E0D\u8DB3\uFF09`;
+            fill = new Color(57, 63, 71, 255);
+            border = new Color(105, 114, 126, 255);
+        } else {
+            text = `${tacticName} \u00B7 ${HEAL_SUPPLY_COST}\u8865\u7ED9`;
+            fill = new Color(65, 145, 103, 255);
+            border = new Color(201, 245, 207, 255);
+        }
+        this.playerHealButton.label.string = text;
+        this.playerHealButton.label.color = this.playerHealCooldown <= 0 && this.playerSupply >= HEAL_SUPPLY_COST
+            ? Color.WHITE : new Color(177, 184, 193, 255);
+        this.drawButton(this.playerHealButton, fill, border);
+    }
+
+    private getAITacticStatusText(): string {
+        const shockState = this.aiShockUsed ? '\u5DF2\u4F7F\u7528' : this.aiShockUnlocked ? '\u5DF2\u5C31\u7EEA' : '\u672A\u89E3\u9501';
+        const sprintState = this.aiSprintRemaining > 0
+            ? `\u51B2\u523A ${Math.max(1, Math.ceil(this.aiSprintRemaining))}\u79D2`
+            : this.aiSprintCooldown > 0 ? `\u51B2\u523A\u51B7\u5374 ${Math.max(1, Math.ceil(this.aiSprintCooldown))}\u79D2` : '\u51B2\u523A\u53EF\u7528';
+        const healState = this.aiHealCooldown > 0
+            ? `\u6025\u6551\u51B7\u5374 ${Math.max(1, Math.ceil(this.aiHealCooldown))}\u79D2` : '\u6025\u6551\u53EF\u7528';
+        return `AI \u6218\u672F\uFF1A\u9707\u8361 ${shockState}  |  ${sprintState}  |  ${healState}`;
+    }
+
     private refreshTacticUi(): void {
-        if (!this.playerShockButton || !this.aiTacticLabel) {
+        if (!this.playerShockButton || !this.playerSprintButton || !this.playerHealButton || !this.aiTacticLabel) {
             return;
         }
 
@@ -906,9 +1128,12 @@ export class GameController extends Component {
         this.playerShockButton.label.color = this.playerShockUnlocked && !this.playerShockUsed
             ? Color.WHITE : new Color(177, 184, 193, 255);
         this.drawButton(this.playerShockButton, playerFill, playerBorder);
+        this.refreshSprintButton();
+        this.refreshHealButton();
 
         const aiState = this.aiShockUsed ? '已使用' : this.aiShockUnlocked ? '已就绪' : '未解锁（基地低于 50%）';
         this.aiTacticLabel.string = `AI 领地震荡：${aiState}`;
+        this.aiTacticLabel.string = this.getAITacticStatusText();
     }
 
     private drawUnit(unit: BattleUnit): void {
