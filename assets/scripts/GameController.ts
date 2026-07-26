@@ -25,9 +25,18 @@ const AI_BASE_Y = 260;
 const BASE_MAX_HEALTH = 100;
 const ENERGY_MAX = 100;
 const ENERGY_START = 60;
-const ENERGY_RECOVERY_PER_SECOND = 8;
-const PLAYER_SPAWN_COOLDOWN = 0.32;
-const AI_DECISION_INTERVAL = 0.72;
+const ENERGY_RECOVERY_PER_SECOND = 4;
+const PLAYER_SPAWN_COOLDOWN = 0.8;
+const AI_INITIAL_DECISION_DELAY = 1.8;
+const AI_IDLE_DECISION_INTERVAL = 1.1;
+const AI_MAX_ACTIVE_UNITS = 5;
+const AI_MAX_UNITS_PER_LANE = 2;
+const SUPPLY_CAPTURE_RADIUS = 62;
+const SUPPLY_CAPTURE_SECONDS = 1.7;
+const SUPPLY_VALUE_PER_POINT_PER_SECOND = 2;
+const SHOCK_UNLOCK_HEALTH = BASE_MAX_HEALTH * 0.5;
+const SHOCK_HEAVY_DAMAGE_RATIO = 0.55;
+const SHOCK_KNOCKBACK_DISTANCE = 145;
 
 enum Team {
     Player,
@@ -74,6 +83,16 @@ interface ButtonView {
     readonly height: number;
 }
 
+interface SupplyPoint {
+    readonly lane: number;
+    readonly node: Node;
+    readonly graphics: Graphics;
+    readonly label: Label;
+    owner: Team | null;
+    capturingTeam: Team | null;
+    captureTime: number;
+}
+
 const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
     [SheepType.Small]: {
         type: SheepType.Small,
@@ -81,7 +100,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 12,
         maxHealth: 32,
         damage: 6,
-        speed: 88,
+        speed: 60,
         attackInterval: 0.48,
         baseDamage: 8,
         battlePower: 18,
@@ -94,7 +113,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 24,
         maxHealth: 64,
         damage: 11,
-        speed: 72,
+        speed: 50,
         attackInterval: 0.58,
         baseDamage: 13,
         battlePower: 38,
@@ -107,7 +126,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 42,
         maxHealth: 116,
         damage: 19,
-        speed: 58,
+        speed: 40,
         attackInterval: 0.7,
         baseDamage: 21,
         battlePower: 72,
@@ -120,7 +139,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 70,
         maxHealth: 200,
         damage: 33,
-        speed: 43,
+        speed: 30,
         attackInterval: 0.9,
         baseDamage: 35,
         battlePower: 130,
@@ -144,17 +163,24 @@ const UNIT_ORDER: readonly SheepType[] = [
 export class GameController extends Component {
     private readonly units: BattleUnit[] = [];
     private readonly typeButtons = new Map<SheepType, ButtonView>();
+    private readonly supplyPoints: SupplyPoint[] = [];
 
     private playerBaseHealth = BASE_MAX_HEALTH;
     private aiBaseHealth = BASE_MAX_HEALTH;
     private playerEnergy = ENERGY_START;
     private aiEnergy = ENERGY_START;
+    private playerSupply = 0;
+    private aiSupply = 0;
     private selectedSheepType = SheepType.Small;
     private nextUnitId = 1;
     private playerSpawnCooldown = 0;
-    private aiDecisionCooldown = 1.1;
+    private aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
     private hudRefreshCooldown = 0;
     private isFinished = false;
+    private playerShockUnlocked = false;
+    private aiShockUnlocked = false;
+    private playerShockUsed = false;
+    private aiShockUsed = false;
     private statusMessage = '选择兵种后，点击一条通道出兵。';
 
     private gameLayer!: Node;
@@ -162,8 +188,12 @@ export class GameController extends Component {
     private aiBaseLabel!: Label;
     private playerEnergyLabel!: Label;
     private aiEnergyLabel!: Label;
+    private playerSupplyLabel!: Label;
+    private aiSupplyLabel!: Label;
+    private aiTacticLabel!: Label;
     private statusLabel!: Label;
     private resultPanel!: Node;
+    private playerShockButton!: ButtonView;
 
     onLoad(): void {
         view.setDesignResolutionSize(DESIGN_WIDTH, DESIGN_HEIGHT, ResolutionPolicy.SHOW_ALL);
@@ -189,11 +219,12 @@ export class GameController extends Component {
         this.aiEnergy = Math.min(ENERGY_MAX, this.aiEnergy + ENERGY_RECOVERY_PER_SECOND * deltaTime);
 
         if (this.aiDecisionCooldown <= 0) {
-            this.aiDecisionCooldown += AI_DECISION_INTERVAL;
-            this.trySpawnAIUnit();
+            this.aiDecisionCooldown += this.trySpawnAIUnit();
         }
 
         this.updateUnits(deltaTime);
+        this.updateSupplyPoints(deltaTime);
+        this.tryUseAIShock();
         this.hudRefreshCooldown -= deltaTime;
         if (this.hudRefreshCooldown <= 0) {
             this.hudRefreshCooldown = 0.12;
@@ -207,9 +238,11 @@ export class GameController extends Component {
         this.gameLayer.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
 
         this.drawBoard();
+        this.createSupplyPoints();
         this.createHud();
         this.createLaneButtons();
         this.createUnitTypeButtons();
+        this.createTacticButton();
         this.createResultPanel();
         this.refreshHud(this.statusMessage);
     }
@@ -244,12 +277,12 @@ export class GameController extends Component {
         this.drawBase(graphics, Team.AI);
         this.drawBase(graphics, Team.Player);
 
-        this.createLabel(this.gameLayer, 'Title', '狼羊四线战 · 兵种与资源原型', 0, 338, 620, 38, 27, new Color(247, 243, 233, 255));
-        this.createLabel(this.gameLayer, 'AITitle', 'AI 狼群', -548, 266, 180, 28, 18, new Color(255, 203, 196, 255));
-        this.createLabel(this.gameLayer, 'PlayerTitle', '玩家羊群', -548, -246, 180, 28, 18, new Color(192, 229, 255, 255));
+        this.createLabel(this.gameLayer, 'Title', '狼羊四线战 · 补给争夺原型', 0, 338, 620, 38, 27, new Color(247, 243, 233, 255));
+        this.createLabel(this.gameLayer, 'AITitle', 'AI 狼群', -574, 266, 120, 28, 18, new Color(255, 203, 196, 255));
+        this.createLabel(this.gameLayer, 'PlayerTitle', '玩家羊群', -574, -246, 120, 28, 18, new Color(192, 229, 255, 255));
 
         for (let index = 0; index < LANE_X.length; index += 1) {
-            this.createLabel(this.gameLayer, `LaneNumber${index}`, `第 ${index + 1} 线`, LANE_X[index], 12, 110, 28, 16, new Color(180, 194, 210, 190));
+            this.createLabel(this.gameLayer, `LaneNumber${index}`, `第 ${index + 1} 线`, LANE_X[index], 116, 110, 28, 16, new Color(180, 194, 210, 190));
         }
     }
 
@@ -264,11 +297,121 @@ export class GameController extends Component {
         graphics.fill();
     }
 
+    private createSupplyPoints(): void {
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            const node = this.createGraphicsNode(`SupplyPoint${lane}`, 124, 100, LANE_X[lane], 0, this.gameLayer);
+            const label = this.createLabel(node, 'Label', '', 0, -4, 114, 62, 12, Color.WHITE);
+            const point: SupplyPoint = {
+                lane,
+                node,
+                graphics: node.getComponent(Graphics)!,
+                label,
+                owner: null,
+                capturingTeam: null,
+                captureTime: 0,
+            };
+            this.supplyPoints.push(point);
+            this.drawSupplyPoint(point);
+        }
+    }
+
+    private drawSupplyPoint(point: SupplyPoint): void {
+        const graphics = point.graphics;
+        const ownerColor = point.owner === Team.Player
+            ? new Color(70, 162, 230, 255)
+            : point.owner === Team.AI ? new Color(223, 89, 79, 255) : new Color(116, 132, 148, 255);
+        const captureColor = point.capturingTeam === Team.Player
+            ? new Color(153, 220, 255, 255)
+            : point.capturingTeam === Team.AI ? new Color(255, 177, 163, 255) : new Color(184, 194, 204, 255);
+
+        graphics.clear();
+        graphics.fillColor = new Color(20, 28, 41, 245);
+        graphics.circle(0, 0, 41);
+        graphics.fill();
+        graphics.lineWidth = 4;
+        graphics.strokeColor = ownerColor;
+        graphics.circle(0, 0, 41);
+        graphics.stroke();
+        graphics.fillColor = new Color(ownerColor.r, ownerColor.g, ownerColor.b, point.owner === null ? 65 : 145);
+        graphics.circle(0, 0, 33);
+        graphics.fill();
+
+        graphics.fillColor = new Color(30, 38, 49, 255);
+        graphics.roundRect(-42, 44, 84, 7, 3);
+        graphics.fill();
+        if (point.capturingTeam !== null) {
+            const progressWidth = 84 * point.captureTime / SUPPLY_CAPTURE_SECONDS;
+            graphics.fillColor = captureColor;
+            graphics.roundRect(-42, 44, progressWidth, 7, 3);
+            graphics.fill();
+        }
+
+        const ownerText = point.owner === Team.Player ? '羊群控制' : point.owner === Team.AI ? '狼群控制' : '中立';
+        const captureText = point.capturingTeam === null ? ownerText : `夺取 ${Math.ceil(point.captureTime / SUPPLY_CAPTURE_SECONDS * 100)}%`;
+        point.label.string = `补给点\n${captureText}`;
+    }
+
+    private updateSupplyPoints(deltaTime: number): void {
+        let playerControlledCount = 0;
+        let aiControlledCount = 0;
+        let captureMessage: string | undefined;
+
+        for (const point of this.supplyPoints) {
+            const playerPresence = this.countUnitsInSupplyRange(point.lane, Team.Player);
+            const aiPresence = this.countUnitsInSupplyRange(point.lane, Team.AI);
+            const capturingTeam = playerPresence > 0 && aiPresence === 0
+                ? Team.Player : aiPresence > 0 && playerPresence === 0 ? Team.AI : null;
+
+            if (capturingTeam === null || capturingTeam === point.owner) {
+                point.capturingTeam = null;
+                point.captureTime = 0;
+            } else {
+                if (point.capturingTeam !== capturingTeam) {
+                    point.capturingTeam = capturingTeam;
+                    point.captureTime = 0;
+                }
+                point.captureTime += deltaTime;
+                if (point.captureTime >= SUPPLY_CAPTURE_SECONDS) {
+                    point.owner = capturingTeam;
+                    point.capturingTeam = null;
+                    point.captureTime = 0;
+                    captureMessage = `${capturingTeam === Team.Player ? '玩家' : 'AI'}夺取了第 ${point.lane + 1} 线补给点！`;
+                }
+            }
+
+            if (point.owner === Team.Player) {
+                playerControlledCount += 1;
+            } else if (point.owner === Team.AI) {
+                aiControlledCount += 1;
+            }
+            this.drawSupplyPoint(point);
+        }
+
+        this.playerSupply += playerControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime;
+        this.aiSupply += aiControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime;
+        if (captureMessage) {
+            this.refreshHud(captureMessage);
+        }
+    }
+
+    private countUnitsInSupplyRange(lane: number, team: Team): number {
+        return this.units.filter((unit) => unit.team === team && unit.lane === lane
+            && unit.health > 0 && unit.node.isValid && Math.abs(unit.node.position.y) <= SUPPLY_CAPTURE_RADIUS).length;
+    }
+
+    private getSupplyIncome(team: Team): number {
+        const controlledCount = this.supplyPoints.filter((point) => point.owner === team).length;
+        return controlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND;
+    }
+
     private createHud(): void {
         this.aiBaseLabel = this.createLabel(this.gameLayer, 'AIBaseHealth', '', 0, 260, 380, 28, 19, Color.WHITE);
         this.aiEnergyLabel = this.createLabel(this.gameLayer, 'AIEnergy', '', 405, 260, 260, 28, 17, new Color(255, 219, 132, 255));
+        this.aiSupplyLabel = this.createLabel(this.gameLayer, 'AISupply', '', -350, 260, 280, 28, 17, new Color(255, 186, 150, 255));
+        this.aiTacticLabel = this.createLabel(this.gameLayer, 'AITactic', '', 0, 301, 520, 24, 16, new Color(255, 212, 172, 255));
         this.playerBaseLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealth', '', 0, -258, 380, 28, 19, Color.WHITE);
         this.playerEnergyLabel = this.createLabel(this.gameLayer, 'PlayerEnergy', '', 405, -258, 260, 28, 17, new Color(133, 220, 255, 255));
+        this.playerSupplyLabel = this.createLabel(this.gameLayer, 'PlayerSupply', '', -350, -258, 280, 28, 17, new Color(141, 218, 255, 255));
         this.statusLabel = this.createLabel(this.gameLayer, 'Status', '', 0, 220, 920, 26, 16, new Color(232, 237, 244, 255));
     }
 
@@ -290,6 +433,12 @@ export class GameController extends Component {
             });
             this.typeButtons.set(type, button);
         }
+    }
+
+    private createTacticButton(): void {
+        this.playerShockButton = this.createButton(this.gameLayer, 'PlayerShockButton', '', 0, -292, 300, 32, 14, () => {
+            this.tryUseShock(Team.Player);
+        });
     }
 
     private createResultPanel(): void {
@@ -333,49 +482,76 @@ export class GameController extends Component {
         this.refreshHud(`第 ${lane + 1} 线派出${definition.name}，消耗 ${definition.cost} 能量。`);
     }
 
-    private trySpawnAIUnit(): void {
+    private trySpawnAIUnit(): number {
+        const aiUnitCount = this.units.filter((unit) => unit.team === Team.AI).length;
+        if (aiUnitCount >= AI_MAX_ACTIVE_UNITS) {
+            return AI_IDLE_DECISION_INTERVAL;
+        }
+
         const affordableTypes = UNIT_ORDER.filter((type) => UNIT_DEFINITIONS[type].cost <= this.aiEnergy);
         if (affordableTypes.length === 0) {
-            return;
+            return AI_IDLE_DECISION_INTERVAL;
         }
 
         const lane = this.chooseAILane();
+        if (lane === undefined) {
+            return AI_IDLE_DECISION_INTERVAL;
+        }
         const lanePressure = this.getLanePressure(lane);
-        const type = this.chooseAIUnitType(affordableTypes, lanePressure);
+        const type = this.chooseAIUnitType(affordableTypes, lanePressure, lane);
+        if (type === undefined) {
+            return AI_IDLE_DECISION_INTERVAL;
+        }
         const definition = UNIT_DEFINITIONS[type];
         this.aiEnergy -= definition.cost;
         this.spawnUnit(Team.AI, lane, definition);
         this.refreshHud(`AI 在第 ${lane + 1} 线派出${definition.name.replace('羊', '狼')}。`);
+        return this.getAIDeployCooldown(definition);
     }
 
-    private chooseAILane(): number {
-        let bestPressure = Number.NEGATIVE_INFINITY;
-        const candidates: number[] = [];
-        for (let lane = 0; lane < LANE_X.length; lane += 1) {
-            const pressure = this.getLanePressure(lane);
-            if (pressure > bestPressure) {
-                bestPressure = pressure;
-                candidates.length = 0;
-                candidates.push(lane);
-            } else if (pressure === bestPressure) {
-                candidates.push(lane);
-            }
+    private chooseAILane(): number | undefined {
+        const laneStates = LANE_X.map((_, lane) => ({
+            lane,
+            pressure: this.getLanePressure(lane) + this.getAISupplyPriority(lane),
+            aiCount: this.units.filter((unit) => unit.team === Team.AI && unit.lane === lane).length,
+        })).filter((state) => state.aiCount < AI_MAX_UNITS_PER_LANE);
+
+        if (laneStates.length === 0) {
+            return undefined;
         }
-        return candidates[Math.floor(Math.random() * candidates.length)];
+
+        const threatenedLanes = laneStates.filter((state) => state.pressure > 0);
+        const candidates = threatenedLanes.length > 0 ? threatenedLanes : laneStates;
+        const bestValue = threatenedLanes.length > 0
+            ? Math.max(...candidates.map((state) => state.pressure))
+            : Math.min(...candidates.map((state) => state.aiCount));
+        const bestCandidates = candidates.filter((state) => threatenedLanes.length > 0
+            ? state.pressure === bestValue : state.aiCount === bestValue);
+        return bestCandidates[Math.floor(Math.random() * bestCandidates.length)].lane;
     }
 
-    private chooseAIUnitType(affordableTypes: readonly SheepType[], lanePressure: number): SheepType {
-        if (lanePressure >= 100) {
-            return affordableTypes[affordableTypes.length - 1];
+    private chooseAIUnitType(affordableTypes: readonly SheepType[], lanePressure: number, lane: number): SheepType | undefined {
+        const canDeploy = (type: SheepType): boolean => affordableTypes.includes(type);
+        const playerHasHeavyUnit = this.units.some((unit) => unit.team === Team.Player && unit.lane === lane
+            && (unit.definition.type === SheepType.Large || unit.definition.type === SheepType.Giant));
+
+        if (canDeploy(SheepType.Giant) && (this.aiEnergy >= 90 || lanePressure >= 80 || playerHasHeavyUnit)) {
+            return SheepType.Giant;
         }
-        if (lanePressure >= 45) {
-            const preferred = affordableTypes.filter((type) => UNIT_DEFINITIONS[type].battlePower >= 38);
-            return preferred.length > 0 ? preferred[0] : affordableTypes[affordableTypes.length - 1];
+        if (canDeploy(SheepType.Large) && (lanePressure >= 36 || this.aiEnergy >= 55)) {
+            return SheepType.Large;
         }
-        if (this.aiEnergy >= 80 && affordableTypes.length > 1) {
-            return affordableTypes[Math.min(1, affordableTypes.length - 1)];
+        if (canDeploy(SheepType.Medium) && (lanePressure > 0 || this.aiEnergy >= 40)) {
+            return SheepType.Medium;
         }
-        return affordableTypes[0];
+        if (canDeploy(SheepType.Small) && lanePressure > 0) {
+            return SheepType.Small;
+        }
+        return undefined;
+    }
+
+    private getAIDeployCooldown(definition: UnitDefinition): number {
+        return 1.6 + definition.cost * 0.04;
     }
 
     private getLanePressure(lane: number): number {
@@ -393,6 +569,14 @@ export class GameController extends Component {
             }
         }
         return playerPower - aiPower;
+    }
+
+    private getAISupplyPriority(lane: number): number {
+        const point = this.supplyPoints.find((entry) => entry.lane === lane);
+        if (!point || point.owner === Team.AI) {
+            return 0;
+        }
+        return point.owner === Team.Player ? 26 : 10;
     }
 
     private spawnUnit(team: Team, lane: number, definition: UnitDefinition): void {
@@ -473,13 +657,19 @@ export class GameController extends Component {
 
     private damageBase(target: Team, attacker: BattleUnit): void {
         const damage = attacker.definition.baseDamage;
+        let message: string;
         if (target === Team.Player) {
             this.playerBaseHealth = Math.max(0, this.playerBaseHealth - damage);
-            this.refreshHud(`AI 的${attacker.definition.name.replace('羊', '狼')}突破防线，基地受到 ${damage} 点伤害！`);
+            message = `AI 的${attacker.definition.name.replace('羊', '狼')}突破防线，基地受到 ${damage} 点伤害！`;
         } else {
             this.aiBaseHealth = Math.max(0, this.aiBaseHealth - damage);
-            this.refreshHud(`${attacker.definition.name}突破防线，AI 基地受到 ${damage} 点伤害！`);
+            message = `${attacker.definition.name}突破防线，AI 基地受到 ${damage} 点伤害！`;
         }
+
+        if (this.unlockShockIfNeeded(target)) {
+            message += target === Team.Player ? ' 领地震荡已解锁！' : ' AI 的领地震荡已解锁！';
+        }
+        this.refreshHud(message);
 
         if (this.playerBaseHealth <= 0 || this.aiBaseHealth <= 0) {
             this.finishGame(this.aiBaseHealth <= 0);
@@ -504,9 +694,21 @@ export class GameController extends Component {
         this.aiBaseHealth = BASE_MAX_HEALTH;
         this.playerEnergy = ENERGY_START;
         this.aiEnergy = ENERGY_START;
+        this.playerSupply = 0;
+        this.aiSupply = 0;
         this.selectedSheepType = SheepType.Small;
         this.playerSpawnCooldown = 0;
-        this.aiDecisionCooldown = 1.1;
+        this.aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
+        this.playerShockUnlocked = false;
+        this.aiShockUnlocked = false;
+        this.playerShockUsed = false;
+        this.aiShockUsed = false;
+        for (const point of this.supplyPoints) {
+            point.owner = null;
+            point.capturingTeam = null;
+            point.captureTime = 0;
+            this.drawSupplyPoint(point);
+        }
         this.isFinished = false;
         this.resultPanel.active = false;
         this.refreshHud('新的战斗开始，双方从 60 点指挥能量起步。');
@@ -534,8 +736,11 @@ export class GameController extends Component {
         this.aiBaseLabel.string = `AI 基地  ${this.aiBaseHealth} / ${BASE_MAX_HEALTH}`;
         this.playerEnergyLabel.string = `玩家能量  ${Math.floor(this.playerEnergy)} / ${ENERGY_MAX}`;
         this.aiEnergyLabel.string = `AI 能量  ${Math.floor(this.aiEnergy)} / ${ENERGY_MAX}`;
+        this.playerSupplyLabel.string = `玩家补给  ${Math.floor(this.playerSupply)}  (+${this.getSupplyIncome(Team.Player)}/秒)`;
+        this.aiSupplyLabel.string = `AI 补给  ${Math.floor(this.aiSupply)}  (+${this.getSupplyIncome(Team.AI)}/秒)`;
         this.statusLabel.string = this.statusMessage;
         this.refreshUnitTypeButtons();
+        this.refreshTacticUi();
     }
 
     private refreshUnitTypeButtons(): void {
@@ -557,6 +762,153 @@ export class GameController extends Component {
             button.label.string = `${isSelected ? '✓ ' : ''}${definition.name}  ${definition.cost} 能量`;
             button.label.color = isAffordable || isSelected ? Color.WHITE : new Color(170, 176, 184, 255);
         }
+    }
+
+    private unlockShockIfNeeded(team: Team): boolean {
+        if (team === Team.Player) {
+            if (this.playerShockUnlocked || this.playerBaseHealth >= SHOCK_UNLOCK_HEALTH) {
+                return false;
+            }
+            this.playerShockUnlocked = true;
+            return true;
+        }
+
+        if (this.aiShockUnlocked || this.aiBaseHealth >= SHOCK_UNLOCK_HEALTH) {
+            return false;
+        }
+        this.aiShockUnlocked = true;
+        return true;
+    }
+
+    private tryUseAIShock(): void {
+        if (!this.aiShockUnlocked || this.aiShockUsed || this.isFinished) {
+            return;
+        }
+
+        const threats = this.getEnemiesInTerritory(Team.AI);
+        if (threats.length === 0) {
+            return;
+        }
+
+        const threatPower = threats.reduce((total, unit) => total + unit.definition.battlePower * unit.health / unit.definition.maxHealth, 0);
+        const enemyNearBase = threats.some((unit) => unit.node.position.y >= AI_BASE_Y - 115);
+        if (threats.length >= 2 || threatPower >= 70 || enemyNearBase) {
+            this.tryUseShock(Team.AI);
+        }
+    }
+
+    private tryUseShock(owner: Team): void {
+        const isPlayer = owner === Team.Player;
+        const isUnlocked = isPlayer ? this.playerShockUnlocked : this.aiShockUnlocked;
+        const isUsed = isPlayer ? this.playerShockUsed : this.aiShockUsed;
+        if (isUsed) {
+            if (isPlayer) {
+                this.refreshHud('领地震荡本局已使用。');
+            }
+            return;
+        }
+        if (!isUnlocked) {
+            if (isPlayer) {
+                this.refreshHud('基地血量低于 50% 后，才能解锁领地震荡。');
+            }
+            return;
+        }
+
+        const targets = this.getEnemiesInTerritory(owner);
+        if (targets.length === 0) {
+            if (isPlayer) {
+                this.refreshHud('本方领地内没有敌军，领地震荡已保留。');
+            }
+            return;
+        }
+
+        if (isPlayer) {
+            this.playerShockUsed = true;
+        } else {
+            this.aiShockUsed = true;
+        }
+
+        let defeatedCount = 0;
+        let repelledCount = 0;
+        for (const target of targets) {
+            const isLightUnit = target.definition.type === SheepType.Small || target.definition.type === SheepType.Medium;
+            if (isLightUnit) {
+                this.removeUnit(target);
+                defeatedCount += 1;
+                continue;
+            }
+
+            const damage = Math.ceil(target.definition.maxHealth * SHOCK_HEAVY_DAMAGE_RATIO);
+            target.health = Math.max(1, target.health - damage);
+            const direction = owner === Team.Player ? 1 : -1;
+            const knockedBackY = target.node.position.y + direction * SHOCK_KNOCKBACK_DISTANCE;
+            const boundedY = Math.max(PLAYER_BASE_Y + 35, Math.min(AI_BASE_Y - 35, knockedBackY));
+            target.node.setPosition(target.node.position.x, boundedY);
+            this.drawUnit(target);
+            repelledCount += 1;
+        }
+
+        this.createShockEffect(owner);
+        const ownerName = isPlayer ? '玩家' : 'AI';
+        this.refreshHud(`${ownerName}释放领地震荡：消灭 ${defeatedCount} 名轻型敌军，击退 ${repelledCount} 名重型敌军。`);
+    }
+
+    private getEnemiesInTerritory(owner: Team): BattleUnit[] {
+        return this.units.filter((unit) => {
+            if (unit.team === owner || unit.health <= 0 || !unit.node.isValid) {
+                return false;
+            }
+            return owner === Team.Player ? unit.node.position.y <= 0 : unit.node.position.y >= 0;
+        });
+    }
+
+    private createShockEffect(owner: Team): void {
+        const effect = this.createGraphicsNode('ShockWave', 1120, 330, 0, owner === Team.Player ? -150 : 150, this.gameLayer);
+        const graphics = effect.getComponent(Graphics)!;
+        const fillColor = owner === Team.Player ? new Color(90, 194, 255, 72) : new Color(255, 111, 91, 72);
+        const strokeColor = owner === Team.Player ? new Color(170, 234, 255, 240) : new Color(255, 191, 177, 240);
+        graphics.fillColor = fillColor;
+        graphics.roundRect(-560, -165, 1120, 330, 28);
+        graphics.fill();
+        graphics.lineWidth = 7;
+        graphics.strokeColor = strokeColor;
+        graphics.roundRect(-560, -165, 1120, 330, 28);
+        graphics.stroke();
+        this.scheduleOnce(() => {
+            if (effect.isValid) {
+                effect.destroy();
+            }
+        }, 0.35);
+    }
+
+    private refreshTacticUi(): void {
+        if (!this.playerShockButton || !this.aiTacticLabel) {
+            return;
+        }
+
+        let playerText: string;
+        let playerFill: Color;
+        let playerBorder: Color;
+        if (this.playerShockUsed) {
+            playerText = '领地震荡 · 本局已使用';
+            playerFill = new Color(57, 63, 71, 255);
+            playerBorder = new Color(105, 114, 126, 255);
+        } else if (this.playerShockUnlocked) {
+            playerText = '领地震荡 · 立即施放';
+            playerFill = new Color(67, 155, 220, 255);
+            playerBorder = new Color(210, 245, 255, 255);
+        } else {
+            playerText = '领地震荡 · 基地低于 50% 解锁';
+            playerFill = new Color(57, 63, 71, 255);
+            playerBorder = new Color(105, 114, 126, 255);
+        }
+        this.playerShockButton.label.string = playerText;
+        this.playerShockButton.label.color = this.playerShockUnlocked && !this.playerShockUsed
+            ? Color.WHITE : new Color(177, 184, 193, 255);
+        this.drawButton(this.playerShockButton, playerFill, playerBorder);
+
+        const aiState = this.aiShockUsed ? '已使用' : this.aiShockUnlocked ? '已就绪' : '未解锁（基地低于 50%）';
+        this.aiTacticLabel.string = `AI 领地震荡：${aiState}`;
     }
 
     private drawUnit(unit: BattleUnit): void {
