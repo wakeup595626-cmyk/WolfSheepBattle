@@ -194,6 +194,8 @@ export class GameController extends Component {
     private playerSpawnCooldown = 0;
     private aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
     private hudRefreshCooldown = 0;
+    private isStarted = false;
+    private tutorialCompleted = false;
     private isFinished = false;
     private playerShockUnlocked = false;
     private aiShockUnlocked = false;
@@ -217,6 +219,8 @@ export class GameController extends Component {
     private aiTacticLabel!: Label;
     private statusLabel!: Label;
     private resultPanel!: Node;
+    private startPanel!: Node;
+    private tutorialPanel!: Node;
     private playerShockButton!: ButtonView;
     private playerSprintButton!: ButtonView;
     private playerHealButton!: ButtonView;
@@ -235,7 +239,7 @@ export class GameController extends Component {
     }
 
     update(deltaTime: number): void {
-        if (this.isFinished) {
+        if (!this.isStarted || this.isFinished) {
             return;
         }
 
@@ -277,6 +281,8 @@ export class GameController extends Component {
         this.createUnitTypeButtons();
         this.createTacticButtons();
         this.createResultPanel();
+        this.createStartPanel();
+        this.createTutorialPanel();
         this.refreshHud(this.statusMessage);
     }
 
@@ -466,7 +472,7 @@ export class GameController extends Component {
         const xPositions = [-480, -160, 160, 480];
         for (let index = 0; index < UNIT_ORDER.length; index += 1) {
             const type = UNIT_ORDER[index];
-            const button = this.createButton(this.gameLayer, `TypeButton${type}`, '', xPositions[index], -334, 250, 42, 15, () => {
+            const button = this.createButton(this.gameLayer, `TypeButton${type}`, '', xPositions[index], -330, 260, 40, 15, () => {
                 this.selectedSheepType = type;
                 this.refreshHud(`${UNIT_DEFINITIONS[type].name}已选中，选择通道出兵。`);
             });
@@ -475,13 +481,13 @@ export class GameController extends Component {
     }
 
     private createTacticButtons(): void {
-        this.playerSprintButton = this.createButton(this.gameLayer, 'PlayerSprintButton', '', -425, -292, 250, 32, 13, () => {
+        this.playerSprintButton = this.createButton(this.gameLayer, 'PlayerSprintButton', '', -430, -286, 260, 36, 14, () => {
             this.tryUseSprint(Team.Player);
         });
-        this.playerShockButton = this.createButton(this.gameLayer, 'PlayerShockButton', '', 0, -292, 300, 32, 14, () => {
+        this.playerShockButton = this.createButton(this.gameLayer, 'PlayerShockButton', '', 0, -286, 300, 36, 14, () => {
             this.tryUseShock(Team.Player);
         });
-        this.playerHealButton = this.createButton(this.gameLayer, 'PlayerHealButton', '', 425, -292, 250, 32, 13, () => {
+        this.playerHealButton = this.createButton(this.gameLayer, 'PlayerHealButton', '', 430, -286, 260, 36, 14, () => {
             this.tryUseHeal(Team.Player);
         });
     }
@@ -510,8 +516,66 @@ export class GameController extends Component {
         this.resultPanel.active = false;
     }
 
+    private createStartPanel(): void {
+        this.startPanel = new Node('StartPanel');
+        this.startPanel.setParent(this.gameLayer);
+        this.startPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        this.drawModalBackground(this.startPanel, 860, 420);
+
+        this.createLabel(this.startPanel, 'StartTitle', '\u72FC\u7F8A\u56DB\u7EBF\u6218', 0, 126, 760, 58, 38, new Color(255, 244, 207, 255));
+        this.createLabel(this.startPanel, 'StartSubtitle', '\u56DB\u7EBF\u6B63\u9762\u4EA4\u950B\u00B7\u593A\u53D6\u8865\u7ED9\u00B7\u5B88\u4F4F\u57FA\u5730', 0, 78, 760, 30, 18, new Color(190, 220, 242, 255));
+        this.createLabel(this.startPanel, 'StartDescription', '\u9009\u62E9\u7F8A\u7FA4\uFF0C\u5728\u56DB\u6761\u901A\u9053\u51FA\u5175\u3002\n\u5360\u9886\u4E2D\u592E\u8865\u7ED9\u70B9\uFF0C\u79EF\u7D2F\u8865\u7ED9\u6765\u91CA\u653E\u6218\u672F\u3002\n\u51FB\u7834\u654C\u65B9\u57FA\u5730\u5373\u83B7\u80DC\u3002', 0, 5, 720, 120, 20, new Color(226, 233, 240, 255));
+        this.createButton(this.startPanel, 'StartBattleButton', '\u5F00\u59CB\u6218\u6597', 0, -126, 260, 60, 22, () => this.beginBattle());
+    }
+
+    private createTutorialPanel(): void {
+        this.tutorialPanel = new Node('TutorialPanel');
+        this.tutorialPanel.setParent(this.gameLayer);
+        this.tutorialPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        this.drawModalBackground(this.tutorialPanel, 900, 500);
+
+        this.createLabel(this.tutorialPanel, 'TutorialTitle', '\u65B0\u624B\u5F15\u5BFC\u00B7\u7B2C\u4E00\u5C40', 0, 172, 800, 48, 32, new Color(255, 244, 207, 255));
+        this.createLabel(this.tutorialPanel, 'TutorialSteps', '\u2460 \u5148\u70B9\u51FB\u5E95\u90E8\u5175\u79CD\u5361\u724C\u9009\u62E9\u7F8A\u7C7B\u578B\u3002\n\u2461 \u518D\u70B9\u51FB\u5BF9\u5E94\u901A\u9053\u7684\u201C\u51FA\u5175\u201D\u6309\u94AE\u3002\n\u2462 \u80FD\u91CF\u4F1A\u81EA\u52A8\u6062\u590D\uFF0C\u7528\u4E8E\u6D3E\u51FA\u5355\u4F4D\u3002\n\u2463 \u5360\u9886\u4E2D\u592E\u8865\u7ED9\u70B9\u53EF\u83B7\u5F97\u8865\u7ED9\u503C\u3002\n\u2464 \u8865\u7ED9\u503C\u53EF\u91CA\u653E\u5168\u7EBF\u51B2\u523A\u548C\u6218\u5730\u6025\u6551\u3002', 0, 32, 790, 230, 20, new Color(226, 233, 240, 255));
+        this.createButton(this.tutorialPanel, 'TutorialConfirmButton', '\u77E5\u9053\u4E86\uFF0C\u5F00\u59CB\u4F5C\u6218', 0, -168, 280, 56, 20, () => this.completeTutorial());
+        this.tutorialPanel.active = false;
+    }
+
+    private drawModalBackground(panel: Node, cardWidth: number, cardHeight: number): void {
+        const graphics = panel.addComponent(Graphics);
+        graphics.fillColor = new Color(8, 14, 24, 218);
+        graphics.rect(-DESIGN_WIDTH / 2, -DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT);
+        graphics.fill();
+        graphics.fillColor = new Color(22, 34, 52, 250);
+        graphics.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 30);
+        graphics.fill();
+        graphics.lineWidth = 4;
+        graphics.strokeColor = new Color(217, 235, 251, 255);
+        graphics.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 30);
+        graphics.stroke();
+    }
+
+    private beginBattle(): void {
+        this.startPanel.active = false;
+        if (this.tutorialCompleted) {
+            this.activateBattle();
+            return;
+        }
+        this.tutorialPanel.active = true;
+    }
+
+    private completeTutorial(): void {
+        this.tutorialCompleted = true;
+        this.tutorialPanel.active = false;
+        this.activateBattle();
+    }
+
+    private activateBattle(): void {
+        this.isStarted = true;
+        this.refreshHud('\u6307\u5F15\u5B8C\u6210\uFF1A\u9009\u62E9\u5175\u79CD\u540E\uFF0C\u70B9\u51FB\u901A\u9053\u5F00\u59CB\u51FA\u5175\u3002');
+    }
+
     private trySpawnPlayerUnit(lane: number): void {
-        if (this.isFinished) {
+        if (!this.isStarted || this.isFinished) {
             return;
         }
 
@@ -985,6 +1049,10 @@ export class GameController extends Component {
     }
 
     private tryUseShock(owner: Team): void {
+        if (!this.isStarted || this.isFinished) {
+            return;
+        }
+
         const isPlayer = owner === Team.Player;
         const isUnlocked = isPlayer ? this.playerShockUnlocked : this.aiShockUnlocked;
         const isUsed = isPlayer ? this.playerShockUsed : this.aiShockUsed;
@@ -1075,7 +1143,7 @@ export class GameController extends Component {
     }
 
     private tryUseSprint(team: Team): void {
-        if (this.isFinished) {
+        if (!this.isStarted || this.isFinished) {
             return;
         }
 
@@ -1117,7 +1185,7 @@ export class GameController extends Component {
     }
 
     private tryUseHeal(team: Team): void {
-        if (this.isFinished) {
+        if (!this.isStarted || this.isFinished) {
             return;
         }
 
