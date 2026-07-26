@@ -29,8 +29,8 @@ const ENERGY_RECOVERY_PER_SECOND = 4;
 const PLAYER_SPAWN_COOLDOWN = 0.8;
 const AI_INITIAL_DECISION_DELAY = 1.8;
 const AI_IDLE_DECISION_INTERVAL = 1.1;
-const AI_MAX_ACTIVE_UNITS = 5;
-const AI_MAX_UNITS_PER_LANE = 2;
+const TEAM_MAX_ACTIVE_UNITS = 5;
+const TEAM_MAX_UNITS_PER_LANE = 2;
 const SUPPLY_CAPTURE_RADIUS = 62;
 const SUPPLY_CAPTURE_SECONDS = 1.7;
 const SUPPLY_VALUE_PER_POINT_PER_SECOND = 2;
@@ -99,6 +99,14 @@ interface SupplyPoint {
     owner: Team | null;
     capturingTeam: Team | null;
     captureTime: number;
+}
+
+interface BattleStats {
+    unitsSpawned: number;
+    supplyEarned: number;
+    shockUses: number;
+    sprintUses: number;
+    healUses: number;
 }
 
 const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
@@ -179,6 +187,8 @@ export class GameController extends Component {
     private aiEnergy = ENERGY_START;
     private playerSupply = 0;
     private aiSupply = 0;
+    private playerStats: BattleStats = this.createEmptyBattleStats();
+    private aiStats: BattleStats = this.createEmptyBattleStats();
     private selectedSheepType = SheepType.Small;
     private nextUnitId = 1;
     private playerSpawnCooldown = 0;
@@ -410,10 +420,14 @@ export class GameController extends Component {
             this.drawSupplyPoint(point);
         }
 
-        this.playerSupply = Math.min(SUPPLY_MAX,
-            this.playerSupply + playerControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime);
-        this.aiSupply = Math.min(SUPPLY_MAX,
-            this.aiSupply + aiControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime);
+        const playerSupplyGain = Math.min(SUPPLY_MAX - this.playerSupply,
+            playerControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime);
+        const aiSupplyGain = Math.min(SUPPLY_MAX - this.aiSupply,
+            aiControlledCount * SUPPLY_VALUE_PER_POINT_PER_SECOND * deltaTime);
+        this.playerSupply += playerSupplyGain;
+        this.aiSupply += aiSupplyGain;
+        this.playerStats.supplyEarned += playerSupplyGain;
+        this.aiStats.supplyEarned += aiSupplyGain;
         if (captureMessage) {
             this.refreshHud(captureMessage);
         }
@@ -475,25 +489,38 @@ export class GameController extends Component {
     private createResultPanel(): void {
         this.resultPanel = new Node('ResultPanel');
         this.resultPanel.setParent(this.gameLayer);
-        this.resultPanel.addComponent(UITransform).setContentSize(530, 260);
+        this.resultPanel.addComponent(UITransform).setContentSize(720, 360);
 
         const background = this.resultPanel.addComponent(Graphics);
         background.fillColor = new Color(15, 22, 34, 238);
-        background.roundRect(-265, -130, 530, 260, 28);
+        background.roundRect(-360, -180, 720, 360, 28);
         background.fill();
         background.lineWidth = 4;
         background.strokeColor = new Color(238, 215, 133, 255);
-        background.roundRect(-265, -130, 530, 260, 28);
+        background.roundRect(-360, -180, 720, 360, 28);
         background.stroke();
 
         this.createLabel(this.resultPanel, 'ResultText', '', 0, 42, 460, 58, 36, new Color(255, 244, 207, 255));
+        this.resultPanel.getChildByName('ResultText')?.setPosition(new Vec3(0, 128, 0));
+        this.createLabel(this.resultPanel, 'ResultReport', '', 0, 30, 660, 110, 16, new Color(226, 233, 240, 255));
         this.createLabel(this.resultPanel, 'ResultHint', '重新开始会恢复双方基地与指挥能量。', 0, -10, 460, 34, 18, new Color(226, 233, 240, 255));
         this.createButton(this.resultPanel, 'RestartButton', '重新开始', 0, -72, 180, 48, 18, () => this.restartGame());
+        this.resultPanel.getChildByName('ResultHint')?.setPosition(new Vec3(0, -96, 0));
+        this.resultPanel.getChildByName('RestartButton')?.setPosition(new Vec3(0, -144, 0));
         this.resultPanel.active = false;
     }
 
     private trySpawnPlayerUnit(lane: number): void {
         if (this.isFinished) {
+            return;
+        }
+
+        if (this.getActiveUnitCount(Team.Player) >= TEAM_MAX_ACTIVE_UNITS) {
+            this.refreshHud('\u5DF1\u65B9\u5DF2\u8FBE\u5230 5 \u4E2A\u5B58\u6D3B\u5355\u4F4D\u4E0A\u9650\u3002');
+            return;
+        }
+        if (this.getLaneUnitCount(Team.Player, lane) >= TEAM_MAX_UNITS_PER_LANE) {
+            this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u5DF2\u8FBE\u5230 2 \u4E2A\u5355\u4F4D\u4E0A\u9650\u3002`);
             return;
         }
 
@@ -514,8 +541,7 @@ export class GameController extends Component {
     }
 
     private trySpawnAIUnit(): number {
-        const aiUnitCount = this.units.filter((unit) => unit.team === Team.AI).length;
-        if (aiUnitCount >= AI_MAX_ACTIVE_UNITS) {
+        if (this.getActiveUnitCount(Team.AI) >= TEAM_MAX_ACTIVE_UNITS) {
             return AI_IDLE_DECISION_INTERVAL;
         }
 
@@ -543,22 +569,100 @@ export class GameController extends Component {
     private chooseAILane(): number | undefined {
         const laneStates = LANE_X.map((_, lane) => ({
             lane,
-            pressure: this.getLanePressure(lane) + this.getAISupplyPriority(lane),
-            aiCount: this.units.filter((unit) => unit.team === Team.AI && unit.lane === lane).length,
-        })).filter((state) => state.aiCount < AI_MAX_UNITS_PER_LANE);
+            priority: this.getAILanePriority(lane),
+            aiCount: this.getLaneUnitCount(Team.AI, lane),
+        })).filter((state) => state.aiCount < TEAM_MAX_UNITS_PER_LANE);
 
         if (laneStates.length === 0) {
             return undefined;
         }
 
-        const threatenedLanes = laneStates.filter((state) => state.pressure > 0);
-        const candidates = threatenedLanes.length > 0 ? threatenedLanes : laneStates;
-        const bestValue = threatenedLanes.length > 0
-            ? Math.max(...candidates.map((state) => state.pressure))
-            : Math.min(...candidates.map((state) => state.aiCount));
-        const bestCandidates = candidates.filter((state) => threatenedLanes.length > 0
-            ? state.pressure === bestValue : state.aiCount === bestValue);
-        return bestCandidates[Math.floor(Math.random() * bestCandidates.length)].lane;
+        const priorityLanes = laneStates.filter((state) => state.priority > 0);
+        if (priorityLanes.length > 0) {
+            const highestPriority = Math.max(...priorityLanes.map((state) => state.priority));
+            const highestPriorityLanes = priorityLanes.filter((state) => state.priority === highestPriority);
+            const fewestDefenders = Math.min(...highestPriorityLanes.map((state) => state.aiCount));
+            const candidates = highestPriorityLanes.filter((state) => state.aiCount === fewestDefenders);
+            return candidates[Math.floor(Math.random() * candidates.length)].lane;
+        }
+
+        const fewestUnits = Math.min(...laneStates.map((state) => state.aiCount));
+        const candidates = laneStates.filter((state) => state.aiCount === fewestUnits);
+        return candidates[Math.floor(Math.random() * candidates.length)].lane;
+    }
+
+    private getAILanePriority(lane: number): number {
+        return this.getPlayerThreatScore(lane) + this.getAISupplyPriority(lane);
+    }
+
+    private getPlayerThreatScore(lane: number): number {
+        const playerUnits = this.units.filter((unit) => unit.team === Team.Player && unit.lane === lane
+            && unit.health > 0 && unit.node.isValid);
+        if (playerUnits.length === 0) {
+            return 0;
+        }
+
+        const playerPower = playerUnits.reduce((total, unit) => total + unit.definition.battlePower
+            * unit.health / unit.definition.maxHealth, 0);
+        const aiPower = this.getLanePower(Team.AI, lane);
+        const playerAdvantage = Math.max(0, playerPower - aiPower) * 1.6;
+        const forwardMostPosition = Math.max(...playerUnits.map((unit) => unit.node.position.y));
+        const nearAiBase = Math.max(0, forwardMostPosition - 60) * 0.34;
+        const aiTerritoryThreat = playerUnits.some((unit) => unit.node.position.y > 0) ? 18 : 0;
+        return playerAdvantage + nearAiBase + aiTerritoryThreat;
+    }
+
+    private getLanePower(team: Team, lane: number): number {
+        return this.units.filter((unit) => unit.team === team && unit.lane === lane
+            && unit.health > 0 && unit.node.isValid)
+            .reduce((total, unit) => total + unit.definition.battlePower * unit.health / unit.definition.maxHealth, 0);
+    }
+
+    private getActiveUnitCount(team: Team): number {
+        return this.units.filter((unit) => unit.team === team && unit.health > 0 && unit.node.isValid).length;
+    }
+
+    private getLaneUnitCount(team: Team, lane: number): number {
+        return this.units.filter((unit) => unit.team === team && unit.lane === lane
+            && unit.health > 0 && unit.node.isValid).length;
+    }
+
+    private createEmptyBattleStats(): BattleStats {
+        return {
+            unitsSpawned: 0,
+            supplyEarned: 0,
+            shockUses: 0,
+            sprintUses: 0,
+            healUses: 0,
+        };
+    }
+
+    private getBattleStats(team: Team): BattleStats {
+        return team === Team.Player ? this.playerStats : this.aiStats;
+    }
+
+    private buildBattleReport(): string {
+        return [
+            `\u73A9\u5BB6\uFF1A\u57FA\u5730 ${this.playerBaseHealth} / ${BASE_MAX_HEALTH}  \u00B7  \u51FA\u5175 ${this.playerStats.unitsSpawned}  \u00B7  \u83B7\u5F97\u8865\u7ED9 ${this.formatSupplyEarned(this.playerStats)}`,
+            `\u6218\u672F\uFF1A${this.formatTactics(this.playerStats)}`,
+            `AI\uFF1A\u57FA\u5730 ${this.aiBaseHealth} / ${BASE_MAX_HEALTH}  \u00B7  \u51FA\u5175 ${this.aiStats.unitsSpawned}  \u00B7  \u83B7\u5F97\u8865\u7ED9 ${this.formatSupplyEarned(this.aiStats)}`,
+            `\u6218\u672F\uFF1A${this.formatTactics(this.aiStats)}`,
+        ].join('\n');
+    }
+
+    private formatSupplyEarned(stats: BattleStats): string {
+        return stats.supplyEarned.toFixed(1);
+    }
+
+    private formatTactics(stats: BattleStats): string {
+        const tactics: Array<[string, number]> = [
+            ['\u9886\u5730\u9707\u8361', stats.shockUses],
+            ['\u5168\u7EBF\u51B2\u523A', stats.sprintUses],
+            ['\u6218\u5730\u6025\u6551', stats.healUses],
+        ];
+        const usedTactics = tactics.filter(([, count]) => count > 0)
+            .map(([name, count]) => `${name}\u00D7${count}`);
+        return usedTactics.length > 0 ? usedTactics.join('\u3001') : '\u672A\u4F7F\u7528';
     }
 
     private chooseAIUnitType(affordableTypes: readonly SheepType[], lanePressure: number, lane: number): SheepType | undefined {
@@ -632,10 +736,14 @@ export class GameController extends Component {
         };
         this.nextUnitId += 1;
         this.units.push(unit);
+        this.getBattleStats(team).unitsSpawned += 1;
         this.drawUnit(unit);
     }
 
     private updateUnits(deltaTime: number): void {
+        const pendingDamage = new Map<BattleUnit, number>();
+        const movingUnits: BattleUnit[] = [];
+
         for (const unit of [...this.units]) {
             if (unit.health <= 0 || !unit.node.isValid) {
                 continue;
@@ -645,13 +753,20 @@ export class GameController extends Component {
             if (target) {
                 unit.attackCooldown -= deltaTime;
                 if (unit.attackCooldown <= 0) {
-                    target.health -= unit.definition.damage;
                     unit.attackCooldown = unit.definition.attackInterval;
-                    this.drawUnit(target);
-                    if (target.health <= 0) {
-                        this.removeUnit(target);
-                    }
+                    const accumulatedDamage = pendingDamage.get(target) ?? 0;
+                    pendingDamage.set(target, accumulatedDamage + unit.definition.damage);
                 }
+                continue;
+            }
+
+            movingUnits.push(unit);
+        }
+
+        this.resolvePendingCombatDamage(pendingDamage);
+
+        for (const unit of movingUnits) {
+            if (unit.health <= 0 || !unit.node.isValid) {
                 continue;
             }
 
@@ -667,6 +782,30 @@ export class GameController extends Component {
                     return;
                 }
             }
+        }
+    }
+
+    private resolvePendingCombatDamage(pendingDamage: ReadonlyMap<BattleUnit, number>): void {
+        if (pendingDamage.size === 0) {
+            return;
+        }
+
+        for (const [target, damage] of pendingDamage) {
+            if (target.health > 0 && target.node.isValid) {
+                target.health -= damage;
+            }
+        }
+
+        const defeatedUnits: BattleUnit[] = [];
+        for (const target of pendingDamage.keys()) {
+            if (target.health <= 0 || !target.node.isValid) {
+                defeatedUnits.push(target);
+            } else {
+                this.drawUnit(target);
+            }
+        }
+        for (const unit of defeatedUnits) {
+            this.removeUnit(unit);
         }
     }
 
@@ -715,6 +854,10 @@ export class GameController extends Component {
         if (resultText) {
             resultText.string = playerWon ? '胜利！羊群守住了家园' : '失败！狼群攻破了基地';
         }
+        const resultReport = this.resultPanel.getChildByName('ResultReport')?.getComponent(Label);
+        if (resultReport) {
+            resultReport.string = this.buildBattleReport();
+        }
         this.resultPanel.active = true;
     }
 
@@ -741,6 +884,8 @@ export class GameController extends Component {
         this.aiSprintCooldown = 0;
         this.playerHealCooldown = 0;
         this.aiHealCooldown = 0;
+        this.playerStats = this.createEmptyBattleStats();
+        this.aiStats = this.createEmptyBattleStats();
         for (const point of this.supplyPoints) {
             point.owner = null;
             point.capturingTeam = null;
@@ -749,6 +894,10 @@ export class GameController extends Component {
         }
         this.isFinished = false;
         this.resultPanel.active = false;
+        const resultReport = this.resultPanel.getChildByName('ResultReport')?.getComponent(Label);
+        if (resultReport) {
+            resultReport.string = '';
+        }
         this.refreshHud('新的战斗开始，双方从 60 点指挥能量起步。');
     }
 
@@ -865,6 +1014,7 @@ export class GameController extends Component {
         } else {
             this.aiShockUsed = true;
         }
+        this.getBattleStats(owner).shockUses += 1;
 
         let defeatedCount = 0;
         let repelledCount = 0;
@@ -962,6 +1112,7 @@ export class GameController extends Component {
             this.aiSprintRemaining = SPRINT_DURATION_SECONDS;
             this.aiSprintCooldown = SPRINT_COOLDOWN_SECONDS;
         }
+        this.getBattleStats(team).sprintUses += 1;
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A\u5168\u90E8\u5B58\u6D3B\u5355\u4F4D\u79FB\u52A8\u901F\u5EA6 +50%\uFF0C\u6301\u7EED ${SPRINT_DURATION_SECONDS} \u79D2\u3002`);
     }
 
@@ -1008,6 +1159,7 @@ export class GameController extends Component {
             this.aiSupply -= HEAL_SUPPLY_COST;
             this.aiHealCooldown = HEAL_COOLDOWN_SECONDS;
         }
+        this.getBattleStats(team).healUses += 1;
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A${damagedUnits.length} \u4E2A\u5B58\u6D3B\u5355\u4F4D\u6062\u590D\u4E86 40% \u6700\u5927\u751F\u547D\u3002`);
     }
 
