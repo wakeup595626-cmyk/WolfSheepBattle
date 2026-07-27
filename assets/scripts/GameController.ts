@@ -1,5 +1,6 @@
 import {
     _decorator,
+    AudioClip,
     BlockInputEvents,
     Canvas,
     Color,
@@ -19,12 +20,13 @@ import {
     Tween,
     sys,
 } from 'cc';
+import { AudioManager } from './AudioManager';
 
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
-const GAME_VERSION = 'v1.1.4';
+const GAME_VERSION = 'v1.2.0-dev';
 const BATTLEFIELD_CENTER_X = -90;
 const LANE_SPACING = 270;
 const LANE_X = [
@@ -223,6 +225,8 @@ interface LaneSpawnMarkerView {
     readonly graphics: Graphics;
     readonly label: Label;
     readonly queueLabel: Label;
+    readonly failureOverlay: Node;
+    readonly failureOpacity: UIOpacity;
     fullRemaining: number;
     visualState: SpawnMarkerState;
     lastQueueText: string;
@@ -410,6 +414,9 @@ const UNIT_ORDER: readonly SheepType[] = [
  */
 @ccclass('GameController')
 export class GameController extends Component {
+    @property([AudioClip])
+    private readonly audioClips: AudioClip[] = [];
+
     private readonly units: BattleUnit[] = [];
     private readonly dyingUnits: BattleUnit[] = [];
     private readonly typeButtons = new Map<SheepType, ButtonView>();
@@ -501,9 +508,12 @@ export class GameController extends Component {
     private playerHealCard!: TacticCardView;
     private playerShockCard!: TacticCardView;
     private pauseButton!: ButtonView;
+    private musicToggleButton!: ButtonView;
+    private sfxToggleButton!: ButtonView;
     private startSelectedLevelLabel!: Label;
     private levelSelectHintLabel!: Label;
     private readonly levelButtons = new Map<number, ButtonView>();
+    private audioManager!: AudioManager;
 
     onLoad(): void {
         view.setDesignResolutionSize(DESIGN_WIDTH, DESIGN_HEIGHT, ResolutionPolicy.SHOW_ALL);
@@ -515,6 +525,8 @@ export class GameController extends Component {
 
         const transform = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
         transform.setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        this.audioManager = this.node.getComponent(AudioManager) ?? this.node.addComponent(AudioManager);
+        this.audioManager.registerClips(this.audioClips);
         this.loadLevelProgress();
         this.buildGame();
     }
@@ -757,6 +769,8 @@ export class GameController extends Component {
         for (const effect of [...this.feedbackEffects]) {
             this.removeFeedbackEffect(effect);
         }
+        Tween.stopAllByTarget(this.battleLayer);
+        this.battleLayer.setPosition(0, 0, 0);
     }
 
     private createSupplyPoints(): void {
@@ -1100,11 +1114,33 @@ export class GameController extends Component {
                 this.hudLayer,
             );
             marker.on(NodeEventType.TOUCH_END, () => this.trySpawnPlayerUnit(lane), this);
+            const failureOverlay = this.createGraphicsNode(
+                'DeployFailureOverlay',
+                SPAWN_BUTTON_WIDTH,
+                SPAWN_BUTTON_HEIGHT,
+                0,
+                0,
+                marker,
+            );
+            const failureGraphics = failureOverlay.getComponent(Graphics)!;
+            failureGraphics.fillColor = new Color(74, 22, 32, 185);
+            failureGraphics.roundRect(
+                -SPAWN_BUTTON_WIDTH / 2,
+                -SPAWN_BUTTON_HEIGHT / 2,
+                SPAWN_BUTTON_WIDTH,
+                SPAWN_BUTTON_HEIGHT,
+                15,
+            );
+            failureGraphics.fill();
+            const failureOpacity = failureOverlay.addComponent(UIOpacity);
+            failureOverlay.active = false;
             const markerView: LaneSpawnMarkerView = {
                 node: marker,
                 graphics: marker.getComponent(Graphics)!,
                 label: this.createLabel(marker, 'QueueState', '', SPAWN_BUTTON_WIDTH / 2 - 28, 5, 40, 24, 14, Color.WHITE),
                 queueLabel: this.createLabel(marker, 'QueueCount', '', 0, -18, SPAWN_BUTTON_WIDTH - 12, 16, 11, new Color(255, 231, 157, 255)),
+                failureOverlay,
+                failureOpacity,
                 fullRemaining: 0,
                 visualState: 'paused',
                 lastQueueText: '',
@@ -1162,6 +1198,24 @@ export class GameController extends Component {
         }
         marker.fullRemaining = QUEUE_FULL_MARKER_SECONDS;
         this.refreshLaneSpawnMarker(lane, marker);
+    }
+
+    private triggerDeployFailureFeedback(lane: number): void {
+        const marker = this.laneSpawnMarkers[lane];
+        if (marker) {
+            Tween.stopAllByTarget(marker.failureOpacity);
+            marker.failureOverlay.active = true;
+            marker.failureOpacity.opacity = 210;
+            tween(marker.failureOpacity)
+                .to(0.18, { opacity: 0 }, { easing: 'quadOut' })
+                .call(() => {
+                    if (marker.failureOverlay.isValid) {
+                        marker.failureOverlay.active = false;
+                    }
+                })
+                .start();
+        }
+        this.audioManager.playSfx('deploy_failed');
     }
 
     private updateLaneSpawnMarkers(deltaTime: number): void {
@@ -1598,6 +1652,29 @@ export class GameController extends Component {
         this.createButton(this.pausePanel, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', 0, -12, 250, 48, 19, () => this.restartGame());
         this.createButton(this.pausePanel, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', 0, -74, 250, 48, 19, () => this.openHelpPanel());
         this.createButton(this.pausePanel, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', 0, -136, 250, 48, 19, () => this.returnToTitle());
+        this.musicToggleButton = this.createButton(
+            this.pausePanel,
+            'MusicToggleButton',
+            '',
+            -105,
+            -190,
+            190,
+            36,
+            15,
+            () => this.toggleMusicEnabled(),
+        );
+        this.sfxToggleButton = this.createButton(
+            this.pausePanel,
+            'SfxToggleButton',
+            '',
+            105,
+            -190,
+            190,
+            36,
+            15,
+            () => this.toggleSfxEnabled(),
+        );
+        this.refreshAudioSettingButtons();
         this.pausePanel.active = false;
 
         this.helpPanel = new Node('HelpPanel');
@@ -1616,7 +1693,9 @@ export class GameController extends Component {
         }
         this.isPaused = true;
         this.setBattleTweensPaused(true);
+        this.audioManager.setBattlePaused(true);
         this.pauseButton.node.active = false;
+        this.refreshAudioSettingButtons();
         this.showModal(this.pausePanel);
         this.refreshLaneSpawnMarkers();
     }
@@ -1627,12 +1706,43 @@ export class GameController extends Component {
         }
         this.setBattleTweensPaused(false);
         this.isPaused = false;
+        this.audioManager.setBattlePaused(false);
         this.helpPanel.active = false;
         this.pausePanel.active = false;
         this.pauseButton.node.active = true;
         this.resetLaneLivenessTimers();
         this.refreshLaneSpawnMarkers();
         this.refreshHud('\u5DF2\u7EE7\u7EED\u6218\u6597\u3002');
+    }
+
+    private toggleMusicEnabled(): void {
+        this.audioManager.setMusicEnabled(!this.audioManager.isMusicEnabled());
+        this.refreshAudioSettingButtons();
+    }
+
+    private toggleSfxEnabled(): void {
+        this.audioManager.setSfxEnabled(!this.audioManager.isSfxEnabled());
+        this.refreshAudioSettingButtons();
+    }
+
+    private refreshAudioSettingButtons(): void {
+        if (!this.musicToggleButton || !this.sfxToggleButton) {
+            return;
+        }
+        const musicEnabled = this.audioManager.isMusicEnabled();
+        const sfxEnabled = this.audioManager.isSfxEnabled();
+        this.musicToggleButton.label.string = `\u97F3\u4E50\uFF1A${musicEnabled ? '\u5F00' : '\u5173'}`;
+        this.sfxToggleButton.label.string = `\u97F3\u6548\uFF1A${sfxEnabled ? '\u5F00' : '\u5173'}`;
+        this.drawButton(
+            this.musicToggleButton,
+            musicEnabled ? new Color(39, 112, 164, 255) : new Color(61, 67, 76, 255),
+            musicEnabled ? new Color(170, 222, 255, 255) : new Color(122, 132, 143, 255),
+        );
+        this.drawButton(
+            this.sfxToggleButton,
+            sfxEnabled ? new Color(39, 112, 164, 255) : new Color(61, 67, 76, 255),
+            sfxEnabled ? new Color(170, 222, 255, 255) : new Color(122, 132, 143, 255),
+        );
     }
 
     private openHelpPanel(): void {
@@ -1657,12 +1767,16 @@ export class GameController extends Component {
         if (this.tacticNoticeOpacity) {
             toggleTween(this.tacticNoticeOpacity);
         }
+        toggleTween(this.battleLayer);
     }
 
     private returnToTitle(): void {
         this.restartGame();
         this.isStarted = false;
         this.isPaused = false;
+        this.audioManager.setBattlePaused(false);
+        this.audioManager.stopBgm();
+        this.audioManager.stopBattleSfx();
         this.pauseButton.node.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
@@ -1697,6 +1811,8 @@ export class GameController extends Component {
     }
 
     private beginBattle(): void {
+        this.audioManager.activateAudio();
+        this.audioManager.playBgm('battle_bgm');
         this.startPanel.active = false;
         this.applyLevelStartingResources();
         if (this.tutorialCompleted) {
@@ -1715,6 +1831,8 @@ export class GameController extends Component {
     private activateBattle(): void {
         this.isStarted = true;
         this.isPaused = false;
+        this.audioManager.setBattlePaused(false);
+        this.audioManager.playBgm('battle_bgm');
         const level = this.getCurrentLevelConfig();
         this.aiDecisionCooldown = level.aiInitialDecisionDelay;
         this.pauseButton.node.active = true;
@@ -1732,35 +1850,42 @@ export class GameController extends Component {
         const definition = UNIT_DEFINITIONS[this.selectedSheepType];
         if (this.getLaneUnitCount(Team.Player, lane) >= TEAM_MAX_UNITS_PER_LANE) {
             this.showLaneQueueFull(lane);
+            this.triggerDeployFailureFeedback(lane);
             this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u961F\u5217\u5DF2\u6EE1\uFF0C\u8BF7\u7B49\u5F85\u6216\u9009\u62E9\u5176\u4ED6\u9053\u8DEF\u3002`);
             return;
         }
         if (!this.canSpawnUnitInLane(Team.Player, lane, definition)) {
             this.showLaneQueueFull(lane);
+            this.triggerDeployFailureFeedback(lane);
             this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u961F\u5DF2\u6EE1\uFF0C\u8BF7\u7B49\u5F85\u6216\u9009\u62E9\u5176\u4ED6\u9053\u8DEF\u3002`);
             return;
         }
         if (this.getActiveUnitCount(Team.Player) >= PLAYER_MAX_ACTIVE_UNITS) {
+            this.triggerDeployFailureFeedback(lane);
             this.refreshHud('\u5DF1\u65B9\u5DF2\u8FBE\u5230 8 \u4E2A\u5B58\u6D3B\u5355\u4F4D\u4E0A\u9650\u3002');
             return;
         }
 
         if (this.playerSpawnCooldown > 0) {
+            this.triggerDeployFailureFeedback(lane);
             this.refreshHud('出兵操作过快，请稍候。');
             return;
         }
         if (this.playerEnergy < definition.cost) {
+            this.triggerDeployFailureFeedback(lane);
             this.refreshHud(`${definition.name}需要 ${definition.cost} 点指挥能量。`);
             return;
         }
 
         if (!this.spawnUnit(Team.Player, lane, definition)) {
             this.showLaneQueueFull(lane);
+            this.triggerDeployFailureFeedback(lane);
             this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u961F\u5217\u5DF2\u6EE1\uFF0C\u672C\u6B21\u51FA\u5175\u672A\u6263\u9664\u80FD\u91CF\u3002`);
             return;
         }
         this.playerEnergy -= definition.cost;
         this.playerSpawnCooldown = PLAYER_SPAWN_COOLDOWN;
+        this.audioManager.playSfx('deploy');
         this.refreshLaneSpawnMarkers();
         this.refreshHud(`第 ${lane + 1} 线派出${definition.name}，消耗 ${definition.cost} 能量。`);
     }
@@ -2736,11 +2861,16 @@ export class GameController extends Component {
             return;
         }
 
+        let damageApplied = false;
         for (const [target, damage] of pendingDamage) {
             if (target.health > 0 && target.node.isValid) {
                 target.health -= damage;
                 this.triggerUnitImpact(target, true);
+                damageApplied = true;
             }
+        }
+        if (damageApplied) {
+            this.audioManager.playSfx('unit_hit');
         }
 
         const defeatedUnits: BattleUnit[] = [];
@@ -2783,6 +2913,7 @@ export class GameController extends Component {
         unit.hitRecoilRemaining = 0;
         unit.hitFlashNode.active = false;
         this.dyingUnits.push(unit);
+        this.audioManager.playSfx('unit_death');
         this.repairLaneInvariants(unit.lane);
     }
 
@@ -2862,6 +2993,7 @@ export class GameController extends Component {
     private damageBase(target: Team, attacker: BattleUnit): void {
         const damage = attacker.definition.baseDamage;
         this.laneRuntimeStates[attacker.lane].baseHitCount += 1;
+        this.audioManager.playSfx('base_hit');
         let message: string;
         if (target === Team.Player) {
             this.playerBaseHealth = Math.max(0, this.playerBaseHealth - damage);
@@ -2887,6 +3019,10 @@ export class GameController extends Component {
 
     private finishGame(playerWon: boolean): void {
         this.isFinished = true;
+        this.audioManager.setBattlePaused(false);
+        this.audioManager.stopBattleSfx();
+        this.audioManager.stopBgm();
+        this.audioManager.playSfx(playerWon ? 'victory' : 'defeat');
         this.clearBattleUnits();
         this.clearFeedbackEffects();
         this.hideTacticNotice();
@@ -2947,6 +3083,8 @@ export class GameController extends Component {
         this.restartGame();
         this.isStarted = false;
         this.isPaused = false;
+        this.audioManager.stopBgm();
+        this.audioManager.stopBattleSfx();
         this.pauseButton.node.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
@@ -2967,6 +3105,8 @@ export class GameController extends Component {
     }
 
     private restartGame(): void {
+        this.audioManager.stopBattleSfx();
+        this.audioManager.setBattlePaused(false);
         this.clearBattleUnits();
         this.playerBaseHealth = BASE_MAX_HEALTH;
         this.aiBaseHealth = BASE_MAX_HEALTH;
@@ -3010,6 +3150,9 @@ export class GameController extends Component {
         const resultReport = this.resultPanel.getChildByName('ResultReport')?.getComponent(Label);
         if (resultReport) {
             resultReport.string = '';
+        }
+        if (this.isStarted) {
+            this.audioManager.playBgm('battle_bgm');
         }
         this.refreshHud('新的战斗开始，双方从 60 点指挥能量起步。');
     }
@@ -3189,6 +3332,7 @@ export class GameController extends Component {
             this.aiShockUsed = true;
         }
         this.getBattleStats(owner).shockUses += 1;
+        this.audioManager.playSfx('tactic_shock');
 
         let defeatedCount = 0;
         let repelledCount = 0;
@@ -3214,6 +3358,7 @@ export class GameController extends Component {
             this.queueLaneShift(targetTeam, lane, knockbackDirection * SHOCK_KNOCKBACK_DISTANCE);
         }
         this.createShockEffect(owner);
+        this.triggerBattleLayerShake();
         this.repairAllLaneInvariants();
         this.showTacticNotice(owner, '\u9886\u5730\u9707\u8361');
         const ownerName = isPlayer ? '玩家' : 'AI';
@@ -3246,6 +3391,22 @@ export class GameController extends Component {
                 effect.destroy();
             }
         }, 0.35);
+    }
+
+    private triggerBattleLayerShake(): void {
+        Tween.stopAllByTarget(this.battleLayer);
+        this.battleLayer.setPosition(0, 0, 0);
+        tween(this.battleLayer)
+            .by(0.04, { position: new Vec3(3, 1, 0) }, { easing: 'quadOut' })
+            .by(0.04, { position: new Vec3(-6, -2, 0) }, { easing: 'quadInOut' })
+            .by(0.04, { position: new Vec3(5, 2, 0) }, { easing: 'quadInOut' })
+            .by(0.04, { position: new Vec3(-2, -1, 0) }, { easing: 'quadIn' })
+            .call(() => {
+                if (this.battleLayer.isValid) {
+                    this.battleLayer.setPosition(0, 0, 0);
+                }
+            })
+            .start();
     }
 
     private getSprintMultiplier(team: Team): number {
@@ -3292,6 +3453,7 @@ export class GameController extends Component {
             this.aiSprintCooldown = SPRINT_COOLDOWN_SECONDS;
         }
         this.getBattleStats(team).sprintUses += 1;
+        this.audioManager.playSfx('tactic_sprint');
         this.repairAllLaneInvariants();
         this.showTacticNotice(team, tacticName);
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A\u5168\u90E8\u5B58\u6D3B\u5355\u4F4D\u79FB\u52A8\u901F\u5EA6 +50%\uFF0C\u6301\u7EED ${SPRINT_DURATION_SECONDS} \u79D2\u3002`);
@@ -3340,6 +3502,7 @@ export class GameController extends Component {
             this.aiHealCooldown = HEAL_COOLDOWN_SECONDS;
         }
         this.getBattleStats(team).healUses += 1;
+        this.audioManager.playSfx('tactic_heal');
         this.repairAllLaneInvariants();
         this.showTacticNotice(team, tacticName);
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A${damagedUnits.length} \u4E2A\u5B58\u6D3B\u5355\u4F4D\u6062\u590D\u4E86 40% \u6700\u5927\u751F\u547D\u3002`);
@@ -3717,7 +3880,10 @@ export class GameController extends Component {
             height,
         };
         this.drawButton(button, new Color(42, 121, 181, 255), new Color(179, 224, 255, 255));
-        node.on(NodeEventType.TOUCH_END, onClick, this);
+        node.on(NodeEventType.TOUCH_END, () => {
+            onClick();
+            this.audioManager.playSfx('ui_click');
+        }, this);
         return button;
     }
 
