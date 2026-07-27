@@ -7,12 +7,20 @@ import {
     game,
     Game,
     Node,
+    resources,
     sys,
 } from 'cc';
 
 const { ccclass } = _decorator;
 
-export type BgmName = 'battle_bgm';
+export type BgmTrackId = 'cheerful_lighthearted' | 'cyberwave_upbeat';
+
+export interface BgmTrackConfig {
+    readonly id: BgmTrackId;
+    readonly displayName: string;
+    readonly resourcePath: string;
+    readonly volumeGain: number;
+}
 
 export type SfxName =
     | 'ui_click'
@@ -34,6 +42,20 @@ interface SfxSlot {
     expiresAt: number;
 }
 
+interface StoredAudioSettingsV1 {
+    readonly selectedBgmId?: string;
+    readonly musicVolume?: number;
+    readonly sfxVolume?: number;
+    readonly musicMuted?: boolean;
+    readonly sfxMuted?: boolean;
+    readonly lastNonZeroMusicVolume?: number;
+    readonly lastNonZeroSfxVolume?: number;
+}
+
+type BgmLoadCallback = (clip: AudioClip | undefined) => void;
+type BgmFadeMode = 'none' | 'fadeOut' | 'fadeIn' | 'finalFadeOut';
+
+const AUDIO_SETTINGS_KEY = 'wolf-sheep-battle.audio-settings.v1';
 const MUSIC_ENABLED_KEY = 'wolf-sheep-battle.audio.music-enabled';
 const SFX_ENABLED_KEY = 'wolf-sheep-battle.audio.sfx-enabled';
 const MUSIC_VOLUME_KEY = 'wolf-sheep-battle.audio.music-volume';
@@ -43,10 +65,28 @@ const SFX_LAST_VOLUME_KEY = 'wolf-sheep-battle.audio.sfx-last-volume';
 const DEFAULT_MUSIC_VOLUME = 0.5;
 const DEFAULT_SFX_VOLUME = 0.75;
 const PAUSED_MUSIC_MULTIPLIER = 0.35;
+const DEFAULT_BGM_TRACK_ID: BgmTrackId = 'cheerful_lighthearted';
+const DEFAULT_BGM_CROSS_FADE_SECONDS = 0.6;
+const BGM_LOAD_TIMEOUT_SECONDS = 3;
+const BGM_PLAYBACK_CHECK_SECONDS = 1.25;
 const SFX_POOL_SIZE = 6;
 
-const AUDIO_RESOURCE_PATHS: Readonly<Record<BgmName | SfxName, string>> = {
-    battle_bgm: 'battle_bgm',
+const BGM_TRACKS: readonly BgmTrackConfig[] = [
+    {
+        id: 'cheerful_lighthearted',
+        displayName: '\u8F7B\u677E\u6B22\u5FEB',
+        resourcePath: 'audio/bgm/bgm_cheerful_lighthearted',
+        volumeGain: 1,
+    },
+    {
+        id: 'cyberwave_upbeat',
+        displayName: '\u8D5B\u535A\u6B22\u4E50',
+        resourcePath: 'audio/bgm/bgm_cyberwave_upbeat',
+        volumeGain: 1,
+    },
+];
+
+const SFX_RESOURCE_PATHS: Readonly<Record<SfxName, string>> = {
     ui_click: 'ui_click',
     deploy: 'deploy',
     deploy_failed: 'deploy_failed',
@@ -60,8 +100,10 @@ const AUDIO_RESOURCE_PATHS: Readonly<Record<BgmName | SfxName, string>> = {
     defeat: 'defeat',
 };
 
-const AUDIO_ASSET_UUIDS: Readonly<Record<BgmName | SfxName, string>> = {
-    battle_bgm: '8d0352b2-12cc-436d-85b1-c77ddadef6f8',
+// Existing SFX assets predate the resources-path layout. These UUIDs are kept
+// only for those existing clips. New BGM assets are loaded by resources path
+// and receive their metadata from Cocos Creator's importer.
+const SFX_ASSET_UUIDS: Readonly<Record<SfxName, string>> = {
     ui_click: '2a5d79af-67a6-467f-a3e7-93431399189d',
     deploy: '9ad52951-0b8c-46a1-a26e-9c316cf1fc10',
     deploy_failed: '3d4a04d2-e588-4542-8674-05d1d6ee095a',
@@ -102,16 +144,22 @@ const UI_SFX = new Set<SfxName>(['ui_click']);
 
 @ccclass('AudioManager')
 export class AudioManager extends Component {
-    private readonly clipCache = new Map<BgmName | SfxName, AudioClip>();
-    private readonly loadingClips = new Set<BgmName | SfxName>();
+    private readonly clipCache = new Map<string, AudioClip>();
+    private readonly loadingSfxClips = new Set<SfxName>();
+    private readonly loadingBgmCallbacks = new Map<BgmTrackId, BgmLoadCallback[]>();
+    private readonly loadingBgmElapsed = new Map<BgmTrackId, number>();
     private readonly pendingSfx = new Set<SfxName>();
     private readonly sfxSlots: SfxSlot[] = [];
     private readonly lastSfxTimes = new Map<SfxName, number>();
-    private readonly missingClipWarnings = new Set<BgmName | SfxName>();
+    private readonly missingClipWarnings = new Set<string>();
+    private readonly invalidBgmWarnings = new Set<string>();
 
     private bgmSource!: AudioSource;
-    private desiredBgm: BgmName | undefined;
-    private currentBgm: BgmName | undefined;
+    private selectedBgmId: BgmTrackId = DEFAULT_BGM_TRACK_ID;
+    private previewBgmId: BgmTrackId | undefined;
+    private desiredBgm: BgmTrackId | undefined;
+    private currentBgm: BgmTrackId | undefined;
+    private bgmRequestToken = 0;
     private musicEnabled = true;
     private sfxEnabled = true;
     private musicVolume = DEFAULT_MUSIC_VOLUME;
@@ -121,14 +169,19 @@ export class AudioManager extends Component {
     private audioActivated = false;
     private battlePaused = false;
     private lifecyclePaused = false;
+    private bgmFadeMode: BgmFadeMode = 'none';
     private bgmFadeDuration = 0;
     private bgmFadeElapsed = 0;
     private bgmFadeStartVolume = 0;
     private bgmFadeTargetVolume = 0;
-    private stopBgmAfterFade = false;
+    private bgmFadeCompletion: (() => void) | undefined;
+    private bgmPlaybackCheckRemaining = 0;
+    private bgmPlaybackCheckId: BgmTrackId | undefined;
+    private bgmPlaybackCheckToken = 0;
 
     onLoad(): void {
         this.loadSettings();
+        this.desiredBgm = this.selectedBgmId;
         this.createAudioSources();
         game.on(Game.EVENT_HIDE, this.handleGameHide, this);
         game.on(Game.EVENT_SHOW, this.handleGameShow, this);
@@ -137,82 +190,162 @@ export class AudioManager extends Component {
     onDestroy(): void {
         game.off(Game.EVENT_HIDE, this.handleGameHide, this);
         game.off(Game.EVENT_SHOW, this.handleGameShow, this);
+        this.bgmRequestToken += 1;
+        this.cancelBgmFade();
         this.stopAllSfx();
         if (this.bgmSource?.isValid) {
             this.bgmSource.stop();
+            this.bgmSource.clip = null;
         }
         this.clipCache.clear();
-        this.loadingClips.clear();
+        this.loadingSfxClips.clear();
+        this.loadingBgmCallbacks.clear();
+        this.loadingBgmElapsed.clear();
         this.pendingSfx.clear();
     }
 
     update(deltaTime: number): void {
-        if (this.bgmFadeDuration <= 0 || !this.bgmSource?.isValid) {
-            return;
+        const safeDeltaTime = Number.isFinite(deltaTime) ? Math.max(0, deltaTime) : 0;
+        this.updateBgmLoadTimeouts(safeDeltaTime);
+        if (this.bgmFadeDuration > 0 && this.bgmSource?.isValid) {
+            this.bgmFadeElapsed = Math.min(this.bgmFadeDuration, this.bgmFadeElapsed + safeDeltaTime);
+            const progress = this.bgmFadeElapsed / this.bgmFadeDuration;
+            this.bgmSource.volume = this.bgmFadeStartVolume
+                + (this.bgmFadeTargetVolume - this.bgmFadeStartVolume) * progress;
+            if (progress >= 1) {
+                const completion = this.bgmFadeCompletion;
+                this.bgmFadeMode = 'none';
+                this.bgmFadeDuration = 0;
+                this.bgmFadeElapsed = 0;
+                this.bgmFadeCompletion = undefined;
+                completion?.();
+            }
         }
-        this.bgmFadeElapsed = Math.min(this.bgmFadeDuration, this.bgmFadeElapsed + Math.max(0, deltaTime));
-        const progress = this.bgmFadeElapsed / this.bgmFadeDuration;
-        this.bgmSource.volume = this.bgmFadeStartVolume
-            + (this.bgmFadeTargetVolume - this.bgmFadeStartVolume) * progress;
-        if (progress < 1) {
-            return;
-        }
-        this.bgmFadeDuration = 0;
-        if (this.stopBgmAfterFade) {
-            this.stopBgmAfterFade = false;
-            this.bgmSource.stop();
-            this.bgmSource.clip = null;
-            this.currentBgm = undefined;
-            this.desiredBgm = undefined;
-        }
+        this.updateBgmPlaybackCheck(safeDeltaTime);
     }
 
     registerClips(clips: readonly AudioClip[]): void {
         for (const clip of clips) {
-            const name = clip.name as BgmName | SfxName;
-            if (Object.prototype.hasOwnProperty.call(AUDIO_RESOURCE_PATHS, name)) {
+            const name = clip.name as SfxName;
+            if (Object.prototype.hasOwnProperty.call(SFX_RESOURCE_PATHS, name)) {
                 this.clipCache.set(name, clip);
                 this.missingClipWarnings.delete(name);
             }
         }
-        this.preloadMissingClips();
+        this.preloadMissingSfxClips();
     }
 
     activateAudio(): void {
         this.audioActivated = true;
-        if (this.desiredBgm) {
-            this.startDesiredBgm();
-        }
     }
 
-    playBgm(name: BgmName): void {
-        this.desiredBgm = name;
-        if (!this.audioActivated || !this.musicEnabled || this.lifecyclePaused) {
+    getAvailableBgmTracks(): readonly BgmTrackConfig[] {
+        return BGM_TRACKS;
+    }
+
+    getSelectedBgmId(): BgmTrackId {
+        return this.selectedBgmId;
+    }
+
+    selectBgmTrack(id: string): boolean {
+        const track = this.getBgmTrack(id);
+        if (!track) {
+            this.warnInvalidBgmId(id, 'selection');
+            this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
+            this.previewBgmId = undefined;
+            this.saveSelectedBgm();
+            if (this.audioActivated) {
+                this.transitionToBgm(this.selectedBgmId, DEFAULT_BGM_CROSS_FADE_SECONDS);
+            }
+            return false;
+        }
+        this.selectedBgmId = track.id;
+        this.previewBgmId = undefined;
+        this.saveSelectedBgm();
+        if (this.audioActivated) {
+            this.transitionToBgm(track.id, DEFAULT_BGM_CROSS_FADE_SECONDS);
+        } else {
+            this.desiredBgm = track.id;
+        }
+        return true;
+    }
+
+    playSelectedBgm(): void {
+        this.previewBgmId = undefined;
+        this.transitionToBgm(this.selectedBgmId, DEFAULT_BGM_CROSS_FADE_SECONDS);
+    }
+
+    playBgm(id: BgmTrackId): void {
+        this.transitionToBgm(id, DEFAULT_BGM_CROSS_FADE_SECONDS);
+    }
+
+    previewBgmTrack(id: string): boolean {
+        const track = this.getBgmTrack(id);
+        if (!track) {
+            this.warnInvalidBgmId(id, 'preview');
+            return false;
+        }
+        this.previewBgmId = track.id;
+        this.transitionToBgm(track.id, 0.45);
+        return true;
+    }
+
+    stopBgmPreview(): void {
+        if (!this.previewBgmId) {
             return;
         }
-        this.startDesiredBgm();
+        this.previewBgmId = undefined;
+        this.transitionToBgm(this.selectedBgmId, 0.45);
+    }
+
+    crossFadeToBgm(id: string, duration = DEFAULT_BGM_CROSS_FADE_SECONDS): boolean {
+        const track = this.getBgmTrack(id);
+        if (!track) {
+            this.warnInvalidBgmId(id, 'cross-fade');
+            return false;
+        }
+        this.transitionToBgm(track.id, Math.max(0, duration));
+        return true;
+    }
+
+    saveSelectedBgm(): void {
+        this.saveAudioSettings();
+    }
+
+    loadSelectedBgm(): BgmTrackId {
+        const stored = this.readStoredAudioSettings();
+        const storedId = stored?.selectedBgmId;
+        if (storedId && this.getBgmTrack(storedId)) {
+            this.selectedBgmId = storedId as BgmTrackId;
+        } else if (storedId) {
+            this.warnInvalidBgmId(storedId, 'stored-settings');
+            this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
+            this.saveAudioSettings();
+        }
+        this.desiredBgm = this.selectedBgmId;
+        return this.selectedBgmId;
     }
 
     stopBgm(): void {
+        this.bgmRequestToken += 1;
         this.cancelBgmFade();
+        this.previewBgmId = undefined;
         this.desiredBgm = undefined;
-        this.currentBgm = undefined;
-        if (this.bgmSource?.isValid) {
-            this.bgmSource.stop();
-            this.bgmSource.clip = null;
-        }
+        this.stopBgmPlayback();
     }
 
     fadeOutBgm(duration = 0.4): void {
+        this.bgmRequestToken += 1;
+        this.previewBgmId = undefined;
+        this.desiredBgm = undefined;
+        this.cancelBgmFade();
         if (!this.bgmSource?.isValid || !this.bgmSource.playing || duration <= 0) {
-            this.stopBgm();
+            this.stopBgmPlayback();
             return;
         }
-        this.bgmFadeDuration = duration;
-        this.bgmFadeElapsed = 0;
-        this.bgmFadeStartVolume = this.bgmSource.volume;
-        this.bgmFadeTargetVolume = 0;
-        this.stopBgmAfterFade = true;
+        this.beginBgmFade(0, duration, 'finalFadeOut', () => {
+            this.stopBgmPlayback();
+        });
     }
 
     pauseBgm(): void {
@@ -222,17 +355,21 @@ export class AudioManager extends Component {
     }
 
     resumeBgm(): void {
-        if (!this.audioActivated || !this.musicEnabled || this.lifecyclePaused
-            || !this.desiredBgm) {
+        if (!this.audioActivated || !this.musicEnabled || this.lifecyclePaused) {
             return;
         }
-        if (this.currentBgm === this.desiredBgm && this.bgmSource.clip) {
-            this.cancelBgmFade();
-            this.refreshBgmVolume();
+        const desired = this.previewBgmId ?? this.selectedBgmId;
+        this.desiredBgm = desired;
+        if (this.currentBgm === desired && this.bgmSource.clip) {
+            if (this.bgmFadeMode === 'fadeIn') {
+                this.bgmFadeTargetVolume = this.getEffectiveMusicVolume(desired);
+            } else if (this.bgmFadeMode === 'none') {
+                this.refreshBgmVolume();
+            }
             this.bgmSource.play();
             return;
         }
-        this.startDesiredBgm();
+        this.transitionToBgm(desired, DEFAULT_BGM_CROSS_FADE_SECONDS);
     }
 
     playSfx(name: SfxName): void {
@@ -252,26 +389,15 @@ export class AudioManager extends Component {
             return;
         }
         this.pendingSfx.add(name);
-        this.preloadClip(name);
+        this.preloadSfxClip(name);
     }
 
     setMusicEnabled(enabled: boolean): void {
-        if (enabled) {
-            this.setMusicVolume(this.lastNonZeroMusicVolume);
-            this.resumeBgm();
-        } else {
-            this.setMusicVolume(0);
-            this.pauseBgm();
-        }
+        this.setMusicVolume(enabled ? this.lastNonZeroMusicVolume : 0);
     }
 
     setSfxEnabled(enabled: boolean): void {
-        if (enabled) {
-            this.setSfxVolume(this.lastNonZeroSfxVolume);
-        } else {
-            this.setSfxVolume(0);
-            this.stopAllSfx();
-        }
+        this.setSfxVolume(enabled ? this.lastNonZeroSfxVolume : 0);
     }
 
     isMusicEnabled(): boolean {
@@ -299,28 +425,39 @@ export class AudioManager extends Component {
     }
 
     setMusicVolume(value: number): void {
+        const wasEnabled = this.musicEnabled;
         this.musicVolume = this.clampVolume(value);
         this.musicEnabled = this.musicVolume > 0;
-        if (this.musicVolume > 0) {
+        if (this.musicEnabled) {
             this.lastNonZeroMusicVolume = this.musicVolume;
-            this.saveNumber(MUSIC_LAST_VOLUME_KEY, this.lastNonZeroMusicVolume);
         }
-        this.saveBoolean(MUSIC_ENABLED_KEY, this.musicEnabled);
-        this.saveNumber(MUSIC_VOLUME_KEY, this.musicVolume);
-        if (this.bgmSource?.isValid) {
+        this.saveAudioSettings();
+        if (!this.bgmSource?.isValid) {
+            return;
+        }
+        if (!this.musicEnabled) {
+            this.cancelBgmFade();
+            this.bgmSource.volume = 0;
+            this.pauseBgm();
+            return;
+        }
+        if (this.bgmFadeMode === 'fadeIn') {
+            this.bgmFadeTargetVolume = this.getEffectiveMusicVolume(this.currentBgm);
+        } else if (this.bgmFadeMode === 'none') {
             this.refreshBgmVolume();
+        }
+        if (!wasEnabled) {
+            this.resumeBgm();
         }
     }
 
     setSfxVolume(value: number): void {
         this.sfxVolume = this.clampVolume(value);
         this.sfxEnabled = this.sfxVolume > 0;
-        if (this.sfxVolume > 0) {
+        if (this.sfxEnabled) {
             this.lastNonZeroSfxVolume = this.sfxVolume;
-            this.saveNumber(SFX_LAST_VOLUME_KEY, this.lastNonZeroSfxVolume);
         }
-        this.saveBoolean(SFX_ENABLED_KEY, this.sfxEnabled);
-        this.saveNumber(SFX_VOLUME_KEY, this.sfxVolume);
+        this.saveAudioSettings();
         for (const slot of this.sfxSlots) {
             slot.source.volume = this.toEffectiveVolume(this.sfxVolume);
         }
@@ -333,11 +470,10 @@ export class AudioManager extends Component {
         this.battlePaused = paused;
         if (paused) {
             this.stopBattleSfx();
-            this.refreshBgmVolume();
         } else {
             this.resumeBgm();
-            this.refreshBgmVolume();
         }
+        this.refreshBgmVolume();
     }
 
     stopBattleSfx(): void {
@@ -360,7 +496,7 @@ export class AudioManager extends Component {
         this.bgmSource = bgmNode.addComponent(AudioSource);
         this.bgmSource.loop = true;
         this.bgmSource.playOnAwake = false;
-        this.bgmSource.volume = this.getEffectiveMusicVolume();
+        this.bgmSource.volume = this.getEffectiveMusicVolume(this.selectedBgmId);
 
         for (let index = 0; index < SFX_POOL_SIZE; index += 1) {
             const sourceNode = new Node(`SfxAudioSource${index + 1}`);
@@ -378,46 +514,169 @@ export class AudioManager extends Component {
         }
     }
 
-    private startDesiredBgm(): void {
-        const name = this.desiredBgm;
-        if (!name || !this.audioActivated || !this.musicEnabled || this.lifecyclePaused) {
+    private transitionToBgm(id: BgmTrackId, duration: number): void {
+        this.desiredBgm = id;
+        const requestToken = ++this.bgmRequestToken;
+        this.cancelBgmFade();
+        this.cancelBgmPlaybackCheck();
+        if (!this.audioActivated || !this.musicEnabled || this.lifecyclePaused) {
             return;
         }
-        const cached = this.clipCache.get(name);
-        if (cached) {
-            this.playLoadedBgm(name, cached);
-            return;
-        }
-        this.preloadClip(name);
+        this.loadBgmClip(id, (clip) => {
+            if (requestToken !== this.bgmRequestToken || this.desiredBgm !== id) {
+                return;
+            }
+            if (!clip) {
+                this.handleBgmLoadFailure(id, requestToken);
+                return;
+            }
+            if (!this.musicEnabled || this.lifecyclePaused) {
+                return;
+            }
+            this.playLoadedBgm(id, clip, duration, requestToken);
+        });
     }
 
-    private preloadMissingClips(): void {
-        for (const name of Object.keys(AUDIO_ASSET_UUIDS) as Array<BgmName | SfxName>) {
+    private loadBgmClip(id: BgmTrackId, callback: BgmLoadCallback): void {
+        const cacheKey = this.getBgmCacheKey(id);
+        const cached = this.clipCache.get(cacheKey);
+        if (cached) {
+            callback(cached);
+            return;
+        }
+        const callbacks = this.loadingBgmCallbacks.get(id);
+        if (callbacks) {
+            callbacks.push(callback);
+            return;
+        }
+        this.loadingBgmCallbacks.set(id, [callback]);
+        this.loadingBgmElapsed.set(id, 0);
+        const track = this.getBgmTrack(id)!;
+        resources.load(track.resourcePath, AudioClip, (error: Error | null, clip: AudioClip) => {
+            const waitingCallbacks = this.loadingBgmCallbacks.get(id) ?? [];
+            this.loadingBgmCallbacks.delete(id);
+            this.loadingBgmElapsed.delete(id);
+            if (error || !clip) {
+                this.warnMissingBgm(track, error);
+                for (const waiting of waitingCallbacks) {
+                    waiting(undefined);
+                }
+                return;
+            }
+            this.clipCache.set(cacheKey, clip);
+            this.missingClipWarnings.delete(cacheKey);
+            for (const waiting of waitingCallbacks) {
+                waiting(clip);
+            }
+        });
+    }
+
+    private playLoadedBgm(id: BgmTrackId, clip: AudioClip, duration: number, requestToken: number): void {
+        if (this.currentBgm === id && this.bgmSource.clip === clip) {
+            this.bgmSource.loop = true;
+            this.refreshBgmVolume();
+            if (!this.bgmSource.playing) {
+                this.bgmSource.play();
+                this.beginBgmPlaybackCheck(id, requestToken);
+            }
+            return;
+        }
+        const halfDuration = Math.max(0, duration) / 2;
+        const replaceAndFadeIn = (): void => {
+            if (requestToken !== this.bgmRequestToken || this.desiredBgm !== id
+                || !this.musicEnabled || this.lifecyclePaused) {
+                return;
+            }
+            this.bgmSource.stop();
+            this.bgmSource.clip = clip;
+            this.bgmSource.loop = true;
+            this.bgmSource.volume = 0;
+            this.currentBgm = id;
+            this.bgmSource.play();
+            this.beginBgmPlaybackCheck(id, requestToken);
+            this.beginBgmFade(
+                this.getEffectiveMusicVolume(id),
+                halfDuration,
+                'fadeIn',
+            );
+        };
+        if (this.bgmSource.playing && this.bgmSource.clip && halfDuration > 0) {
+            this.beginBgmFade(0, halfDuration, 'fadeOut', replaceAndFadeIn);
+        } else {
+            replaceAndFadeIn();
+        }
+    }
+
+    private handleBgmLoadFailure(id: BgmTrackId, requestToken: number): void {
+        if (requestToken !== this.bgmRequestToken) {
+            return;
+        }
+        if (id !== DEFAULT_BGM_TRACK_ID) {
+            this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
+            this.previewBgmId = undefined;
+            this.saveSelectedBgm();
+            this.transitionToBgm(DEFAULT_BGM_TRACK_ID, 0.4);
+            return;
+        }
+        this.desiredBgm = undefined;
+        this.stopBgmPlayback();
+    }
+
+    private beginBgmFade(
+        targetVolume: number,
+        duration: number,
+        mode: BgmFadeMode,
+        completion?: () => void,
+    ): void {
+        this.cancelBgmFade();
+        const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0;
+        const safeTarget = this.clampVolume(targetVolume);
+        if (safeDuration <= 0) {
+            this.bgmSource.volume = safeTarget;
+            completion?.();
+            return;
+        }
+        this.bgmFadeMode = mode;
+        this.bgmFadeDuration = safeDuration;
+        this.bgmFadeElapsed = 0;
+        this.bgmFadeStartVolume = this.bgmSource.volume;
+        this.bgmFadeTargetVolume = safeTarget;
+        this.bgmFadeCompletion = completion;
+    }
+
+    private stopBgmPlayback(): void {
+        this.cancelBgmPlaybackCheck();
+        if (this.bgmSource?.isValid) {
+            this.bgmSource.stop();
+            this.bgmSource.clip = null;
+            this.bgmSource.volume = 0;
+        }
+        this.currentBgm = undefined;
+    }
+
+    private preloadMissingSfxClips(): void {
+        for (const name of Object.keys(SFX_ASSET_UUIDS) as SfxName[]) {
             if (!this.clipCache.has(name)) {
-                this.preloadClip(name);
+                this.preloadSfxClip(name);
             }
         }
     }
 
-    private preloadClip(name: BgmName | SfxName): void {
-        if (this.clipCache.has(name) || this.loadingClips.has(name)) {
+    private preloadSfxClip(name: SfxName): void {
+        if (this.clipCache.has(name) || this.loadingSfxClips.has(name)) {
             return;
         }
-        this.loadingClips.add(name);
+        this.loadingSfxClips.add(name);
         assetManager.loadAny(
-            { uuid: AUDIO_ASSET_UUIDS[name] },
+            { uuid: SFX_ASSET_UUIDS[name] },
             (error: Error | null, asset: AudioClip | null) => {
-                this.loadingClips.delete(name);
+                this.loadingSfxClips.delete(name);
                 if (error || !asset) {
-                    this.warnMissingClip(name, error);
+                    this.warnMissingSfx(name, error);
                     return;
                 }
                 this.clipCache.set(name, asset);
                 this.missingClipWarnings.delete(name);
-                if (name === 'battle_bgm') {
-                    this.startDesiredBgm();
-                    return;
-                }
                 if (this.pendingSfx.delete(name) && this.audioActivated && this.sfxEnabled
                     && !this.lifecyclePaused && (!this.battlePaused || UI_SFX.has(name))) {
                     const now = this.getNowSeconds();
@@ -426,23 +685,6 @@ export class AudioManager extends Component {
                 }
             },
         );
-    }
-
-    private playLoadedBgm(name: BgmName, clip: AudioClip): void {
-        if (this.currentBgm === name && this.bgmSource.clip === clip && this.bgmSource.playing) {
-            this.cancelBgmFade();
-            this.refreshBgmVolume();
-            return;
-        }
-        this.cancelBgmFade();
-        if (this.bgmSource.clip !== clip) {
-            this.bgmSource.stop();
-            this.bgmSource.clip = clip;
-        }
-        this.currentBgm = name;
-        this.bgmSource.loop = true;
-        this.refreshBgmVolume();
-        this.bgmSource.play();
     }
 
     private playLoadedSfx(name: SfxName, clip: AudioClip, now: number): void {
@@ -492,15 +734,106 @@ export class AudioManager extends Component {
         slot.expiresAt = 0;
     }
 
-    private warnMissingClip(name: BgmName | SfxName, error?: Error | null): void {
+    private warnMissingBgm(track: BgmTrackConfig, error?: Error | null): void {
+        const warningKey = this.getBgmCacheKey(track.id);
+        if (this.missingClipWarnings.has(warningKey)) {
+            return;
+        }
+        this.missingClipWarnings.add(warningKey);
+        console.warn('[WolfSheepBattle][Audio] BGM load failed; gameplay will continue.', {
+            trackId: track.id,
+            resourcePath: track.resourcePath,
+            error: error?.message,
+        });
+    }
+
+    private updateBgmLoadTimeouts(deltaTime: number): void {
+        if (deltaTime <= 0 || this.loadingBgmElapsed.size === 0) {
+            return;
+        }
+        const expiredIds: BgmTrackId[] = [];
+        this.loadingBgmElapsed.forEach((elapsed, id) => {
+            const nextElapsed = elapsed + deltaTime;
+            if (nextElapsed < BGM_LOAD_TIMEOUT_SECONDS) {
+                this.loadingBgmElapsed.set(id, nextElapsed);
+            } else {
+                expiredIds.push(id);
+            }
+        });
+        for (const id of expiredIds) {
+            this.loadingBgmElapsed.delete(id);
+            const callbacks = this.loadingBgmCallbacks.get(id) ?? [];
+            this.loadingBgmCallbacks.delete(id);
+            const track = this.getBgmTrack(id);
+            if (!track) {
+                this.warnInvalidBgmId(`${id}`, 'load-timeout');
+                for (const callback of callbacks) {
+                    callback(undefined);
+                }
+                continue;
+            }
+            this.warnMissingBgm(track, new Error(`Load timed out after ${BGM_LOAD_TIMEOUT_SECONDS}s.`));
+            for (const callback of callbacks) {
+                callback(undefined);
+            }
+        }
+    }
+
+    private beginBgmPlaybackCheck(id: BgmTrackId, requestToken: number): void {
+        this.bgmPlaybackCheckId = id;
+        this.bgmPlaybackCheckToken = requestToken;
+        this.bgmPlaybackCheckRemaining = BGM_PLAYBACK_CHECK_SECONDS;
+    }
+
+    private updateBgmPlaybackCheck(deltaTime: number): void {
+        if (this.bgmPlaybackCheckRemaining <= 0 || !this.bgmPlaybackCheckId
+            || this.lifecyclePaused || !this.musicEnabled) {
+            return;
+        }
+        if (this.bgmSource?.playing) {
+            this.cancelBgmPlaybackCheck();
+            return;
+        }
+        this.bgmPlaybackCheckRemaining = Math.max(0, this.bgmPlaybackCheckRemaining - deltaTime);
+        if (this.bgmPlaybackCheckRemaining > 0) {
+            return;
+        }
+        const id = this.bgmPlaybackCheckId;
+        const requestToken = this.bgmPlaybackCheckToken;
+        this.cancelBgmPlaybackCheck();
+        const track = this.getBgmTrack(id)!;
+        this.warnMissingBgm(track, new Error('AudioSource did not enter the playing state.'));
+        this.handleBgmLoadFailure(id, requestToken);
+    }
+
+    private cancelBgmPlaybackCheck(): void {
+        this.bgmPlaybackCheckRemaining = 0;
+        this.bgmPlaybackCheckId = undefined;
+        this.bgmPlaybackCheckToken = 0;
+    }
+
+    private warnMissingSfx(name: SfxName, error?: Error | null): void {
         if (this.missingClipWarnings.has(name)) {
             return;
         }
         this.missingClipWarnings.add(name);
-        console.warn('[WolfSheepBattle][Audio] 音频资源未注册。', {
+        console.warn('[WolfSheepBattle][Audio] SFX load failed; gameplay will continue.', {
             name,
-            expectedAsset: `assets/audio/resources/${AUDIO_RESOURCE_PATHS[name]}.wav`,
+            expectedAsset: `assets/audio/resources/${SFX_RESOURCE_PATHS[name]}.wav`,
             error: error?.message,
+        });
+    }
+
+    private warnInvalidBgmId(id: string, source: string): void {
+        const warningKey = `${source}:${id}`;
+        if (this.invalidBgmWarnings.has(warningKey)) {
+            return;
+        }
+        this.invalidBgmWarnings.add(warningKey);
+        console.warn('[WolfSheepBattle][Audio] Unknown BGM id; falling back to the default track.', {
+            trackId: id,
+            source,
+            fallbackTrackId: DEFAULT_BGM_TRACK_ID,
         });
     }
 
@@ -516,6 +849,42 @@ export class AudioManager extends Component {
     }
 
     private loadSettings(): void {
+        const stored = this.readStoredAudioSettings();
+        if (stored) {
+            const storedTrackId = typeof stored.selectedBgmId === 'string'
+                ? stored.selectedBgmId : DEFAULT_BGM_TRACK_ID;
+            if (this.getBgmTrack(storedTrackId)) {
+                this.selectedBgmId = storedTrackId as BgmTrackId;
+            } else {
+                this.warnInvalidBgmId(storedTrackId, 'stored-settings');
+                this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
+            }
+            this.lastNonZeroMusicVolume = this.loadStoredVolume(
+                stored.lastNonZeroMusicVolume,
+                DEFAULT_MUSIC_VOLUME,
+            );
+            this.lastNonZeroSfxVolume = this.loadStoredVolume(
+                stored.lastNonZeroSfxVolume,
+                DEFAULT_SFX_VOLUME,
+            );
+            const storedMusicVolume = this.loadStoredVolume(stored.musicVolume, this.lastNonZeroMusicVolume);
+            const storedSfxVolume = this.loadStoredVolume(stored.sfxVolume, this.lastNonZeroSfxVolume);
+            this.musicVolume = stored.musicMuted ? 0 : storedMusicVolume;
+            this.sfxVolume = stored.sfxMuted ? 0 : storedSfxVolume;
+            this.musicEnabled = this.musicVolume > 0;
+            this.sfxEnabled = this.sfxVolume > 0;
+            if (storedMusicVolume > 0) {
+                this.lastNonZeroMusicVolume = storedMusicVolume;
+            }
+            if (storedSfxVolume > 0) {
+                this.lastNonZeroSfxVolume = storedSfxVolume;
+            }
+            if (storedTrackId !== this.selectedBgmId) {
+                this.saveAudioSettings();
+            }
+            return;
+        }
+
         const storedMusicEnabled = this.loadBoolean(MUSIC_ENABLED_KEY, true);
         const storedSfxEnabled = this.loadBoolean(SFX_ENABLED_KEY, true);
         this.musicVolume = storedMusicEnabled
@@ -532,6 +901,60 @@ export class AudioManager extends Component {
         );
         this.musicEnabled = this.musicVolume > 0;
         this.sfxEnabled = this.sfxVolume > 0;
+        this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
+        this.saveAudioSettings();
+    }
+
+    private readStoredAudioSettings(): StoredAudioSettingsV1 | undefined {
+        try {
+            const value = sys.localStorage.getItem(AUDIO_SETTINGS_KEY);
+            if (!value) {
+                return undefined;
+            }
+            const parsed = JSON.parse(value);
+            return parsed && typeof parsed === 'object' ? parsed as StoredAudioSettingsV1 : undefined;
+        } catch (error) {
+            console.warn('[WolfSheepBattle][Audio] Audio settings are invalid; defaults will be used.', {
+                error: error instanceof Error ? error.message : `${error}`,
+            });
+            return undefined;
+        }
+    }
+
+    private saveAudioSettings(): void {
+        const settings: StoredAudioSettingsV1 = {
+            selectedBgmId: this.selectedBgmId,
+            musicVolume: this.musicVolume,
+            sfxVolume: this.sfxVolume,
+            musicMuted: !this.musicEnabled,
+            sfxMuted: !this.sfxEnabled,
+            lastNonZeroMusicVolume: this.lastNonZeroMusicVolume,
+            lastNonZeroSfxVolume: this.lastNonZeroSfxVolume,
+        };
+        try {
+            sys.localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(settings));
+        } catch {
+            // Local settings are best-effort on restricted browser contexts.
+        }
+        this.saveBoolean(MUSIC_ENABLED_KEY, this.musicEnabled);
+        this.saveBoolean(SFX_ENABLED_KEY, this.sfxEnabled);
+        this.saveNumber(MUSIC_VOLUME_KEY, this.musicVolume);
+        this.saveNumber(SFX_VOLUME_KEY, this.sfxVolume);
+        this.saveNumber(MUSIC_LAST_VOLUME_KEY, this.lastNonZeroMusicVolume);
+        this.saveNumber(SFX_LAST_VOLUME_KEY, this.lastNonZeroSfxVolume);
+    }
+
+    private getBgmTrack(id: string): BgmTrackConfig | undefined {
+        return BGM_TRACKS.find((track) => track.id === id);
+    }
+
+    private getBgmCacheKey(id: BgmTrackId): string {
+        return `bgm:${id}`;
+    }
+
+    private loadStoredVolume(value: unknown, fallback: number): number {
+        return typeof value === 'number' && Number.isFinite(value)
+            ? this.clampVolume(value) : fallback;
     }
 
     private loadBoolean(key: string, fallback: boolean): boolean {
@@ -581,24 +1004,34 @@ export class AudioManager extends Component {
         return value * value;
     }
 
-    private getEffectiveMusicVolume(): number {
+    private getEffectiveMusicVolume(trackId?: BgmTrackId): number {
+        const track = this.getBgmTrack(trackId ?? this.currentBgm ?? this.desiredBgm ?? this.selectedBgmId);
+        const gain = track?.volumeGain ?? 1;
         const pauseMultiplier = this.battlePaused ? PAUSED_MUSIC_MULTIPLIER : 1;
-        return this.toEffectiveVolume(this.musicVolume) * pauseMultiplier;
+        return this.clampVolume(this.toEffectiveVolume(this.musicVolume) * gain * pauseMultiplier);
     }
 
     private refreshBgmVolume(): void {
         if (!this.bgmSource?.isValid) {
             return;
         }
-        this.bgmSource.volume = this.getEffectiveMusicVolume();
+        if (this.bgmFadeMode === 'fadeIn') {
+            this.bgmFadeTargetVolume = this.getEffectiveMusicVolume(this.currentBgm);
+            return;
+        }
+        if (this.bgmFadeMode === 'fadeOut' || this.bgmFadeMode === 'finalFadeOut') {
+            return;
+        }
+        this.bgmSource.volume = this.getEffectiveMusicVolume(this.currentBgm);
     }
 
     private cancelBgmFade(): void {
+        this.bgmFadeMode = 'none';
         this.bgmFadeDuration = 0;
         this.bgmFadeElapsed = 0;
         this.bgmFadeStartVolume = 0;
         this.bgmFadeTargetVolume = 0;
-        this.stopBgmAfterFade = false;
+        this.bgmFadeCompletion = undefined;
     }
 
     private getNowSeconds(): number {

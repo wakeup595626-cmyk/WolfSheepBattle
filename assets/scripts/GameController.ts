@@ -21,7 +21,7 @@ import {
     Tween,
     sys,
 } from 'cc';
-import { AudioManager } from './AudioManager';
+import { AudioManager, BgmTrackId } from './AudioManager';
 
 const { ccclass, property } = _decorator;
 
@@ -536,6 +536,7 @@ export class GameController extends Component {
     private levelBadgeTitleLabel!: Label;
     private musicVolumeControl!: VolumeControlView;
     private sfxVolumeControl!: VolumeControlView;
+    private readonly bgmTrackButtons = new Map<BgmTrackId, ButtonView>();
     private resultBackdropOpacity!: UIOpacity;
     private resultCard!: Node;
     private resultCardGraphics!: Graphics;
@@ -2023,19 +2024,20 @@ export class GameController extends Component {
         this.pausePanel = new Node('PausePanel');
         this.pausePanel.setParent(this.modalLayer);
         this.pausePanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
-        this.drawModalBackground(this.pausePanel, 650, 650);
-        this.createLabel(this.pausePanel, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 260, 560, 50, 32, new Color(255, 244, 207, 255));
-        this.createLabel(this.pausePanel, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 220, 560, 28, 16, new Color(204, 225, 241, 255));
-        this.createButton(this.pausePanel, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', 0, 162, 260, 46, 19, () => this.resumeGame());
-        this.createButton(this.pausePanel, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', 0, 108, 260, 46, 19, () => this.restartGame());
-        this.createButton(this.pausePanel, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', 0, 54, 260, 46, 19, () => this.openHelpPanel());
-        this.createButton(this.pausePanel, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', 0, 0, 260, 46, 19, () => this.returnToTitle());
+        this.drawModalBackground(this.pausePanel, 680, 690);
+        this.createLabel(this.pausePanel, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 292, 560, 50, 32, new Color(255, 244, 207, 255));
+        this.createLabel(this.pausePanel, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 252, 560, 28, 16, new Color(204, 225, 241, 255));
+        this.createButton(this.pausePanel, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', 0, 200, 260, 46, 19, () => this.resumeGame());
+        this.createButton(this.pausePanel, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', 0, 148, 260, 46, 19, () => this.restartGame());
+        this.createButton(this.pausePanel, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', 0, 96, 260, 46, 19, () => this.openHelpPanel());
+        this.createButton(this.pausePanel, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', 0, 44, 260, 46, 19, () => this.returnToTitle());
+        this.createBgmTrackSelector(this.pausePanel, -23);
         this.musicVolumeControl = this.createVolumeControl(
             this.pausePanel,
             'MusicVolume',
             'music',
             '\u97F3\u4E50',
-            -96,
+            -122,
             new Color(132, 136, 245, 255),
         );
         this.sfxVolumeControl = this.createVolumeControl(
@@ -2043,10 +2045,11 @@ export class GameController extends Component {
             'SfxVolume',
             'sfx',
             '\u97F3\u6548',
-            -202,
+            -218,
             new Color(72, 216, 186, 255),
         );
         this.refreshAudioVolumeControls();
+        this.refreshBgmTrackButtons();
         this.pausePanel.active = false;
 
         this.helpPanel = new Node('HelpPanel');
@@ -2068,8 +2071,66 @@ export class GameController extends Component {
         this.audioManager.setBattlePaused(true);
         this.pauseButton.node.active = false;
         this.refreshAudioVolumeControls();
+        this.refreshBgmTrackButtons();
         this.showModal(this.pausePanel);
         this.refreshLaneSpawnMarkers();
+    }
+
+    private createBgmTrackSelector(parent: Node, y: number): void {
+        this.createLabel(
+            parent,
+            'BgmTrackTitle',
+            '\u80CC\u666F\u97F3\u4E50',
+            0,
+            y + 30,
+            580,
+            24,
+            17,
+            new Color(206, 222, 239, 255),
+        );
+        const tracks = this.audioManager.getAvailableBgmTracks();
+        const xPositions = [-140, 140];
+        tracks.forEach((track, index) => {
+            const button = this.createButton(
+                parent,
+                `BgmTrack_${track.id}`,
+                track.displayName,
+                xPositions[index] ?? 0,
+                y,
+                250,
+                44,
+                17,
+                () => {
+                    this.audioManager.selectBgmTrack(track.id);
+                    this.refreshBgmTrackButtons();
+                    this.scheduleOnce(() => this.refreshBgmTrackButtons(), 3.2);
+                },
+            );
+            this.bgmTrackButtons.set(track.id, button);
+        });
+    }
+
+    private refreshBgmTrackButtons(): void {
+        if (this.bgmTrackButtons.size === 0) {
+            return;
+        }
+        const selectedId = this.audioManager.getSelectedBgmId();
+        for (const track of this.audioManager.getAvailableBgmTracks()) {
+            const button = this.bgmTrackButtons.get(track.id);
+            if (!button) {
+                continue;
+            }
+            const selected = track.id === selectedId;
+            button.label.string = selected ? `\u2713 ${track.displayName}` : track.displayName;
+            button.label.color = selected
+                ? new Color(255, 244, 194, 255)
+                : new Color(168, 184, 201, 255);
+            this.drawButton(
+                button,
+                selected ? new Color(66, 72, 142, 255) : new Color(28, 40, 56, 245),
+                selected ? new Color(255, 220, 116, 255) : new Color(82, 103, 124, 210),
+            );
+        }
     }
 
     private resumeGame(): void {
@@ -2322,7 +2383,7 @@ export class GameController extends Component {
 
     private beginBattle(): void {
         this.audioManager.activateAudio();
-        this.audioManager.playBgm('battle_bgm');
+        this.audioManager.playSelectedBgm();
         this.startPanel.active = false;
         this.applyLevelStartingResources();
         if (this.tutorialCompleted) {
@@ -2342,7 +2403,7 @@ export class GameController extends Component {
         this.isStarted = true;
         this.isPaused = false;
         this.audioManager.setBattlePaused(false);
-        this.audioManager.playBgm('battle_bgm');
+        this.audioManager.playSelectedBgm();
         const level = this.getCurrentLevelConfig();
         this.aiDecisionCooldown = level.aiInitialDecisionDelay;
         this.pauseButton.node.active = true;
@@ -3659,7 +3720,7 @@ export class GameController extends Component {
         this.levelBadge.active = this.isStarted;
         this.resultReportLabel.string = '';
         if (this.isStarted) {
-            this.audioManager.playBgm('battle_bgm');
+            this.audioManager.playSelectedBgm();
         }
         this.refreshHud('新的战斗开始，双方从 60 点指挥能量起步。');
     }
