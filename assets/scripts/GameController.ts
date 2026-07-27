@@ -24,7 +24,7 @@ const { ccclass } = _decorator;
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
-const GAME_VERSION = 'v1.1.3';
+const GAME_VERSION = 'v1.1.4-rc.1';
 const BATTLEFIELD_CENTER_X = -90;
 const LANE_SPACING = 270;
 const LANE_X = [
@@ -76,6 +76,11 @@ const PLAYER_MAX_ACTIVE_UNITS = 8;
 const TEAM_MAX_UNITS_PER_LANE = 3;
 const UNIT_QUEUE_GAP = 10;
 const UNIT_ENEMY_CONTACT_GAP = 3;
+const LANE_CONTACT_EPSILON = 0.01;
+const LANE_PROGRESS_POSITION_EPSILON = 0.05;
+const LANE_PROGRESS_VALUE_EPSILON = 0.001;
+const LANE_STALL_RECOVERY_SECONDS = 2;
+const MAX_LOGIC_DELTA_TIME = 0.1;
 // Root positions stay inside these bounds. The margin also reserves room for
 // the health bar and keeps units away from the surrounding HUD/base visuals.
 const UNIT_ROAD_SAFETY_MARGIN = 22;
@@ -170,6 +175,21 @@ interface BattleUnit {
 interface RoadBounds {
     readonly minY: number;
     readonly maxY: number;
+}
+
+type LaneActivityState = 'marching' | 'fighting' | 'breakthrough';
+
+interface LaneRuntimeState {
+    previousPlayerFrontY: number | undefined;
+    previousAIFrontY: number | undefined;
+    previousPlayerHealthTotal: number;
+    previousAIHealthTotal: number;
+    previousUnitCount: number;
+    previousBaseHitCount: number;
+    baseHitCount: number;
+    stalledSeconds: number;
+    warningIssued: boolean;
+    recoveryCount: number;
 }
 
 interface FeedbackEffect {
@@ -398,6 +418,18 @@ export class GameController extends Component {
     private readonly laneSpawnMarkers: LaneSpawnMarkerView[] = [];
     private readonly laneDebugSignatures = new Set<string>();
     private readonly pendingLaneShifts = new Map<string, number>();
+    private readonly laneRuntimeStates: LaneRuntimeState[] = LANE_X.map(() => ({
+        previousPlayerFrontY: undefined,
+        previousAIFrontY: undefined,
+        previousPlayerHealthTotal: 0,
+        previousAIHealthTotal: 0,
+        previousUnitCount: 0,
+        previousBaseHitCount: 0,
+        baseHitCount: 0,
+        stalledSeconds: 0,
+        warningIssued: false,
+        recoveryCount: 0,
+    }));
 
     private playerBaseHealth = BASE_MAX_HEALTH;
     private aiBaseHealth = BASE_MAX_HEALTH;
@@ -1598,6 +1630,7 @@ export class GameController extends Component {
         this.helpPanel.active = false;
         this.pausePanel.active = false;
         this.pauseButton.node.active = true;
+        this.resetLaneLivenessTimers();
         this.refreshLaneSpawnMarkers();
         this.refreshHud('\u5DF2\u7EE7\u7EED\u6218\u6597\u3002');
     }
@@ -1961,7 +1994,7 @@ export class GameController extends Component {
         };
         this.nextUnitId += 1;
         this.units.push(unit);
-        this.resolveLaneFormation(lane, 0);
+        this.repairLaneInvariants(lane);
         this.getBattleStats(team).unitsSpawned += 1;
         this.drawUnitVisual(unit);
         this.drawHitFlash(unit);
@@ -1975,11 +2008,8 @@ export class GameController extends Component {
     }
 
     private updateUnits(deltaTime: number): void {
-        this.resolveAllLaneFormations(0);
+        const safeDeltaTime = this.sanitizeLogicDeltaTime(deltaTime);
         const pendingDamage = new Map<BattleUnit, number>();
-        const playerFormations = LANE_X.map((_, lane) => this.getLaneFormation(Team.Player, lane));
-        const aiFormations = LANE_X.map((_, lane) => this.getLaneFormation(Team.AI, lane));
-        const engagedFronts = new Set<BattleUnit>();
 
         for (const unit of this.units) {
             if (this.isActiveBattleUnit(unit)) {
@@ -1988,34 +2018,27 @@ export class GameController extends Component {
         }
 
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
-            const playerFront = playerFormations[lane][0];
-            const aiFront = aiFormations[lane][0];
-            if (!this.isActiveBattleUnit(playerFront) || !this.isActiveBattleUnit(aiFront)) {
-                continue;
-            }
-            if (!this.areFrontUnitsInContact(playerFront, aiFront)) {
-                continue;
-            }
-            engagedFronts.add(playerFront);
-            engagedFronts.add(aiFront);
-            this.collectFrontAttack(playerFront, aiFront, deltaTime, pendingDamage);
-            this.collectFrontAttack(aiFront, playerFront, deltaTime, pendingDamage);
+            this.repairLaneInvariants(lane);
+        }
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            this.updateLaneFrontMovement(lane, safeDeltaTime);
+        }
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            this.updateLaneFollowerMovement(lane, safeDeltaTime);
+        }
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            this.updateLaneCombat(lane, safeDeltaTime, pendingDamage);
         }
 
         this.resolvePendingCombatDamage(pendingDamage);
 
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
-            const breakthroughs = this.resolveLaneFormation(lane, deltaTime, engagedFronts);
-            for (const unit of breakthroughs) {
-                if (!this.isActiveBattleUnit(unit)) {
-                    continue;
-                }
-                this.damageBase(unit.team === Team.Player ? Team.AI : Team.Player, unit);
-                this.startUnitDeath(unit);
-                if (this.isFinished) {
-                    return;
-                }
+            this.repairLaneInvariants(lane);
+            this.checkLaneBreakthrough(lane);
+            if (this.isFinished) {
+                return;
             }
+            this.validateLaneLiveness(lane, safeDeltaTime);
         }
     }
 
@@ -2051,120 +2074,437 @@ export class GameController extends Component {
         return Math.max(bounds.minY, Math.min(bounds.maxY, y));
     }
 
-    private resolveAllLaneFormations(deltaTime = 0, engagedFronts?: ReadonlySet<BattleUnit>): void {
+    private sanitizeLogicDeltaTime(deltaTime: number): number {
+        if (!Number.isFinite(deltaTime) || deltaTime < 0) {
+            console.error('[WolfSheepBattle][LaneNumeric] 非法 deltaTime，已忽略本帧道路推进。', { deltaTime });
+            return 0;
+        }
+        return Math.min(deltaTime, MAX_LOGIC_DELTA_TIME);
+    }
+
+    private setUnitLogicY(unit: BattleUnit, y: number): void {
+        const bounds = this.getUnitRoadBounds(unit);
+        const safeY = this.clampRoadY(bounds, Number.isFinite(y)
+            ? y
+            : unit.team === Team.Player ? bounds.minY : bounds.maxY);
+        const previousY = unit.node.position.y;
+        unit.node.setPosition(unit.node.position.x, safeY);
+        if (Number.isFinite(previousY) && Math.abs(safeY - previousY) > LANE_PROGRESS_VALUE_EPSILON) {
+            unit.isMoving = true;
+        }
+    }
+
+    private sanitizeUnitRuntime(unit: BattleUnit): void {
+        const bounds = this.getUnitRoadBounds(unit);
+        if (!Number.isFinite(unit.node.position.y)) {
+            console.error('[WolfSheepBattle][LaneNumeric] 单位坐标非法，已恢复到本方出生端。', {
+                lane: unit.lane + 1,
+                unitId: unit.id,
+                team: unit.team === Team.Player ? 'player' : 'ai',
+                y: unit.node.position.y,
+            });
+            this.setUnitLogicY(unit, unit.team === Team.Player ? bounds.minY : bounds.maxY);
+        } else if (unit.node.position.y < bounds.minY || unit.node.position.y > bounds.maxY) {
+            this.reportLaneInvariant(
+                unit.lane,
+                unit,
+                'out-of-bounds',
+                this.clampRoadY(bounds, unit.node.position.y),
+                undefined,
+                true,
+                false,
+                false,
+            );
+            this.setUnitLogicY(unit, unit.node.position.y);
+        }
+        if (!Number.isFinite(unit.health)) {
+            console.error('[WolfSheepBattle][LaneNumeric] 单位生命值非法，已恢复为最大生命。', {
+                lane: unit.lane + 1,
+                unitId: unit.id,
+                health: unit.health,
+            });
+            unit.health = unit.definition.maxHealth;
+        }
+        if (!Number.isFinite(unit.attackCooldown)) {
+            console.error('[WolfSheepBattle][LaneNumeric] 攻击计时非法，已恢复为可攻击状态。', {
+                lane: unit.lane + 1,
+                unitId: unit.id,
+                attackCooldown: unit.attackCooldown,
+            });
+            unit.attackCooldown = 0;
+        } else {
+            unit.attackCooldown = Math.max(0, Math.min(unit.definition.attackInterval, unit.attackCooldown));
+        }
+    }
+
+    private repairAllLaneInvariants(): void {
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
-            this.resolveLaneFormation(lane, deltaTime, engagedFronts);
+            this.repairLaneInvariants(lane);
         }
     }
 
     /**
-     * The only method allowed to update a live BattleUnit root-node y position.
-     * Queue order is immutable; current y never decides who is in front.
+     * Repairs only invalid coordinates/order/overlap. Normal rear-unit following
+     * is handled separately and is always speed-limited.
      */
-    private resolveLaneFormation(
-        lane: number,
-        deltaTime = 0,
-        engagedFronts?: ReadonlySet<BattleUnit>,
-    ): BattleUnit[] {
+    private repairLaneInvariants(lane: number): void {
         const playerFormation = this.getLaneFormation(Team.Player, lane);
         const aiFormation = this.getLaneFormation(Team.AI, lane);
+        for (const unit of [...playerFormation, ...aiFormation]) {
+            this.sanitizeUnitRuntime(unit);
+        }
+
+        this.applyPendingLaneShift(Team.Player, lane, playerFormation);
+        this.applyPendingLaneShift(Team.AI, lane, aiFormation);
+        this.repairTeamOrder(lane, Team.Player, playerFormation);
+        this.repairTeamOrder(lane, Team.AI, aiFormation);
+
         const playerFront = playerFormation[0];
         const aiFront = aiFormation[0];
-        const playerRange = this.getPlayerFrontRange(playerFormation);
-        const aiRange = this.getAIFrontRange(aiFormation);
-        const playerShift = this.getAllowedTeamShift(
-            playerFormation,
-            this.consumeLaneShift(Team.Player, lane),
-        );
-        const aiShift = this.getAllowedTeamShift(
-            aiFormation,
-            this.consumeLaneShift(Team.AI, lane),
-        );
-        let playerFrontY = playerFront && playerRange
-            ? this.clampRoadY(
-                playerRange,
-                Number.isFinite(playerFront.node.position.y)
-                    ? playerFront.node.position.y + playerShift
-                    : playerRange.minY,
-            )
-            : undefined;
-        let aiFrontY = aiFront && aiRange
-            ? this.clampRoadY(
-                aiRange,
-                Number.isFinite(aiFront.node.position.y)
-                    ? aiFront.node.position.y + aiShift
-                    : aiRange.maxY,
-            )
-            : undefined;
-
-        this.diagnoseTeamFormation(lane, Team.Player, playerFormation);
-        this.diagnoseTeamFormation(lane, Team.AI, aiFormation);
-
-        if (playerFront && aiFront && playerRange && aiRange && playerFrontY !== undefined && aiFrontY !== undefined) {
+        if (playerFront && aiFront) {
             const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
-            const frontsEngaged = engagedFronts?.has(playerFront) === true && engagedFronts.has(aiFront);
-            let gap = aiFrontY - playerFrontY;
-            if (gap > contactDistance + 0.001 && !frontsEngaged) {
-                const availableDistance = gap - contactDistance;
-                const playerMovement = this.getUnitMovementDistance(playerFront, deltaTime);
-                const aiMovement = this.getUnitMovementDistance(aiFront, deltaTime);
-                const totalMovement = playerMovement + aiMovement;
-                const movementScale = totalMovement > 0 ? Math.min(1, availableDistance / totalMovement) : 0;
-                playerFrontY = this.clampRoadY(playerRange, playerFrontY + playerMovement * movementScale);
-                aiFrontY = this.clampRoadY(aiRange, aiFrontY - aiMovement * movementScale);
-                gap = aiFrontY - playerFrontY;
-            }
-
-            const enemyOrderWrong = playerFrontY >= aiFrontY;
-            const enemyOverlap = playerFrontY + contactDistance > aiFrontY + 0.001;
+            const gap = aiFront.node.position.y - playerFront.node.position.y;
+            const enemyOrderWrong = gap <= 0;
+            const enemyOverlap = gap < contactDistance - LANE_CONTACT_EPSILON;
             if (enemyOrderWrong || enemyOverlap) {
                 this.reportLaneInvariant(
                     lane,
                     playerFront,
                     enemyOrderWrong ? 'enemy-order' : 'enemy-overlap',
-                    aiFrontY - contactDistance,
+                    aiFront.node.position.y - contactDistance,
                     aiFront,
                     false,
                     enemyOverlap,
                     enemyOrderWrong,
                 );
-                const minimumPlayerY = Math.max(playerRange.minY, aiRange.minY - contactDistance);
-                const maximumPlayerY = Math.min(playerRange.maxY, aiRange.maxY - contactDistance);
-                const midpointPlayerY = (playerFrontY + aiFrontY - contactDistance) / 2;
-                playerFrontY = minimumPlayerY <= maximumPlayerY
-                    ? Math.max(minimumPlayerY, Math.min(maximumPlayerY, midpointPlayerY))
-                    : this.clampRoadY(playerRange, midpointPlayerY);
-                aiFrontY = playerFrontY + contactDistance;
-            }
-        } else {
-            if (playerFront && playerRange && playerFrontY !== undefined) {
-                playerFrontY = this.clampRoadY(
-                    playerRange,
-                    playerFrontY + this.getUnitMovementDistance(playerFront, deltaTime),
-                );
-            }
-            if (aiFront && aiRange && aiFrontY !== undefined) {
-                aiFrontY = this.clampRoadY(
-                    aiRange,
-                    aiFrontY - this.getUnitMovementDistance(aiFront, deltaTime),
-                );
+                this.alignLaneFrontsAtContact(playerFront, aiFront);
+                this.repairTeamOrder(lane, Team.Player, playerFormation);
+                this.repairTeamOrder(lane, Team.AI, aiFormation);
             }
         }
-
-        this.applyResolvedTeamFormation(Team.Player, playerFormation, playerFrontY, deltaTime, playerShift);
-        this.applyResolvedTeamFormation(Team.AI, aiFormation, aiFrontY, deltaTime, aiShift);
         this.validateResolvedLane(lane, playerFormation, aiFormation);
+    }
 
-        const breakthroughs: BattleUnit[] = [];
+    private applyPendingLaneShift(team: Team, lane: number, formation: readonly BattleUnit[]): void {
+        const requestedShift = this.consumeLaneShift(team, lane);
+        const allowedShift = this.getAllowedTeamShift(formation, requestedShift);
+        if (Math.abs(allowedShift) <= LANE_PROGRESS_VALUE_EPSILON) {
+            return;
+        }
+        for (const unit of formation) {
+            this.setUnitLogicY(unit, unit.node.position.y + allowedShift);
+        }
+    }
+
+    private repairTeamOrder(lane: number, team: Team, formation: readonly BattleUnit[]): void {
+        for (let index = 1; index < formation.length; index += 1) {
+            const frontUnit = formation[index - 1];
+            const rearUnit = formation[index];
+            const spacing = this.getUnitQueueSpacing(frontUnit, rearUnit);
+            const desiredY = frontUnit.node.position.y + (team === Team.Player ? -spacing : spacing);
+            const currentY = rearUnit.node.position.y;
+            const orderInvalid = team === Team.Player
+                ? currentY > desiredY + LANE_CONTACT_EPSILON
+                : currentY < desiredY - LANE_CONTACT_EPSILON;
+            if (!orderInvalid) {
+                continue;
+            }
+            const bounds = this.getUnitRoadBounds(rearUnit);
+            const repairedY = this.clampRoadY(bounds, desiredY);
+            this.reportLaneInvariant(
+                lane,
+                rearUnit,
+                'ally-overlap',
+                repairedY,
+                frontUnit,
+                repairedY === bounds.minY || repairedY === bounds.maxY,
+                true,
+                false,
+            );
+            this.setUnitLogicY(rearUnit, repairedY);
+        }
+    }
+
+    private alignLaneFrontsAtContact(playerFront: BattleUnit, aiFront: BattleUnit): void {
+        const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
+        const playerBounds = this.getUnitRoadBounds(playerFront);
+        const aiBounds = this.getUnitRoadBounds(aiFront);
+        const minimumPlayerY = Math.max(playerBounds.minY, aiBounds.minY - contactDistance);
+        const maximumPlayerY = Math.min(playerBounds.maxY, aiBounds.maxY - contactDistance);
+        const midpointPlayerY = (playerFront.node.position.y + aiFront.node.position.y - contactDistance) * 0.5;
+        const playerY = minimumPlayerY <= maximumPlayerY
+            ? Math.max(minimumPlayerY, Math.min(maximumPlayerY, midpointPlayerY))
+            : this.clampRoadY(playerBounds, midpointPlayerY);
+        this.setUnitLogicY(playerFront, playerY);
+        this.setUnitLogicY(aiFront, playerY + contactDistance);
+    }
+
+    private updateLaneFrontMovement(lane: number, deltaTime: number): void {
+        const playerFront = this.getLaneFormation(Team.Player, lane)[0];
+        const aiFront = this.getLaneFormation(Team.AI, lane)[0];
+        if (playerFront && aiFront) {
+            const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
+            const gap = aiFront.node.position.y - playerFront.node.position.y;
+            if (!Number.isFinite(gap) || !Number.isFinite(contactDistance)) {
+                console.error('[WolfSheepBattle][LaneNumeric] 前排距离非法，已执行道路修复。', {
+                    lane: lane + 1,
+                    playerFrontId: playerFront.id,
+                    aiFrontId: aiFront.id,
+                    gap,
+                    contactDistance,
+                });
+                this.repairLaneInvariants(lane);
+                return;
+            }
+            if (gap <= contactDistance + LANE_CONTACT_EPSILON) {
+                this.alignLaneFrontsAtContact(playerFront, aiFront);
+                return;
+            }
+
+            const availableDistance = gap - contactDistance;
+            const playerMovement = this.getUnitMovementDistance(playerFront, deltaTime);
+            const aiMovement = this.getUnitMovementDistance(aiFront, deltaTime);
+            const totalMovement = playerMovement + aiMovement;
+            const movementScale = totalMovement > 0 ? Math.min(1, availableDistance / totalMovement) : 0;
+            this.setUnitLogicY(playerFront, playerFront.node.position.y + playerMovement * movementScale);
+            this.setUnitLogicY(aiFront, aiFront.node.position.y - aiMovement * movementScale);
+
+            const finalGap = aiFront.node.position.y - playerFront.node.position.y;
+            if (finalGap <= contactDistance + LANE_CONTACT_EPSILON) {
+                this.alignLaneFrontsAtContact(playerFront, aiFront);
+            }
+            return;
+        }
+
+        if (playerFront) {
+            const endpoint = this.getBaseEndpointY(playerFront);
+            this.setUnitLogicY(
+                playerFront,
+                Math.min(endpoint, playerFront.node.position.y + this.getUnitMovementDistance(playerFront, deltaTime)),
+            );
+        }
+        if (aiFront) {
+            const endpoint = this.getBaseEndpointY(aiFront);
+            this.setUnitLogicY(
+                aiFront,
+                Math.max(endpoint, aiFront.node.position.y - this.getUnitMovementDistance(aiFront, deltaTime)),
+            );
+        }
+    }
+
+    private updateLaneFollowerMovement(lane: number, deltaTime: number): void {
+        this.updateTeamFollowerMovement(Team.Player, this.getLaneFormation(Team.Player, lane), deltaTime);
+        this.updateTeamFollowerMovement(Team.AI, this.getLaneFormation(Team.AI, lane), deltaTime);
+    }
+
+    private updateTeamFollowerMovement(
+        team: Team,
+        formation: readonly BattleUnit[],
+        deltaTime: number,
+    ): void {
+        const direction = team === Team.Player ? 1 : -1;
+        for (let index = 1; index < formation.length; index += 1) {
+            const frontUnit = formation[index - 1];
+            const rearUnit = formation[index];
+            const spacing = this.getUnitQueueSpacing(frontUnit, rearUnit);
+            const desiredY = frontUnit.node.position.y - direction * spacing;
+            const forwardDistance = direction * (desiredY - rearUnit.node.position.y);
+            if (forwardDistance <= LANE_PROGRESS_VALUE_EPSILON) {
+                continue;
+            }
+            const movement = Math.min(this.getUnitMovementDistance(rearUnit, deltaTime), forwardDistance);
+            this.setUnitLogicY(rearUnit, rearUnit.node.position.y + direction * movement);
+        }
+    }
+
+    private updateLaneCombat(
+        lane: number,
+        deltaTime: number,
+        pendingDamage: Map<BattleUnit, number>,
+    ): void {
+        const playerFront = this.getLaneFormation(Team.Player, lane)[0];
+        const aiFront = this.getLaneFormation(Team.AI, lane)[0];
+        if (!playerFront || !aiFront) {
+            return;
+        }
+        const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
+        const gap = aiFront.node.position.y - playerFront.node.position.y;
+        if (!Number.isFinite(gap) || gap > contactDistance + LANE_CONTACT_EPSILON) {
+            return;
+        }
+        this.alignLaneFrontsAtContact(playerFront, aiFront);
+        this.collectFrontAttack(playerFront, aiFront, deltaTime, pendingDamage);
+        this.collectFrontAttack(aiFront, playerFront, deltaTime, pendingDamage);
+    }
+
+    private checkLaneBreakthrough(lane: number): void {
+        const playerFormation = this.getLaneFormation(Team.Player, lane);
+        const aiFormation = this.getLaneFormation(Team.AI, lane);
+        const playerFront = playerFormation[0];
+        const aiFront = aiFormation[0];
+        let breakthrough: BattleUnit | undefined;
         if (playerFront && aiFormation.length === 0
-            && playerFront.node.position.y >= this.getBaseEndpointY(playerFront) - 0.001) {
-            breakthroughs.push(playerFront);
+            && playerFront.node.position.y >= this.getBaseEndpointY(playerFront) - LANE_CONTACT_EPSILON) {
+            breakthrough = playerFront;
+        } else if (aiFront && playerFormation.length === 0
+            && aiFront.node.position.y <= this.getBaseEndpointY(aiFront) + LANE_CONTACT_EPSILON) {
+            breakthrough = aiFront;
         }
-        if (aiFront && playerFormation.length === 0
-            && aiFront.node.position.y <= this.getBaseEndpointY(aiFront) + 0.001) {
-            breakthroughs.push(aiFront);
+        if (!breakthrough || !this.isActiveBattleUnit(breakthrough)) {
+            return;
         }
-        return breakthroughs;
+        this.damageBase(breakthrough.team === Team.Player ? Team.AI : Team.Player, breakthrough);
+        this.startUnitDeath(breakthrough);
+    }
+
+    private getLaneActivityState(lane: number): LaneActivityState {
+        const playerFront = this.getLaneFormation(Team.Player, lane)[0];
+        const aiFront = this.getLaneFormation(Team.AI, lane)[0];
+        if (!playerFront || !aiFront) {
+            return 'breakthrough';
+        }
+        const gap = aiFront.node.position.y - playerFront.node.position.y;
+        const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
+        return gap <= contactDistance + LANE_CONTACT_EPSILON ? 'fighting' : 'marching';
+    }
+
+    private validateLaneLiveness(lane: number, deltaTime: number): void {
+        const runtime = this.laneRuntimeStates[lane];
+        const playerFormation = this.getLaneFormation(Team.Player, lane);
+        const aiFormation = this.getLaneFormation(Team.AI, lane);
+        const playerFront = playerFormation[0];
+        const aiFront = aiFormation[0];
+        const playerHealthTotal = playerFormation.reduce((sum, unit) => sum + unit.health, 0);
+        const aiHealthTotal = aiFormation.reduce((sum, unit) => sum + unit.health, 0);
+        const unitCount = playerFormation.length + aiFormation.length;
+        const playerMoved = this.hasLanePositionProgress(runtime.previousPlayerFrontY, playerFront?.node.position.y);
+        const aiMoved = this.hasLanePositionProgress(runtime.previousAIFrontY, aiFront?.node.position.y);
+        const healthChanged = Math.abs(playerHealthTotal - runtime.previousPlayerHealthTotal) > LANE_PROGRESS_VALUE_EPSILON
+            || Math.abs(aiHealthTotal - runtime.previousAIHealthTotal) > LANE_PROGRESS_VALUE_EPSILON;
+        const countChanged = unitCount !== runtime.previousUnitCount;
+        const baseDamaged = runtime.baseHitCount !== runtime.previousBaseHitCount;
+        const hasProgress = playerMoved || aiMoved || healthChanged || countChanged || baseDamaged;
+
+        if (unitCount === 0 || hasProgress) {
+            runtime.stalledSeconds = 0;
+            runtime.warningIssued = false;
+        } else {
+            runtime.stalledSeconds += deltaTime;
+        }
+
+        this.updateLaneRuntimeSnapshot(
+            runtime,
+            playerFront,
+            aiFront,
+            playerHealthTotal,
+            aiHealthTotal,
+            unitCount,
+        );
+
+        if (unitCount > 0 && runtime.stalledSeconds >= LANE_STALL_RECOVERY_SECONDS) {
+            const state = this.getLaneActivityState(lane);
+            if (!runtime.warningIssued) {
+                console.warn('[WolfSheepBattle][LaneLiveness] 道路超过 2 秒无有效进展，执行无伤害恢复。', {
+                    lane: lane + 1,
+                    playerFront: this.describeLaneFront(playerFront),
+                    aiFront: this.describeLaneFront(aiFront),
+                    gap: playerFront && aiFront ? aiFront.node.position.y - playerFront.node.position.y : undefined,
+                    contactDistance: playerFront && aiFront
+                        ? this.getEnemyContactDistance(playerFront, aiFront)
+                        : undefined,
+                    unitCount,
+                    stalledSeconds: runtime.stalledSeconds,
+                    state,
+                });
+                runtime.warningIssued = true;
+            }
+            runtime.recoveryCount += 1;
+            this.recoverStalledLane(lane, state);
+            runtime.stalledSeconds = 0;
+        }
+    }
+
+    private hasLanePositionProgress(previousY: number | undefined, currentY: number | undefined): boolean {
+        if (previousY === undefined || currentY === undefined) {
+            return previousY !== currentY;
+        }
+        return Number.isFinite(currentY)
+            && Math.abs(currentY - previousY) > LANE_PROGRESS_POSITION_EPSILON;
+    }
+
+    private updateLaneRuntimeSnapshot(
+        runtime: LaneRuntimeState,
+        playerFront: BattleUnit | undefined,
+        aiFront: BattleUnit | undefined,
+        playerHealthTotal: number,
+        aiHealthTotal: number,
+        unitCount: number,
+    ): void {
+        runtime.previousPlayerFrontY = playerFront?.node.position.y;
+        runtime.previousAIFrontY = aiFront?.node.position.y;
+        runtime.previousPlayerHealthTotal = playerHealthTotal;
+        runtime.previousAIHealthTotal = aiHealthTotal;
+        runtime.previousUnitCount = unitCount;
+        runtime.previousBaseHitCount = runtime.baseHitCount;
+    }
+
+    private describeLaneFront(unit: BattleUnit | undefined): object | undefined {
+        if (!unit) {
+            return undefined;
+        }
+        return {
+            id: unit.id,
+            queueOrder: unit.queueOrder,
+            y: unit.node.position.y,
+            health: unit.health,
+            attackCooldown: unit.attackCooldown,
+        };
+    }
+
+    private recoverStalledLane(lane: number, state: LaneActivityState): void {
+        this.repairLaneInvariants(lane);
+        const playerFront = this.getLaneFormation(Team.Player, lane)[0];
+        const aiFront = this.getLaneFormation(Team.AI, lane)[0];
+        if (state === 'fighting' && playerFront && aiFront) {
+            this.alignLaneFrontsAtContact(playerFront, aiFront);
+            playerFront.attackCooldown = 0;
+            aiFront.attackCooldown = 0;
+            return;
+        }
+        this.updateLaneFrontMovement(lane, 1 / 60);
+    }
+
+    private resetLaneRuntimeStates(): void {
+        for (const state of this.laneRuntimeStates) {
+            state.previousPlayerFrontY = undefined;
+            state.previousAIFrontY = undefined;
+            state.previousPlayerHealthTotal = 0;
+            state.previousAIHealthTotal = 0;
+            state.previousUnitCount = 0;
+            state.previousBaseHitCount = 0;
+            state.baseHitCount = 0;
+            state.stalledSeconds = 0;
+            state.warningIssued = false;
+            state.recoveryCount = 0;
+        }
+    }
+
+    private resetLaneLivenessTimers(): void {
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            const state = this.laneRuntimeStates[lane];
+            const playerFormation = this.getLaneFormation(Team.Player, lane);
+            const aiFormation = this.getLaneFormation(Team.AI, lane);
+            state.stalledSeconds = 0;
+            state.warningIssued = false;
+            this.updateLaneRuntimeSnapshot(
+                state,
+                playerFormation[0],
+                aiFormation[0],
+                playerFormation.reduce((sum, unit) => sum + unit.health, 0),
+                aiFormation.reduce((sum, unit) => sum + unit.health, 0),
+                playerFormation.length + aiFormation.length,
+            );
+        }
     }
 
     private reportLaneInvariant(
@@ -2232,48 +2572,6 @@ export class GameController extends Component {
         }
     }
 
-    private applyResolvedTeamFormation(
-        team: Team,
-        formation: readonly BattleUnit[],
-        frontY: number | undefined,
-        deltaTime: number,
-        teamShift: number,
-    ): void {
-        if (formation.length === 0 || frontY === undefined) {
-            return;
-        }
-        let resolvedY = frontY;
-        for (let index = 0; index < formation.length; index += 1) {
-            const unit = formation[index];
-            if (index > 0) {
-                const frontUnit = formation[index - 1];
-                const targetY = resolvedY + (team === Team.Player ? -1 : 1) * this.getUnitQueueSpacing(frontUnit, unit);
-                const direction = team === Team.Player ? 1 : -1;
-                const bounds = this.getUnitRoadBounds(unit);
-                const shiftedY = unit.node.position.y + teamShift;
-                const currentY = Number.isFinite(shiftedY)
-                    ? this.clampRoadY(bounds, shiftedY)
-                    : this.clampRoadY(bounds, targetY);
-                const forwardDistance = direction * (targetY - currentY);
-                if (forwardDistance < -0.001) {
-                    // Immediate correction is reserved for overlap or an invalid
-                    // ally order. It only moves the unit to the closest legal
-                    // non-overlapping position behind the previous unit.
-                    resolvedY = targetY;
-                } else if (forwardDistance > 0.001) {
-                    const movement = Math.min(this.getUnitMovementDistance(unit, deltaTime), forwardDistance);
-                    resolvedY = currentY + direction * movement;
-                } else {
-                    resolvedY = currentY;
-                }
-                resolvedY = this.clampRoadY(bounds, resolvedY);
-            }
-            const previousY = unit.node.position.y;
-            unit.node.setPosition(unit.node.position.x, resolvedY);
-            unit.isMoving = Math.abs(resolvedY - previousY) > 0.001;
-        }
-    }
-
     private getAllowedTeamShift(formation: readonly BattleUnit[], requestedShift: number): number {
         if (formation.length === 0 || Math.abs(requestedShift) <= 0.001) {
             return 0;
@@ -2335,24 +2633,6 @@ export class GameController extends Component {
         const shift = this.pendingLaneShifts.get(key) ?? 0;
         this.pendingLaneShifts.delete(key);
         return shift;
-    }
-
-    private getPlayerFrontRange(formation: readonly BattleUnit[]): RoadBounds | undefined {
-        const frontUnit = formation[0];
-        const minimumY = this.getMinimumPlayerFrontYForDefinitions(formation.map((unit) => unit.definition));
-        if (!frontUnit || minimumY === undefined) {
-            return undefined;
-        }
-        return { minY: minimumY, maxY: this.getUnitRoadBounds(frontUnit).maxY };
-    }
-
-    private getAIFrontRange(formation: readonly BattleUnit[]): RoadBounds | undefined {
-        const frontUnit = formation[0];
-        const maximumY = this.getMaximumAIFrontYForDefinitions(formation.map((unit) => unit.definition));
-        if (!frontUnit || maximumY === undefined) {
-            return undefined;
-        }
-        return { minY: this.getUnitRoadBounds(frontUnit).minY, maxY: maximumY };
     }
 
     private getBaseEndpointY(unit: BattleUnit): number {
@@ -2430,11 +2710,6 @@ export class GameController extends Component {
         return positionY;
     }
 
-    private areFrontUnitsInContact(first: BattleUnit, second: BattleUnit): boolean {
-        const collisionDistance = first.definition.radius + second.definition.radius + UNIT_ENEMY_CONTACT_GAP;
-        return Math.abs(first.node.position.y - second.node.position.y) <= collisionDistance;
-    }
-
     private collectFrontAttack(attacker: BattleUnit, target: BattleUnit, deltaTime: number, pendingDamage: Map<BattleUnit, number>): void {
         const currentAttackerFront = this.getLaneFormation(attacker.team, attacker.lane)[0];
         const currentTargetFront = this.getLaneFormation(target.team, target.lane)[0];
@@ -2508,7 +2783,7 @@ export class GameController extends Component {
         unit.hitRecoilRemaining = 0;
         unit.hitFlashNode.active = false;
         this.dyingUnits.push(unit);
-        this.resolveLaneFormation(unit.lane, 0);
+        this.repairLaneInvariants(unit.lane);
     }
 
     private updateUnitVisuals(deltaTime: number): void {
@@ -2586,6 +2861,7 @@ export class GameController extends Component {
 
     private damageBase(target: Team, attacker: BattleUnit): void {
         const damage = attacker.definition.baseDamage;
+        this.laneRuntimeStates[attacker.lane].baseHitCount += 1;
         let message: string;
         if (target === Team.Player) {
             this.playerBaseHealth = Math.max(0, this.playerBaseHealth - damage);
@@ -2750,7 +3026,7 @@ export class GameController extends Component {
         if (unit.node.isValid) {
             unit.node.destroy();
         }
-        this.resolveLaneFormation(unit.lane, 0);
+        this.repairLaneInvariants(unit.lane);
     }
 
     private clearBattleUnits(): void {
@@ -2763,7 +3039,7 @@ export class GameController extends Component {
         this.dyingUnits.length = 0;
         this.laneDebugSignatures.clear();
         this.pendingLaneShifts.clear();
-        this.resolveAllLaneFormations(0);
+        this.resetLaneRuntimeStates();
     }
 
     private refreshHud(status?: string): void {
@@ -2938,7 +3214,7 @@ export class GameController extends Component {
             this.queueLaneShift(targetTeam, lane, knockbackDirection * SHOCK_KNOCKBACK_DISTANCE);
         }
         this.createShockEffect(owner);
-        this.resolveAllLaneFormations(0);
+        this.repairAllLaneInvariants();
         this.showTacticNotice(owner, '\u9886\u5730\u9707\u8361');
         const ownerName = isPlayer ? '玩家' : 'AI';
         this.refreshHud(`${ownerName}释放领地震荡：消灭 ${defeatedCount} 名轻型敌军，击退 ${repelledCount} 名重型敌军。`);
@@ -3016,7 +3292,7 @@ export class GameController extends Component {
             this.aiSprintCooldown = SPRINT_COOLDOWN_SECONDS;
         }
         this.getBattleStats(team).sprintUses += 1;
-        this.resolveAllLaneFormations(0);
+        this.repairAllLaneInvariants();
         this.showTacticNotice(team, tacticName);
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A\u5168\u90E8\u5B58\u6D3B\u5355\u4F4D\u79FB\u52A8\u901F\u5EA6 +50%\uFF0C\u6301\u7EED ${SPRINT_DURATION_SECONDS} \u79D2\u3002`);
     }
@@ -3064,7 +3340,7 @@ export class GameController extends Component {
             this.aiHealCooldown = HEAL_COOLDOWN_SECONDS;
         }
         this.getBattleStats(team).healUses += 1;
-        this.resolveAllLaneFormations(0);
+        this.repairAllLaneInvariants();
         this.showTacticNotice(team, tacticName);
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A${damagedUnits.length} \u4E2A\u5B58\u6D3B\u5355\u4F4D\u6062\u590D\u4E86 40% \u6700\u5927\u751F\u547D\u3002`);
     }
