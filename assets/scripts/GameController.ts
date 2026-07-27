@@ -42,7 +42,9 @@ const LANE_TOP_Y = 270;
 const LANE_LENGTH = LANE_TOP_Y - LANE_BOTTOM_Y;
 const PLAYER_BASE_Y = -270;
 const AI_BASE_Y = 288;
-const AI_HUD_Y = 308;
+const HUD_SAFE_MARGIN = 12;
+const TOP_HUD_Y = 308;
+const AI_HUD_Y = TOP_HUD_Y;
 const PLAYER_HUD_Y = -284;
 const BASE_BAR_HEIGHT = 48;
 const HUD_BASE_BAR_WIDTH = 400;
@@ -60,10 +62,15 @@ const PLAYER_HUD_SUPPLY_X = BATTLEFIELD_CENTER_X - HUD_BASE_BAR_WIDTH / 2 - HUD_
 const PLAYER_HUD_ENERGY_X = BATTLEFIELD_CENTER_X + HUD_BASE_BAR_WIDTH / 2 + HUD_RESOURCE_GAP + ENERGY_BAR_WIDTH / 2;
 const AI_HUD_SUPPLY_X = AI_HUD_CENTER_X - HUD_BASE_BAR_WIDTH / 2 - HUD_RESOURCE_GAP - PLAYER_RESOURCE_BADGE_WIDTH / 2;
 const AI_HUD_ENERGY_X = AI_HUD_CENTER_X + HUD_BASE_BAR_WIDTH / 2 + HUD_RESOURCE_GAP + ENERGY_BAR_WIDTH / 2;
-const FUNCTION_SIDEBAR_X = 530;
 const FUNCTION_SIDEBAR_WIDTH = 200;
+const FUNCTION_SIDEBAR_X = DESIGN_WIDTH / 2 - HUD_SAFE_MARGIN - FUNCTION_SIDEBAR_WIDTH / 2;
 const FUNCTION_HEADER_HEIGHT = 34;
-const PAUSE_BUTTON_Y = 338;
+const PAUSE_BUTTON_X = FUNCTION_SIDEBAR_X;
+const PAUSE_BUTTON_Y = TOP_HUD_Y;
+const LEVEL_BADGE_WIDTH = 90;
+const LEVEL_BADGE_HEIGHT = 50;
+const LEVEL_BADGE_X = -DESIGN_WIDTH / 2 + HUD_SAFE_MARGIN + LEVEL_BADGE_WIDTH / 2;
+const LEVEL_BADGE_Y = TOP_HUD_Y;
 const TACTIC_HEADER_Y = 232;
 const TACTIC_CARD_HEIGHT = 86;
 const TACTIC_CARD_GAP = 18;
@@ -524,6 +531,9 @@ export class GameController extends Component {
     private playerHealCard!: TacticCardView;
     private playerShockCard!: TacticCardView;
     private pauseButton!: ButtonView;
+    private levelBadge!: Node;
+    private levelBadgeChapterLabel!: Label;
+    private levelBadgeTitleLabel!: Label;
     private musicVolumeControl!: VolumeControlView;
     private sfxVolumeControl!: VolumeControlView;
     private resultBackdropOpacity!: UIOpacity;
@@ -620,6 +630,7 @@ export class GameController extends Component {
         this.createLaneSpawnZones();
         this.createUnitTypeButtons();
         this.createTacticButtons();
+        this.createBattleLevelBadge();
         this.createResultPanel();
         this.createStartPanel();
         this.createLevelSelectPanel();
@@ -1938,8 +1949,72 @@ export class GameController extends Component {
         this.tutorialPanel.active = false;
     }
 
+    private createBattleLevelBadge(): void {
+        this.levelBadge = this.createGraphicsNode(
+            'BattleLevelBadge',
+            LEVEL_BADGE_WIDTH,
+            LEVEL_BADGE_HEIGHT,
+            LEVEL_BADGE_X,
+            LEVEL_BADGE_Y,
+            this.hudLayer,
+        );
+        const graphics = this.levelBadge.getComponent(Graphics)!;
+        graphics.fillColor = new Color(20, 38, 58, 224);
+        graphics.roundRect(
+            -LEVEL_BADGE_WIDTH / 2,
+            -LEVEL_BADGE_HEIGHT / 2,
+            LEVEL_BADGE_WIDTH,
+            LEVEL_BADGE_HEIGHT,
+            12,
+        );
+        graphics.fill();
+        graphics.lineWidth = 2;
+        graphics.strokeColor = new Color(103, 134, 163, 170);
+        graphics.roundRect(
+            -LEVEL_BADGE_WIDTH / 2,
+            -LEVEL_BADGE_HEIGHT / 2,
+            LEVEL_BADGE_WIDTH,
+            LEVEL_BADGE_HEIGHT,
+            12,
+        );
+        graphics.stroke();
+        this.levelBadgeChapterLabel = this.createLabel(
+            this.levelBadge,
+            'LevelChapter',
+            '',
+            0,
+            9,
+            82,
+            27,
+            21,
+            new Color(255, 239, 190, 255),
+        );
+        this.levelBadgeTitleLabel = this.createLabel(
+            this.levelBadge,
+            'LevelTitle',
+            '',
+            0,
+            -13,
+            82,
+            19,
+            13,
+            new Color(174, 198, 219, 255),
+        );
+        this.refreshBattleLevelBadge();
+        this.levelBadge.active = false;
+    }
+
+    private refreshBattleLevelBadge(): void {
+        if (!this.levelBadge || !this.levelBadgeChapterLabel || !this.levelBadgeTitleLabel) {
+            return;
+        }
+        const level = this.getCurrentLevelConfig();
+        this.levelBadgeChapterLabel.string = `\u7B2C ${this.currentLevel} \u5173`;
+        this.levelBadgeTitleLabel.string = level.title;
+    }
+
     private createPauseControls(): void {
-        this.pauseButton = this.createButton(this.hudLayer, 'PauseButton', '\u2161 \u6682\u505C', FUNCTION_SIDEBAR_X, PAUSE_BUTTON_Y,
+        this.pauseButton = this.createButton(this.hudLayer, 'PauseButton', '\u2161 \u6682\u505C', PAUSE_BUTTON_X, PAUSE_BUTTON_Y,
             FUNCTION_SIDEBAR_WIDTH, FUNCTION_HEADER_HEIGHT, 18, () => this.pauseGame());
         this.pauseButton.label.color = new Color(255, 238, 180, 255);
         this.drawButton(this.pauseButton, new Color(28, 48, 76, 250), new Color(255, 222, 126, 255));
@@ -2212,6 +2287,7 @@ export class GameController extends Component {
         this.audioManager.stopBgm();
         this.audioManager.stopBattleSfx();
         this.pauseButton.node.active = false;
+        this.levelBadge.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
         this.tutorialPanel.active = false;
@@ -2270,6 +2346,8 @@ export class GameController extends Component {
         const level = this.getCurrentLevelConfig();
         this.aiDecisionCooldown = level.aiInitialDecisionDelay;
         this.pauseButton.node.active = true;
+        this.refreshBattleLevelBadge();
+        this.levelBadge.active = true;
         const openingHint = level.id === 1
             ? '\u9009\u62E9\u5175\u79CD\uFF0C\u70B9\u51FB\u9053\u8DEF\u5E95\u90E8\u7BAD\u5934\u51FA\u5175\uFF1B\u5148\u62A2\u8865\u7ED9\uFF0C\u518D\u7EC4\u7EC7\u63A8\u8FDB\u3002'
             : `\u7B2C ${level.id} \u5173\u5F00\u59CB\uFF1A${level.title}\u3002`;
@@ -3514,6 +3592,7 @@ export class GameController extends Component {
         this.audioManager.stopBgm();
         this.audioManager.stopBattleSfx();
         this.pauseButton.node.active = false;
+        this.levelBadge.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
         this.tutorialPanel.active = false;
@@ -3576,6 +3655,8 @@ export class GameController extends Component {
         this.pausePanel.active = false;
         this.helpPanel.active = false;
         this.pauseButton.node.active = true;
+        this.refreshBattleLevelBadge();
+        this.levelBadge.active = this.isStarted;
         this.resultReportLabel.string = '';
         if (this.isStarted) {
             this.audioManager.playBgm('battle_bgm');
