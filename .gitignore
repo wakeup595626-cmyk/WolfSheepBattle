@@ -22,3 +22,7 @@ node_modules/
 # WebStorm
 #//////////////////////////
 .idea/
+
+# Local files created when the Cocos source project is opened in WeChat DevTools.
+project.config.json
+project.private.config.json
