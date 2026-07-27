@@ -122,6 +122,9 @@ const UNIT_DEATH_DURATION = 0.28;
 const UNIT_HEALTH_DAMAGE_DISPLAY_SECONDS = 0.15;
 const UNIT_HEALTH_HEAL_DISPLAY_SECONDS = 0.2;
 const UNIT_HEALTH_DEATH_DISPLAY_SECONDS = 0.08;
+const UNIT_VISUAL_BASE_RADIUS = 22;
+const UNIT_TIER_BADGE_GAP = 4;
+const AI_DEPLOY_NOTICE_MIN_INTERVAL = 0.75;
 const BASE_HIT_FLASH_DURATION = 0.32;
 const HUD_DYNAMIC_REFRESH_INTERVAL = 0.25;
 const TACTIC_NOTICE_FADE_IN_SECONDS = 0.12;
@@ -155,6 +158,17 @@ interface UnitDefinition {
     readonly color: readonly [number, number, number];
 }
 
+interface UnitTierVisualConfig {
+    readonly label: string;
+    readonly roman: string;
+    readonly accentColor: Color;
+    readonly visualScale: number;
+    readonly displayName: {
+        readonly sheep: string;
+        readonly wolf: string;
+    };
+}
+
 interface BattleUnit {
     readonly id: number;
     readonly queueOrder: number;
@@ -170,6 +184,9 @@ interface BattleUnit {
     readonly healthGraphics: Graphics;
     readonly healthFillNode: Node;
     readonly healthFillGraphics: Graphics;
+    readonly tierBadgeNode: Node;
+    readonly tierBadgeGraphics: Graphics;
+    readonly tierBadgeLabel: Label;
     readonly opacity: UIOpacity;
     health: number;
     displayHealth: number;
@@ -219,6 +236,12 @@ interface ButtonView {
     readonly label: Label;
     readonly width: number;
     readonly height: number;
+}
+
+interface UnitTypeButtonView extends ButtonView {
+    readonly tierBadgeNode: Node;
+    readonly tierBadgeGraphics: Graphics;
+    readonly tierBadgeLabel: Label;
 }
 
 type AudioChannel = 'music' | 'sfx';
@@ -425,6 +448,49 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
     },
 };
 
+const UNIT_TIER_VISUALS: Readonly<Record<SheepType, UnitTierVisualConfig>> = {
+    [SheepType.Small]: {
+        label: '\u5C0F',
+        roman: '\u2160',
+        accentColor: new Color(217, 226, 236, 255),
+        visualScale: 1,
+        displayName: {
+            sheep: '\u5C0F\u7F8A',
+            wolf: '\u5C0F\u72FC',
+        },
+    },
+    [SheepType.Medium]: {
+        label: '\u4E2D',
+        roman: '\u2161',
+        accentColor: new Color(82, 168, 255, 255),
+        visualScale: 1.15,
+        displayName: {
+            sheep: '\u4E2D\u7F8A',
+            wolf: '\u4E2D\u72FC',
+        },
+    },
+    [SheepType.Large]: {
+        label: '\u5927',
+        roman: '\u2162',
+        accentColor: new Color(168, 120, 255, 255),
+        visualScale: 1.3,
+        displayName: {
+            sheep: '\u5927\u7F8A',
+            wolf: '\u5927\u72FC',
+        },
+    },
+    [SheepType.Giant]: {
+        label: '\u5DE8',
+        roman: '\u2163',
+        accentColor: new Color(244, 198, 78, 255),
+        visualScale: 1.48,
+        displayName: {
+            sheep: '\u5DE8\u7F8A',
+            wolf: '\u5DE8\u72FC',
+        },
+    },
+};
+
 const UNIT_ORDER: readonly SheepType[] = [
     SheepType.Small,
     SheepType.Medium,
@@ -443,7 +509,7 @@ export class GameController extends Component {
 
     private readonly units: BattleUnit[] = [];
     private readonly dyingUnits: BattleUnit[] = [];
-    private readonly typeButtons = new Map<SheepType, ButtonView>();
+    private readonly typeButtons = new Map<SheepType, UnitTypeButtonView>();
     private readonly supplyPoints: SupplyPoint[] = [];
     private readonly feedbackEffects: FeedbackEffect[] = [];
     private readonly laneSpawnMarkers: LaneSpawnMarkerView[] = [];
@@ -478,6 +544,7 @@ export class GameController extends Component {
     private aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
     private hudRefreshCooldown = 0;
     private statusToastRemaining = 0;
+    private aiDeployNoticeCooldown = 0;
     private lastBaseHudState = '';
     private lastUnitButtonState = '';
     private lastTacticHudState = '';
@@ -519,6 +586,7 @@ export class GameController extends Component {
     private aiTacticLabel!: Label;
     private statusLabel!: Label;
     private statusToast!: Node;
+    private statusToastOpacity!: UIOpacity;
     private tacticNotice!: Node;
     private tacticNoticeLabel!: Label;
     private tacticNoticeOpacity!: UIOpacity;
@@ -583,6 +651,7 @@ export class GameController extends Component {
 
         this.playerSpawnCooldown = Math.max(0, this.playerSpawnCooldown - deltaTime);
         this.statusToastRemaining = Math.max(0, this.statusToastRemaining - deltaTime);
+        this.aiDeployNoticeCooldown = Math.max(0, this.aiDeployNoticeCooldown - deltaTime);
         if (this.statusToastRemaining <= 0 && this.statusToast?.active) {
             this.statusToast.active = false;
         }
@@ -979,6 +1048,7 @@ export class GameController extends Component {
         toastGraphics.roundRect(-220, -16, 440, 32, 14);
         toastGraphics.stroke();
         this.statusLabel = this.createLabel(this.statusToast, 'Text', '', 0, 0, 420, 30, 14, new Color(232, 237, 244, 255));
+        this.statusToastOpacity = this.statusToast.addComponent(UIOpacity);
         this.statusToast.active = false;
         this.createTacticNotice();
     }
@@ -1321,9 +1391,21 @@ export class GameController extends Component {
                     return;
                 }
                 this.selectedSheepType = type;
-                this.refreshHud(`${UNIT_DEFINITIONS[type].name}已选中，选择通道出兵。`);
+                this.refreshHud(`${this.getUnitDisplayName(type, Team.Player)}已选中，选择通道出兵。`);
             });
-            this.typeButtons.set(type, button);
+            button.label.node.setPosition(18, 0, 0);
+            button.label.node.getComponent(UITransform)!.setContentSize(204, 40);
+            const tierBadgeNode = this.createGraphicsNode('TierBadge', 30, 30, -108, 0, button.node);
+            tierBadgeNode.addComponent(UIOpacity);
+            const tierBadgeLabel = this.createLabel(tierBadgeNode, 'TierLabel', '', 0, 0, 26, 28, 15, Color.WHITE);
+            const unitButton: UnitTypeButtonView = {
+                ...button,
+                tierBadgeNode,
+                tierBadgeGraphics: tierBadgeNode.getComponent(Graphics)!,
+                tierBadgeLabel,
+            };
+            this.drawTierBadge(unitButton.tierBadgeGraphics, unitButton.tierBadgeLabel, type, 28);
+            this.typeButtons.set(type, unitButton);
         }
     }
 
@@ -2056,11 +2138,47 @@ export class GameController extends Component {
         this.helpPanel = new Node('HelpPanel');
         this.helpPanel.setParent(this.modalLayer);
         this.helpPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
-        this.drawModalBackground(this.helpPanel, 760, 460);
-        this.createLabel(this.helpPanel, 'HelpTitle', '\u73A9\u6CD5\u8BF4\u660E', 0, 150, 600, 48, 32, new Color(255, 244, 207, 255));
-        this.createLabel(this.helpPanel, 'HelpText', '\u2022 \u9009\u62E9\u5175\u79CD\u540E\uFF0C\u70B9\u51FB\u5BF9\u5E94\u9053\u8DEF\u51FA\u5175\u3002\n\u2022 \u80FD\u91CF\u7528\u4E8E\u51FA\u5175\u3002\n\u2022 \u5360\u9886\u8865\u7ED9\u70B9\u83B7\u5F97\u8865\u7ED9\u3002\n\u2022 \u8865\u7ED9\u53EF\u4F7F\u7528\u6218\u672F\u3002\n\u2022 \u6467\u6BC1\u654C\u65B9\u57FA\u5730\u83B7\u80DC\u3002', 0, 28, 620, 220, 21, new Color(226, 233, 240, 255));
-        this.createButton(this.helpPanel, 'HelpBackButton', '\u8FD4\u56DE\u6682\u505C\u83DC\u5355', 0, -158, 250, 50, 19, () => this.closeHelpPanel());
+        this.drawModalBackground(this.helpPanel, 780, 600);
+        this.createLabel(this.helpPanel, 'HelpTitle', '\u73A9\u6CD5\u8BF4\u660E', 0, 245, 620, 48, 32, new Color(255, 244, 207, 255));
+        this.createLabel(this.helpPanel, 'HelpText', '\u2022 \u9009\u62E9\u5175\u79CD\u540E\uFF0C\u70B9\u51FB\u5BF9\u5E94\u9053\u8DEF\u51FA\u5175\u3002\n\u2022 \u80FD\u91CF\u7528\u4E8E\u51FA\u5175\uFF1B\u5360\u9886\u8865\u7ED9\u70B9\u53EF\u83B7\u5F97\u8865\u7ED9\u3002\n\u2022 \u8865\u7ED9\u53EF\u4F7F\u7528\u6218\u672F\uFF1B\u6467\u6BC1\u654C\u65B9\u57FA\u5730\u83B7\u80DC\u3002', 0, 154, 650, 120, 19, new Color(226, 233, 240, 255));
+        this.createLabel(this.helpPanel, 'TierLegendTitle', '\u56DB\u6863\u5355\u4F4D', 0, 80, 620, 32, 20, new Color(255, 231, 157, 255));
+        this.createUnitTierLegend(this.helpPanel, 42);
+        this.createButton(this.helpPanel, 'HelpBackButton', '\u8FD4\u56DE\u6682\u505C\u83DC\u5355', 0, -252, 250, 50, 19, () => this.closeHelpPanel());
         this.helpPanel.active = false;
+    }
+
+    private createUnitTierLegend(parent: Node, topY: number): void {
+        const descriptions: Readonly<Record<SheepType, string>> = {
+            [SheepType.Small]: '\u901F\u5EA6\u8F83\u5FEB\u3001\u6D88\u8017\u8F83\u4F4E',
+            [SheepType.Medium]: '\u5747\u8861\u5355\u4F4D',
+            [SheepType.Large]: '\u751F\u547D\u548C\u653B\u51FB\u8F83\u9AD8',
+            [SheepType.Giant]: '\u6700\u5F3A\u4F46\u80FD\u91CF\u6D88\u8017\u6700\u9AD8',
+        };
+        const rowWidth = 650;
+        const rowHeight = 36;
+        const rowGap = 5;
+        for (let index = 0; index < UNIT_ORDER.length; index += 1) {
+            const type = UNIT_ORDER[index];
+            const tier = UNIT_TIER_VISUALS[type];
+            const rowY = topY - index * (rowHeight + rowGap);
+            const row = this.createGraphicsNode(`TierLegend${type}`, rowWidth, rowHeight, 0, rowY, parent);
+            const rowGraphics = row.getComponent(Graphics)!;
+            rowGraphics.fillColor = new Color(14, 25, 40, 225);
+            rowGraphics.roundRect(-rowWidth / 2, -rowHeight / 2, rowWidth, rowHeight, 9);
+            rowGraphics.fill();
+            rowGraphics.lineWidth = 1;
+            rowGraphics.strokeColor = new Color(tier.accentColor.r, tier.accentColor.g, tier.accentColor.b, 115);
+            rowGraphics.roundRect(-rowWidth / 2, -rowHeight / 2, rowWidth, rowHeight, 9);
+            rowGraphics.stroke();
+
+            const badge = this.createGraphicsNode('TierBadge', 30, 30, -292, 0, row);
+            const badgeLabel = this.createLabel(badge, 'TierLabel', '', 0, 0, 26, 28, 15, tier.accentColor);
+            this.drawTierBadge(badge.getComponent(Graphics)!, badgeLabel, type, 28);
+            this.createLabel(row, 'Roman', tier.roman, -244, 0, 44, rowHeight, 18, tier.accentColor);
+            const description = this.createLabel(row, 'Description', descriptions[type], 36, 0, 490, rowHeight, 16,
+                new Color(223, 232, 241, 255));
+            description.horizontalAlign = HorizontalTextAlignment.LEFT;
+        }
     }
 
     private pauseGame(): void {
@@ -2447,7 +2565,7 @@ export class GameController extends Component {
         }
         if (this.playerEnergy < definition.cost) {
             this.triggerDeployFailureFeedback(lane);
-            this.refreshHud(`${definition.name}需要 ${definition.cost} 点指挥能量。`);
+            this.refreshHud(`${this.getUnitDisplayName(definition.type, Team.Player)}需要 ${definition.cost} 点指挥能量。`);
             return;
         }
 
@@ -2461,7 +2579,7 @@ export class GameController extends Component {
         this.playerSpawnCooldown = PLAYER_SPAWN_COOLDOWN;
         this.audioManager.playSfx('deploy');
         this.refreshLaneSpawnMarkers();
-        this.refreshHud(`第 ${lane + 1} 线派出${definition.name}，消耗 ${definition.cost} 能量。`);
+        this.refreshHud(`第 ${lane + 1} 线派出${this.getUnitDisplayName(definition.type, Team.Player)}，消耗 ${definition.cost} 能量。`);
     }
 
     private trySpawnAIUnit(): number {
@@ -2493,8 +2611,22 @@ export class GameController extends Component {
             return levelConfig.aiIdleDecisionInterval;
         }
         this.aiEnergy -= definition.cost;
-        this.refreshHud(`AI 在第 ${lane + 1} 线派出${definition.name.replace('羊', '狼')}。`);
+        this.showAIDeployNotice(lane, type);
         return this.getAIDeployCooldown(definition);
+    }
+
+    private showAIDeployNotice(lane: number, type: SheepType): void {
+        if (this.aiDeployNoticeCooldown > 0) {
+            return;
+        }
+        this.aiDeployNoticeCooldown = AI_DEPLOY_NOTICE_MIN_INTERVAL;
+        const wolfName = this.getUnitDisplayName(type, Team.AI);
+        this.refreshHud(`AI\u5728\u7B2C${lane + 1}\u8DEF\u6D3E\u51FA${wolfName}`);
+    }
+
+    private getUnitDisplayName(type: SheepType, team: Team): string {
+        const displayName = UNIT_TIER_VISUALS[type].displayName;
+        return team === Team.Player ? displayName.sheep : displayName.wolf;
     }
 
     private chooseAILane(affordableTypes: readonly SheepType[]): number | undefined {
@@ -2659,11 +2791,36 @@ export class GameController extends Component {
         node.setParent(this.battleLayer);
         node.setPosition(LANE_X[lane], safeStartY, 0);
         node.addComponent(UITransform).setContentSize(definition.radius * 2 + 12, definition.radius * 2 + 28);
-        const visualNode = this.createGraphicsNode('Visual', definition.radius * 2 + 12, definition.radius * 2 + 12, 0, 0, node);
-        const hitFlashNode = this.createGraphicsNode('HitFlash', definition.radius * 2 + 12, definition.radius * 2 + 12, 0, 0, node);
-        const healthNode = this.createGraphicsNode('HealthBar', definition.radius * 2 + 10, 18, 0, 0, node);
-        const healthFillNode = this.createGraphicsNode('HealthFill', definition.radius * 2 + 2, 10, 0, 0, healthNode);
+        const visualExtent = UNIT_VISUAL_BASE_RADIUS * UNIT_TIER_VISUALS[definition.type].visualScale;
+        const visualNode = this.createGraphicsNode('VisualNode', visualExtent * 2 + 12, visualExtent * 2 + 12, 0, 0, node);
+        const hitFlashNode = this.createGraphicsNode('HitFlashNode', visualExtent * 2 + 12, visualExtent * 2 + 12, 0, 0, node);
+        const healthNode = new Node('HealthUI');
+        healthNode.setParent(node);
+        healthNode.setPosition(0, 0, 0);
+        healthNode.addComponent(UITransform).setContentSize(definition.radius * 2 + 46, 58);
+        const healthBackgroundNode = this.createGraphicsNode(
+            'HealthBackground',
+            definition.radius * 2 + 2,
+            10,
+            0,
+            0,
+            healthNode,
+        );
+        const healthFillNode = this.createGraphicsNode('HealthFill', definition.radius * 2, 8, 0, 0, healthNode);
         healthFillNode.getComponent(UITransform)!.setAnchorPoint(0, 0);
+        const tierBadgeSize = this.getTierBadgeSize(definition.type);
+        const tierBadgeNode = this.createGraphicsNode('TierBadge', tierBadgeSize, tierBadgeSize, 0, 0, healthNode);
+        const tierBadgeLabel = this.createLabel(
+            tierBadgeNode,
+            'TierLabel',
+            '',
+            0,
+            0,
+            tierBadgeSize - 2,
+            tierBadgeSize - 2,
+            tierBadgeSize <= 20 ? 12 : 14,
+            UNIT_TIER_VISUALS[definition.type].accentColor,
+        );
         const unit: BattleUnit = {
             id: this.nextUnitId,
             queueOrder: this.nextUnitId,
@@ -2676,9 +2833,12 @@ export class GameController extends Component {
             hitFlashNode,
             hitFlashOpacity: hitFlashNode.addComponent(UIOpacity),
             healthNode,
-            healthGraphics: healthNode.getComponent(Graphics)!,
+            healthGraphics: healthBackgroundNode.getComponent(Graphics)!,
             healthFillNode,
             healthFillGraphics: healthFillNode.getComponent(Graphics)!,
+            tierBadgeNode,
+            tierBadgeGraphics: tierBadgeNode.getComponent(Graphics)!,
+            tierBadgeLabel,
             opacity: node.addComponent(UIOpacity),
             health: definition.maxHealth,
             displayHealth: definition.maxHealth,
@@ -2699,10 +2859,6 @@ export class GameController extends Component {
         this.drawHitFlash(unit);
         this.createUnitHealthBar(unit);
         unit.hitFlashNode.active = false;
-        unit.node.setScale(0.9, 0.9, 1);
-        tween(unit.node)
-            .to(0.12, { scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' })
-            .start();
         return true;
     }
 
@@ -3503,8 +3659,9 @@ export class GameController extends Component {
                 this.updateUnitHealthBarDisplay(unit, deltaTime);
                 const progress = 1 - unit.deathRemaining / UNIT_DEATH_DURATION;
                 const deathScale = Math.max(0.28, 1 - progress * 0.72);
+                const tierScale = UNIT_TIER_VISUALS[unit.definition.type].visualScale;
                 unit.visualNode.setPosition(0, 0, 0);
-                unit.visualNode.setScale(deathScale, deathScale, 1);
+                unit.visualNode.setScale(tierScale * deathScale, tierScale * deathScale, 1);
                 unit.healthNode.setScale(deathScale, deathScale, 1);
                 unit.opacity.opacity = Math.round(255 * (1 - progress));
                 if (unit.deathRemaining <= 0) {
@@ -3523,7 +3680,8 @@ export class GameController extends Component {
             const attackKick = Math.sin(Math.PI * unit.attackKickRemaining / UNIT_IMPACT_DURATION) * 1.7;
             const hitRecoil = Math.sin(Math.PI * unit.hitRecoilRemaining / UNIT_IMPACT_DURATION) * 1.3;
             const visualY = Math.sin(unit.walkPhase) * bobAmplitude + forward * (attackKick - hitRecoil);
-            const visualScale = 1 + hitRecoil * 0.022;
+            const tierScale = UNIT_TIER_VISUALS[unit.definition.type].visualScale;
+            const visualScale = tierScale * (1 + hitRecoil * 0.022);
             unit.visualNode.setPosition(0, visualY, 0);
             unit.visualNode.setScale(visualScale, visualScale, 1);
             unit.healthNode.setScale(1, 1, 1);
@@ -3573,12 +3731,12 @@ export class GameController extends Component {
             this.playerBaseHealth = Math.max(0, this.playerBaseHealth - damage);
             this.playerBaseFlashRemaining = BASE_HIT_FLASH_DURATION;
             this.createFloatingFeedback(`-${damage}`, 0, PLAYER_BASE_Y + 64, new Color(151, 221, 255, 255), 0.7, 24, 120, 24);
-            message = `AI 的${attacker.definition.name.replace('羊', '狼')}突破防线，基地受到 ${damage} 点伤害！`;
+            message = `AI 的${this.getUnitDisplayName(attacker.definition.type, Team.AI)}突破防线，基地受到 ${damage} 点伤害！`;
         } else {
             this.aiBaseHealth = Math.max(0, this.aiBaseHealth - damage);
             this.aiBaseFlashRemaining = BASE_HIT_FLASH_DURATION;
             this.createFloatingFeedback(`-${damage}`, 0, AI_BASE_Y - 48, new Color(255, 183, 168, 255), 0.7, -24, 120, 24);
-            message = `${attacker.definition.name}突破防线，AI 基地受到 ${damage} 点伤害！`;
+            message = `${this.getUnitDisplayName(attacker.definition.type, Team.Player)}突破防线，AI 基地受到 ${damage} 点伤害！`;
         }
 
         if (this.unlockShockIfNeeded(target)) {
@@ -3690,6 +3848,7 @@ export class GameController extends Component {
         this.aiSupply = 0;
         this.selectedSheepType = SheepType.Small;
         this.playerSpawnCooldown = 0;
+        this.aiDeployNoticeCooldown = 0;
         this.playerShockUnlocked = false;
         this.aiShockUnlocked = false;
         this.playerShockUsed = false;
@@ -3803,12 +3962,23 @@ export class GameController extends Component {
     }
 
     private showStatusToast(message: string): void {
-        if (!this.statusToast || !this.statusLabel) {
+        if (!this.statusToast || !this.statusLabel || !this.statusToastOpacity) {
             return;
         }
+        Tween.stopAllByTarget(this.statusToastOpacity);
         this.statusLabel.string = message;
         this.statusToast.active = true;
+        this.statusToastOpacity.opacity = 255;
         this.statusToastRemaining = 1.35;
+        tween(this.statusToastOpacity)
+            .delay(1.05)
+            .to(0.25, { opacity: 0 }, { easing: 'quadIn' })
+            .call(() => {
+                if (this.statusToastOpacity.opacity <= 0) {
+                    this.statusToast.active = false;
+                }
+            })
+            .start();
     }
 
     private refreshUnitTypeButtons(): void {
@@ -3818,6 +3988,7 @@ export class GameController extends Component {
                 continue;
             }
             const definition = UNIT_DEFINITIONS[type];
+            const tier = UNIT_TIER_VISUALS[type];
             const isSelected = this.selectedSheepType === type;
             const isAffordable = this.playerEnergy >= definition.cost;
             const fillColor = isSelected
@@ -3827,8 +3998,9 @@ export class GameController extends Component {
                 ? new Color(202, 241, 255, 255)
                 : isAffordable ? new Color(135, 181, 216, 255) : new Color(105, 114, 126, 255);
             this.drawButton(button, fillColor, borderColor);
-            button.label.string = `${isSelected ? '✓ ' : ''}${definition.name}  ${definition.cost} 能量`;
+            button.label.string = `${isSelected ? '\u2713 ' : ''}${tier.displayName.sheep}\u3000${definition.cost}\u80FD\u91CF`;
             button.label.color = isAffordable || isSelected ? Color.WHITE : new Color(170, 176, 184, 255);
+            button.tierBadgeNode.getComponent(UIOpacity)!.opacity = isAffordable || isSelected ? 255 : 205;
         }
     }
 
@@ -4222,25 +4394,25 @@ export class GameController extends Component {
     private drawUnitVisual(unit: BattleUnit): void {
         const graphics = unit.visualGraphics;
         const { definition } = unit;
-        const radius = definition.radius;
+        const radius = UNIT_VISUAL_BASE_RADIUS;
+        const tier = UNIT_TIER_VISUALS[definition.type];
         const isPlayer = unit.team === Team.Player;
         const [red, green, blue] = definition.color;
         const sheepColor = new Color(red, green, blue, 255);
         const wolfColor = new Color(Math.max(110, red - 35), Math.max(48, green - 130), Math.max(42, blue - 125), 255);
         const outlineColor = isPlayer ? new Color(55, 132, 204, 255) : new Color(115, 38, 42, 255);
-        const rankColor = isPlayer ? new Color(69, 151, 222, 255) : new Color(255, 194, 93, 255);
         graphics.clear();
         if (isPlayer) {
-            this.drawSheepUnit(graphics, radius, 0, sheepColor, outlineColor);
+            this.drawSheepUnit(graphics, definition.type, radius, 0, sheepColor, outlineColor, tier.accentColor);
         } else {
-            this.drawWolfUnit(graphics, radius, 0, wolfColor, outlineColor);
+            this.drawWolfUnit(graphics, definition.type, radius, 0, wolfColor, outlineColor, tier.accentColor);
         }
-        this.drawUnitRankMark(graphics, definition.type, radius, 0, rankColor, isPlayer);
+        unit.visualNode.setScale(tier.visualScale, tier.visualScale, 1);
     }
 
     private drawHitFlash(unit: BattleUnit): void {
         const graphics = unit.hitFlashNode.getComponent(Graphics)!;
-        const radius = unit.definition.radius;
+        const radius = UNIT_VISUAL_BASE_RADIUS;
         graphics.clear();
         graphics.fillColor = new Color(255, 255, 238, 235);
         if (unit.team === Team.Player) {
@@ -4263,18 +4435,28 @@ export class GameController extends Component {
     private createUnitHealthBar(unit: BattleUnit): void {
         const graphics = unit.healthGraphics;
         const radius = unit.definition.radius;
+        const tier = UNIT_TIER_VISUALS[unit.definition.type];
         const barHeight = 10;
-        const barY = radius + 9;
+        const visualExtent = UNIT_VISUAL_BASE_RADIUS * tier.visualScale;
+        const barCenterY = Math.max(radius, visualExtent) + 14;
         const barWidth = radius * 2 + 2;
         graphics.clear();
         graphics.fillColor = new Color(18, 25, 34, 255);
-        graphics.roundRect(-barWidth / 2, barY, barWidth, barHeight, 4);
+        graphics.roundRect(-barWidth / 2, -barHeight / 2, barWidth, barHeight, 4);
         graphics.fill();
         graphics.lineWidth = 2;
         graphics.strokeColor = new Color(142, 158, 174, 255);
-        graphics.roundRect(-barWidth / 2, barY, barWidth, barHeight, 4);
+        graphics.roundRect(-barWidth / 2, -barHeight / 2, barWidth, barHeight, 4);
         graphics.stroke();
-        unit.healthFillNode.setPosition(-barWidth / 2 + 1, barY + 1, 0);
+        graphics.node.setPosition(0, barCenterY, 0);
+        unit.healthFillNode.setPosition(-barWidth / 2 + 1, barCenterY, 0);
+        const badgeSize = this.getTierBadgeSize(unit.definition.type);
+        unit.tierBadgeNode.setPosition(
+            -barWidth / 2 - UNIT_TIER_BADGE_GAP - badgeSize / 2,
+            barCenterY,
+            0,
+        );
+        this.drawTierBadge(unit.tierBadgeGraphics, unit.tierBadgeLabel, unit.definition.type, badgeSize);
         this.drawUnitHealthFill(unit);
         this.updateUnitHealthBarDisplay(unit, 0);
     }
@@ -4287,7 +4469,7 @@ export class GameController extends Component {
         graphics.fillColor = unit.team === Team.Player
             ? new Color(66, 213, 122, 255)
             : new Color(239, 83, 80, 255);
-        graphics.roundRect(0, 0, barWidth, barHeight, 3);
+        graphics.roundRect(0, -barHeight / 2, barWidth, barHeight, 3);
         graphics.fill();
     }
 
@@ -4305,113 +4487,241 @@ export class GameController extends Component {
         unit.healthFillNode.setScale(displayRatio, 1, 1);
     }
 
-    private drawSheepUnit(graphics: Graphics, radius: number, drawY: number, bodyColor: Color, outlineColor: Color): void {
+    private drawSheepUnit(
+        graphics: Graphics,
+        type: SheepType,
+        radius: number,
+        drawY: number,
+        bodyColor: Color,
+        outlineColor: Color,
+        accentColor: Color,
+    ): void {
+        const isSmall = type === SheepType.Small;
+        const isMedium = type === SheepType.Medium;
+        const isLarge = type === SheepType.Large;
+        const width = isSmall ? 0.58 : isMedium ? 0.68 : isLarge ? 0.78 : 0.86;
+
         graphics.fillColor = bodyColor;
-        graphics.circle(-radius * 0.38, drawY, radius * 0.47);
-        graphics.circle(radius * 0.38, drawY, radius * 0.47);
-        graphics.circle(0, drawY + radius * 0.2, radius * 0.53);
+        graphics.circle(-radius * width * 0.48, drawY + radius * 0.02, radius * (isSmall ? 0.42 : 0.48));
+        graphics.circle(radius * width * 0.48, drawY + radius * 0.02, radius * (isSmall ? 0.42 : 0.48));
+        graphics.circle(0, drawY + radius * 0.2, radius * (isSmall ? 0.48 : 0.54));
+        if (!isSmall) {
+            graphics.circle(-radius * 0.48, drawY + radius * 0.22, radius * 0.32);
+            graphics.circle(radius * 0.48, drawY + radius * 0.22, radius * 0.32);
+        }
+        if (type === SheepType.Giant) {
+            graphics.circle(0, drawY + radius * 0.48, radius * 0.34);
+        }
         graphics.fill();
-        graphics.lineWidth = 3;
+
+        graphics.lineWidth = isSmall ? 2.4 : 3;
         graphics.strokeColor = outlineColor;
-        graphics.circle(0, drawY + radius * 0.08, radius * 0.73);
+        graphics.circle(0, drawY + radius * 0.08, radius * width);
         graphics.stroke();
 
         graphics.fillColor = new Color(55, 72, 94, 255);
-        graphics.circle(0, drawY - radius * 0.18, radius * 0.39);
+        graphics.circle(0, drawY - radius * 0.18, radius * (isSmall ? 0.34 : 0.39));
         graphics.fill();
         graphics.fillColor = new Color(244, 250, 255, 255);
-        graphics.circle(-radius * 0.15, drawY - radius * 0.12, Math.max(2, radius * 0.09));
-        graphics.circle(radius * 0.15, drawY - radius * 0.12, Math.max(2, radius * 0.09));
+        graphics.circle(-radius * 0.14, drawY - radius * 0.12, Math.max(2, radius * 0.085));
+        graphics.circle(radius * 0.14, drawY - radius * 0.12, Math.max(2, radius * 0.085));
         graphics.fill();
 
+        const earLength = isSmall ? 0.5 : 0.68;
         graphics.fillColor = new Color(188, 211, 228, 255);
-        graphics.moveTo(-radius * 0.46, drawY + radius * 0.23);
-        graphics.lineTo(-radius * 0.72, drawY + radius * 0.56);
-        graphics.lineTo(-radius * 0.28, drawY + radius * 0.43);
+        graphics.moveTo(-radius * 0.38, drawY + radius * 0.2);
+        graphics.lineTo(-radius * earLength, drawY + radius * (isSmall ? 0.42 : 0.56));
+        graphics.lineTo(-radius * 0.24, drawY + radius * 0.4);
         graphics.close();
-        graphics.moveTo(radius * 0.46, drawY + radius * 0.23);
-        graphics.lineTo(radius * 0.72, drawY + radius * 0.56);
-        graphics.lineTo(radius * 0.28, drawY + radius * 0.43);
+        graphics.moveTo(radius * 0.38, drawY + radius * 0.2);
+        graphics.lineTo(radius * earLength, drawY + radius * (isSmall ? 0.42 : 0.56));
+        graphics.lineTo(radius * 0.24, drawY + radius * 0.4);
+        graphics.close();
+        graphics.fill();
+
+        if (isSmall) {
+            graphics.fillColor = accentColor;
+            graphics.circle(0, drawY + radius * 0.54, radius * 0.11);
+            graphics.fill();
+            return;
+        }
+
+        graphics.fillColor = accentColor;
+        if (isMedium) {
+            graphics.roundRect(-radius * 0.38, drawY - radius * 0.5, radius * 0.76, radius * 0.13, 3);
+            graphics.fill();
+            graphics.moveTo(radius * 0.18, drawY - radius * 0.48);
+            graphics.lineTo(radius * 0.36, drawY - radius * 0.72);
+            graphics.lineTo(radius * 0.06, drawY - radius * 0.53);
+            graphics.close();
+            graphics.fill();
+            return;
+        }
+
+        graphics.roundRect(-radius * 0.72, drawY - radius * 0.08, radius * 0.28, radius * 0.34, 5);
+        graphics.roundRect(radius * 0.44, drawY - radius * 0.08, radius * 0.28, radius * 0.34, 5);
+        graphics.fill();
+        if (isLarge) {
+            graphics.roundRect(-radius * 0.36, drawY + radius * 0.24, radius * 0.72, radius * 0.15, 4);
+            graphics.fill();
+            graphics.lineWidth = 3;
+            graphics.strokeColor = accentColor;
+            graphics.moveTo(-radius * 0.52, drawY + radius * 0.45);
+            graphics.lineTo(-radius * 0.72, drawY + radius * 0.65);
+            graphics.moveTo(radius * 0.52, drawY + radius * 0.45);
+            graphics.lineTo(radius * 0.72, drawY + radius * 0.65);
+            graphics.stroke();
+            return;
+        }
+
+        graphics.roundRect(-radius * 0.42, drawY + radius * 0.18, radius * 0.84, radius * 0.18, 5);
+        graphics.fill();
+        graphics.moveTo(-radius * 0.34, drawY + radius * 0.54);
+        graphics.lineTo(-radius * 0.18, drawY + radius * 0.78);
+        graphics.lineTo(0, drawY + radius * 0.57);
+        graphics.lineTo(radius * 0.18, drawY + radius * 0.78);
+        graphics.lineTo(radius * 0.34, drawY + radius * 0.54);
         graphics.close();
         graphics.fill();
     }
 
-    private drawWolfUnit(graphics: Graphics, radius: number, drawY: number, bodyColor: Color, outlineColor: Color): void {
+    private drawWolfUnit(
+        graphics: Graphics,
+        type: SheepType,
+        radius: number,
+        drawY: number,
+        bodyColor: Color,
+        outlineColor: Color,
+        accentColor: Color,
+    ): void {
+        const isSmall = type === SheepType.Small;
+        const isMedium = type === SheepType.Medium;
+        const isLarge = type === SheepType.Large;
+        const width = isSmall ? 0.55 : isMedium ? 0.67 : isLarge ? 0.78 : 0.88;
+
+        if (type === SheepType.Giant) {
+            graphics.fillColor = new Color(72, 38, 43, 255);
+            graphics.circle(-radius * 0.48, drawY + radius * 0.04, radius * 0.5);
+            graphics.circle(radius * 0.48, drawY + radius * 0.04, radius * 0.5);
+            graphics.circle(0, drawY + radius * 0.34, radius * 0.58);
+            graphics.fill();
+        }
+
         graphics.fillColor = bodyColor;
-        graphics.moveTo(-radius * 0.7, drawY - radius * 0.5);
-        graphics.lineTo(-radius * 0.46, drawY + radius * 0.7);
-        graphics.lineTo(0, drawY + radius * 0.35);
-        graphics.lineTo(radius * 0.46, drawY + radius * 0.7);
-        graphics.lineTo(radius * 0.7, drawY - radius * 0.5);
-        graphics.lineTo(0, drawY - radius * 0.72);
+        graphics.moveTo(-radius * width, drawY - radius * 0.38);
+        graphics.lineTo(-radius * (isSmall ? 0.36 : 0.5), drawY + radius * (isSmall ? 0.72 : 0.82));
+        graphics.lineTo(-radius * 0.1, drawY + radius * 0.46);
+        graphics.lineTo(0, drawY + radius * (isSmall ? 0.34 : 0.42));
+        graphics.lineTo(radius * 0.1, drawY + radius * 0.46);
+        graphics.lineTo(radius * (isSmall ? 0.36 : 0.5), drawY + radius * (isSmall ? 0.72 : 0.82));
+        graphics.lineTo(radius * width, drawY - radius * 0.38);
+        if (!isSmall) {
+            graphics.lineTo(radius * 0.62, drawY - radius * 0.24);
+            graphics.lineTo(radius * 0.76, drawY - radius * 0.06);
+        }
+        graphics.lineTo(0, drawY - radius * (isSmall ? 0.78 : 0.86));
+        if (!isSmall) {
+            graphics.lineTo(-radius * 0.76, drawY - radius * 0.06);
+            graphics.lineTo(-radius * 0.62, drawY - radius * 0.24);
+        }
         graphics.close();
         graphics.fill();
-        graphics.lineWidth = 3;
+        graphics.lineWidth = isSmall ? 2.4 : 3;
         graphics.strokeColor = outlineColor;
-        graphics.moveTo(-radius * 0.7, drawY - radius * 0.5);
-        graphics.lineTo(-radius * 0.46, drawY + radius * 0.7);
-        graphics.lineTo(0, drawY + radius * 0.35);
-        graphics.lineTo(radius * 0.46, drawY + radius * 0.7);
-        graphics.lineTo(radius * 0.7, drawY - radius * 0.5);
-        graphics.lineTo(0, drawY - radius * 0.72);
-        graphics.close();
         graphics.stroke();
 
         graphics.fillColor = new Color(238, 222, 201, 255);
-        graphics.moveTo(-radius * 0.46, drawY - radius * 0.15);
-        graphics.lineTo(0, drawY - radius * 0.52);
-        graphics.lineTo(radius * 0.46, drawY - radius * 0.15);
+        graphics.moveTo(-radius * (isSmall ? 0.38 : 0.5), drawY - radius * 0.12);
+        graphics.lineTo(0, drawY - radius * (isSmall ? 0.62 : 0.7));
+        graphics.lineTo(radius * (isSmall ? 0.38 : 0.5), drawY - radius * 0.12);
         graphics.lineTo(0, drawY + radius * 0.1);
         graphics.close();
         graphics.fill();
+
         graphics.fillColor = new Color(255, 206, 82, 255);
-        graphics.circle(-radius * 0.23, drawY + radius * 0.02, Math.max(2, radius * 0.1));
-        graphics.circle(radius * 0.23, drawY + radius * 0.02, Math.max(2, radius * 0.1));
+        graphics.circle(-radius * 0.22, drawY + radius * 0.03, Math.max(2, radius * 0.095));
+        graphics.circle(radius * 0.22, drawY + radius * 0.03, Math.max(2, radius * 0.095));
         graphics.fill();
         graphics.fillColor = new Color(49, 27, 30, 255);
-        graphics.circle(-radius * 0.23, drawY + radius * 0.02, Math.max(1, radius * 0.045));
-        graphics.circle(radius * 0.23, drawY + radius * 0.02, Math.max(1, radius * 0.045));
+        graphics.circle(-radius * 0.22, drawY + radius * 0.03, Math.max(1, radius * 0.043));
+        graphics.circle(radius * 0.22, drawY + radius * 0.03, Math.max(1, radius * 0.043));
+        graphics.fill();
+
+        graphics.fillColor = accentColor;
+        if (isSmall) {
+            graphics.moveTo(0, drawY - radius * 0.76);
+            graphics.lineTo(-radius * 0.09, drawY - radius * 0.62);
+            graphics.lineTo(radius * 0.09, drawY - radius * 0.62);
+            graphics.close();
+            graphics.fill();
+            return;
+        }
+        if (isMedium) {
+            graphics.roundRect(-radius * 0.38, drawY + radius * 0.27, radius * 0.76, radius * 0.12, 3);
+            graphics.fill();
+            graphics.moveTo(-radius * 0.5, drawY - radius * 0.16);
+            graphics.lineTo(-radius * 0.7, drawY - radius * 0.02);
+            graphics.lineTo(-radius * 0.54, drawY + radius * 0.12);
+            graphics.close();
+            graphics.moveTo(radius * 0.5, drawY - radius * 0.16);
+            graphics.lineTo(radius * 0.7, drawY - radius * 0.02);
+            graphics.lineTo(radius * 0.54, drawY + radius * 0.12);
+            graphics.close();
+            graphics.fill();
+            return;
+        }
+
+        graphics.roundRect(-radius * 0.48, drawY + radius * 0.22, radius * 0.96, radius * 0.17, 4);
+        graphics.fill();
+        graphics.roundRect(-radius * 0.82, drawY - radius * 0.22, radius * 0.3, radius * 0.36, 5);
+        graphics.roundRect(radius * 0.52, drawY - radius * 0.22, radius * 0.3, radius * 0.36, 5);
+        graphics.fill();
+        if (isLarge) {
+            graphics.lineWidth = 3;
+            graphics.strokeColor = accentColor;
+            graphics.moveTo(-radius * 0.42, drawY + radius * 0.08);
+            graphics.lineTo(-radius * 0.1, drawY - radius * 0.02);
+            graphics.moveTo(radius * 0.42, drawY + radius * 0.08);
+            graphics.lineTo(radius * 0.1, drawY - radius * 0.02);
+            graphics.stroke();
+            return;
+        }
+
+        graphics.moveTo(-radius * 0.38, drawY + radius * 0.55);
+        graphics.lineTo(-radius * 0.2, drawY + radius * 0.8);
+        graphics.lineTo(0, drawY + radius * 0.58);
+        graphics.lineTo(radius * 0.2, drawY + radius * 0.8);
+        graphics.lineTo(radius * 0.38, drawY + radius * 0.55);
+        graphics.close();
         graphics.fill();
     }
 
-    private drawUnitRankMark(graphics: Graphics, type: SheepType, radius: number, drawY: number, color: Color, isPlayer: boolean): void {
-        graphics.lineWidth = Math.max(2, radius * 0.09);
-        graphics.strokeColor = color;
-        graphics.fillColor = color;
+    private getTierBadgeSize(type: SheepType): number {
         if (type === SheepType.Small) {
-            graphics.circle(0, drawY - radius * 0.48, Math.max(2, radius * 0.11));
-            graphics.fill();
-            return;
+            return 20;
         }
         if (type === SheepType.Medium) {
-            graphics.moveTo(-radius * 0.22, drawY - radius * 0.47);
-            graphics.lineTo(radius * 0.22, drawY - radius * 0.47);
-            graphics.stroke();
-            return;
+            return 21;
         }
         if (type === SheepType.Large) {
-            graphics.roundRect(-radius * 0.19, drawY - radius * 0.57, radius * 0.38, radius * 0.16, 3);
-            graphics.fill();
-            return;
+            return 22;
         }
+        return 24;
+    }
 
-        const crownY = drawY - radius * 0.48;
-        graphics.moveTo(-radius * 0.3, crownY);
-        graphics.lineTo(-radius * 0.18, crownY - radius * 0.22);
-        graphics.lineTo(0, crownY - radius * 0.04);
-        graphics.lineTo(radius * 0.18, crownY - radius * 0.22);
-        graphics.lineTo(radius * 0.3, crownY);
-        graphics.close();
+    private drawTierBadge(graphics: Graphics, label: Label, type: SheepType, size: number): void {
+        const tier = UNIT_TIER_VISUALS[type];
+        const half = size / 2;
+        graphics.clear();
+        graphics.fillColor = new Color(8, 18, 30, 238);
+        graphics.roundRect(-half, -half, size, size, Math.min(6, size * 0.24));
         graphics.fill();
-        if (!isPlayer) {
-            graphics.lineWidth = Math.max(2, radius * 0.07);
-            graphics.strokeColor = new Color(112, 38, 42, 255);
-            graphics.moveTo(-radius * 0.44, drawY + radius * 0.34);
-            graphics.lineTo(-radius * 0.18, drawY + radius * 0.12);
-            graphics.moveTo(radius * 0.44, drawY + radius * 0.34);
-            graphics.lineTo(radius * 0.18, drawY + radius * 0.12);
-            graphics.stroke();
-        }
+        graphics.lineWidth = 2;
+        graphics.strokeColor = tier.accentColor;
+        graphics.roundRect(-half, -half, size, size, Math.min(6, size * 0.24));
+        graphics.stroke();
+        label.string = tier.label;
+        label.color = tier.accentColor;
     }
 
     private createGraphicsNode(name: string, width: number, height: number, x: number, y: number, parent: Node): Node {
