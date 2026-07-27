@@ -202,6 +202,7 @@ export class GameController extends Component {
     private isStarted = false;
     private tutorialCompleted = false;
     private isFinished = false;
+    private isPaused = false;
     private playerShockUnlocked = false;
     private aiShockUnlocked = false;
     private playerShockUsed = false;
@@ -234,10 +235,13 @@ export class GameController extends Component {
     private tacticPanel!: Node;
     private startPanel!: Node;
     private tutorialPanel!: Node;
+    private pausePanel!: Node;
+    private helpPanel!: Node;
     private playerShockButton!: ButtonView;
     private playerSprintButton!: ButtonView;
     private playerHealButton!: ButtonView;
     private playerTacticToggleButton!: ButtonView;
+    private pauseButton!: ButtonView;
     private isTacticPanelOpen = false;
 
     onLoad(): void {
@@ -254,7 +258,7 @@ export class GameController extends Component {
     }
 
     update(deltaTime: number): void {
-        if (!this.isStarted || this.isFinished) {
+        if (!this.isStarted || this.isFinished || this.isPaused) {
             return;
         }
 
@@ -303,6 +307,7 @@ export class GameController extends Component {
         this.createResultPanel();
         this.createStartPanel();
         this.createTutorialPanel();
+        this.createPauseControls();
         this.refreshHud(this.statusMessage);
     }
 
@@ -606,6 +611,9 @@ export class GameController extends Component {
         for (let index = 0; index < UNIT_ORDER.length; index += 1) {
             const type = UNIT_ORDER[index];
             const button = this.createButton(this.gameLayer, `TypeButton${type}`, '', xPositions[index], -330, 260, 40, 15, () => {
+                if (this.isPaused) {
+                    return;
+                }
                 this.selectedSheepType = type;
                 this.refreshHud(`${UNIT_DEFINITIONS[type].name}已选中，选择通道出兵。`);
             });
@@ -647,6 +655,9 @@ export class GameController extends Component {
     }
 
     private toggleTacticPanel(): void {
+        if (!this.isStarted || this.isFinished || this.isPaused) {
+            return;
+        }
         this.isTacticPanelOpen = !this.isTacticPanelOpen;
         this.tacticPanel.active = this.isTacticPanelOpen;
         this.refreshTacticUi();
@@ -706,6 +717,77 @@ export class GameController extends Component {
         this.tutorialPanel.active = false;
     }
 
+    private createPauseControls(): void {
+        this.pauseButton = this.createButton(this.gameLayer, 'PauseButton', '\u6682\u505C', -565, 232, 100, 38, 16, () => this.pauseGame());
+        this.drawButton(this.pauseButton, new Color(28, 82, 133, 255), new Color(194, 230, 255, 255));
+        this.pauseButton.node.active = false;
+
+        this.pausePanel = new Node('PausePanel');
+        this.pausePanel.setParent(this.gameLayer);
+        this.pausePanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        this.drawModalBackground(this.pausePanel, 500, 430);
+        this.createLabel(this.pausePanel, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 148, 420, 50, 32, new Color(255, 244, 207, 255));
+        this.createLabel(this.pausePanel, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 106, 420, 28, 16, new Color(204, 225, 241, 255));
+        this.createButton(this.pausePanel, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', 0, 50, 250, 48, 19, () => this.resumeGame());
+        this.createButton(this.pausePanel, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', 0, -12, 250, 48, 19, () => this.restartGame());
+        this.createButton(this.pausePanel, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', 0, -74, 250, 48, 19, () => this.openHelpPanel());
+        this.createButton(this.pausePanel, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', 0, -136, 250, 48, 19, () => this.returnToTitle());
+        this.pausePanel.active = false;
+
+        this.helpPanel = new Node('HelpPanel');
+        this.helpPanel.setParent(this.gameLayer);
+        this.helpPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        this.drawModalBackground(this.helpPanel, 760, 460);
+        this.createLabel(this.helpPanel, 'HelpTitle', '\u73A9\u6CD5\u8BF4\u660E', 0, 150, 600, 48, 32, new Color(255, 244, 207, 255));
+        this.createLabel(this.helpPanel, 'HelpText', '\u2022 \u9009\u62E9\u5175\u79CD\u540E\uFF0C\u70B9\u51FB\u5BF9\u5E94\u9053\u8DEF\u51FA\u5175\u3002\n\u2022 \u80FD\u91CF\u7528\u4E8E\u51FA\u5175\u3002\n\u2022 \u5360\u9886\u8865\u7ED9\u70B9\u83B7\u5F97\u8865\u7ED9\u3002\n\u2022 \u8865\u7ED9\u53EF\u4F7F\u7528\u6218\u672F\u3002\n\u2022 \u6467\u6BC1\u654C\u65B9\u57FA\u5730\u83B7\u80DC\u3002', 0, 28, 620, 220, 21, new Color(226, 233, 240, 255));
+        this.createButton(this.helpPanel, 'HelpBackButton', '\u8FD4\u56DE\u6682\u505C\u83DC\u5355', 0, -158, 250, 50, 19, () => this.closeHelpPanel());
+        this.helpPanel.active = false;
+    }
+
+    private pauseGame(): void {
+        if (!this.isStarted || this.isFinished || this.isPaused) {
+            return;
+        }
+        this.isPaused = true;
+        this.closeTacticPanel();
+        this.pauseButton.node.active = false;
+        this.pausePanel.active = true;
+    }
+
+    private resumeGame(): void {
+        if (!this.isPaused) {
+            return;
+        }
+        this.isPaused = false;
+        this.helpPanel.active = false;
+        this.pausePanel.active = false;
+        this.pauseButton.node.active = true;
+        this.refreshHud('\u5DF2\u7EE7\u7EED\u6218\u6597\u3002');
+    }
+
+    private openHelpPanel(): void {
+        if (!this.isPaused) {
+            return;
+        }
+        this.helpPanel.active = true;
+    }
+
+    private closeHelpPanel(): void {
+        this.helpPanel.active = false;
+    }
+
+    private returnToTitle(): void {
+        this.restartGame();
+        this.isStarted = false;
+        this.isPaused = false;
+        this.pauseButton.node.active = false;
+        this.pausePanel.active = false;
+        this.helpPanel.active = false;
+        this.tutorialPanel.active = false;
+        this.startPanel.active = true;
+        this.statusToast.active = false;
+    }
+
     private drawModalBackground(panel: Node, cardWidth: number, cardHeight: number): void {
         const graphics = panel.addComponent(Graphics);
         graphics.fillColor = new Color(8, 14, 24, 218);
@@ -737,11 +819,13 @@ export class GameController extends Component {
 
     private activateBattle(): void {
         this.isStarted = true;
+        this.isPaused = false;
+        this.pauseButton.node.active = true;
         this.refreshHud('\u6307\u5F15\u5B8C\u6210\uFF1A\u9009\u62E9\u5175\u79CD\u540E\uFF0C\u70B9\u51FB\u901A\u9053\u5F00\u59CB\u51FA\u5175\u3002');
     }
 
     private trySpawnPlayerUnit(lane: number): void {
-        if (!this.isStarted || this.isFinished) {
+        if (!this.isStarted || this.isFinished || this.isPaused) {
             return;
         }
 
@@ -771,6 +855,9 @@ export class GameController extends Component {
     }
 
     private trySpawnAIUnit(): number {
+        if (this.isPaused) {
+            return AI_IDLE_DECISION_INTERVAL;
+        }
         if (this.getActiveUnitCount(Team.AI) >= TEAM_MAX_ACTIVE_UNITS) {
             return AI_IDLE_DECISION_INTERVAL;
         }
@@ -1079,6 +1166,10 @@ export class GameController extends Component {
 
     private finishGame(playerWon: boolean): void {
         this.isFinished = true;
+        this.isPaused = false;
+        this.pauseButton.node.active = false;
+        this.pausePanel.active = false;
+        this.helpPanel.active = false;
         this.refreshHud(playerWon ? 'AI 基地归零，玩家获胜！' : '玩家基地归零，挑战失败。');
         const resultText = this.resultPanel.getChildByName('ResultText')?.getComponent(Label);
         if (resultText) {
@@ -1123,9 +1214,13 @@ export class GameController extends Component {
             this.drawSupplyPoint(point);
         }
         this.isFinished = false;
+        this.isPaused = false;
         this.isTacticPanelOpen = false;
         this.tacticPanel.active = false;
         this.resultPanel.active = false;
+        this.pausePanel.active = false;
+        this.helpPanel.active = false;
+        this.pauseButton.node.active = true;
         const resultReport = this.resultPanel.getChildByName('ResultReport')?.getComponent(Label);
         if (resultReport) {
             resultReport.string = '';
@@ -1217,7 +1312,7 @@ export class GameController extends Component {
     }
 
     private tryUseAIShock(): void {
-        if (!this.aiShockUnlocked || this.aiShockUsed || this.isFinished) {
+        if (!this.aiShockUnlocked || this.aiShockUsed || this.isFinished || this.isPaused) {
             return;
         }
 
@@ -1234,7 +1329,7 @@ export class GameController extends Component {
     }
 
     private tryUseShock(owner: Team): void {
-        if (!this.isStarted || this.isFinished) {
+        if (!this.isStarted || this.isFinished || this.isPaused) {
             return;
         }
 
@@ -1328,7 +1423,7 @@ export class GameController extends Component {
     }
 
     private tryUseSprint(team: Team): void {
-        if (!this.isStarted || this.isFinished) {
+        if (!this.isStarted || this.isFinished || this.isPaused) {
             return;
         }
 
@@ -1370,7 +1465,7 @@ export class GameController extends Component {
     }
 
     private tryUseHeal(team: Team): void {
-        if (!this.isStarted || this.isFinished) {
+        if (!this.isStarted || this.isFinished || this.isPaused) {
             return;
         }
 
@@ -1417,7 +1512,7 @@ export class GameController extends Component {
     }
 
     private tryUseAITacticCards(): void {
-        if (this.isFinished) {
+        if (this.isFinished || this.isPaused) {
             return;
         }
 
