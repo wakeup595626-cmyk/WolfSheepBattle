@@ -27,6 +27,7 @@ const { ccclass, property } = _decorator;
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
+const GAME_NAME = '羊狼四线战';
 const GAME_VERSION = 'v1.2.0-dev';
 const BATTLEFIELD_CENTER_X = -90;
 const LANE_SPACING = 270;
@@ -1817,7 +1818,7 @@ export class GameController extends Component {
         this.startPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
         this.drawModalBackground(this.startPanel, 860, 480);
 
-        this.createLabel(this.startPanel, 'StartTitle', '\u72FC\u7F8A\u56DB\u7EBF\u6218', 0, 126, 760, 58, 38, new Color(255, 244, 207, 255));
+        this.createLabel(this.startPanel, 'StartTitle', GAME_NAME, 0, 126, 760, 58, 38, new Color(255, 244, 207, 255));
         this.createLabel(this.startPanel, 'StartSubtitle', '\u56DB\u7EBF\u6B63\u9762\u4EA4\u950B\u00B7\u593A\u53D6\u8865\u7ED9\u00B7\u5B88\u4F4F\u57FA\u5730', 0, 78, 760, 30, 18, new Color(190, 220, 242, 255));
         this.createLabel(this.startPanel, 'StartDescription', '\u9009\u62E9\u7F8A\u7FA4\uFF0C\u5728\u56DB\u6761\u901A\u9053\u51FA\u5175\u3002\n\u5360\u9886\u4E2D\u592E\u8865\u7ED9\u70B9\uFF0C\u79EF\u7D2F\u8865\u7ED9\u6765\u91CA\u653E\u6218\u672F\u3002\n\u51FB\u7834\u654C\u65B9\u57FA\u5730\u5373\u83B7\u80DC\u3002', 0, 5, 720, 120, 20, new Color(226, 233, 240, 255));
         this.createButton(this.startPanel, 'StartBattleButton', '\u5F00\u59CB\u6218\u6597', 0, -126, 260, 60, 22, () => this.beginBattle());
@@ -1827,7 +1828,7 @@ export class GameController extends Component {
         this.createLabel(
             this.startPanel,
             'VersionLabel',
-            `\u72FC\u7F8A\u56DB\u7EBF\u6218 ${GAME_VERSION}`,
+            `${GAME_NAME} ${GAME_VERSION}`,
             500,
             -328,
             230,
