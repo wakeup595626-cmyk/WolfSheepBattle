@@ -21,10 +21,11 @@ const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const LANE_X = [-405, -135, 135, 405];
 const LANE_WIDTH = 180;
-const LANE_LENGTH = 490;
-const LANE_HALF_LENGTH = LANE_LENGTH / 2;
-const PLAYER_BASE_Y = -260;
-const AI_BASE_Y = 260;
+const LANE_BOTTOM_Y = -245;
+const LANE_TOP_Y = 270;
+const LANE_LENGTH = LANE_TOP_Y - LANE_BOTTOM_Y;
+const PLAYER_BASE_Y = -270;
+const AI_BASE_Y = 288;
 const BASE_MAX_HEALTH = 100;
 const ENERGY_MAX = 100;
 const ENERGY_START = 60;
@@ -214,12 +215,18 @@ export class GameController extends Component {
     private statusMessage = '选择兵种后，点击一条通道出兵。';
 
     private gameLayer!: Node;
+    private playerBaseGraphics!: Graphics;
+    private aiBaseGraphics!: Graphics;
     private playerBaseLabel!: Label;
     private aiBaseLabel!: Label;
+    private playerBaseShadowLabel!: Label;
+    private aiBaseShadowLabel!: Label;
     private playerEnergyLabel!: Label;
     private aiEnergyLabel!: Label;
     private playerSupplyLabel!: Label;
     private aiSupplyLabel!: Label;
+    private playerEnergyBadge!: Node;
+    private playerSupplyBadge!: Node;
     private aiTacticLabel!: Label;
     private statusLabel!: Label;
     private statusToast!: Node;
@@ -287,6 +294,7 @@ export class GameController extends Component {
         this.gameLayer.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
 
         this.drawBoard();
+        this.createBaseBars();
         this.createSupplyPoints();
         this.createHud();
         this.createLaneSpawnZones();
@@ -307,26 +315,23 @@ export class GameController extends Component {
         graphics.fill();
 
         graphics.fillColor = new Color(38, 51, 70, 255);
-        graphics.roundRect(-590, -250, 1180, 500, 28);
+        graphics.roundRect(-590, -250, 1180, 520, 28);
         graphics.fill();
 
         graphics.lineWidth = 4;
         graphics.strokeColor = new Color(105, 126, 150, 255);
         for (const laneX of LANE_X) {
-            graphics.roundRect(laneX - LANE_WIDTH / 2, -LANE_HALF_LENGTH, LANE_WIDTH, LANE_LENGTH, 22);
+            graphics.roundRect(laneX - LANE_WIDTH / 2, LANE_BOTTOM_Y, LANE_WIDTH, LANE_LENGTH, 22);
             graphics.stroke();
 
             graphics.lineWidth = 2;
             graphics.strokeColor = new Color(88, 107, 128, 180);
-            graphics.moveTo(laneX, -LANE_HALF_LENGTH + 20);
-            graphics.lineTo(laneX, LANE_HALF_LENGTH - 20);
+            graphics.moveTo(laneX, LANE_BOTTOM_Y + 20);
+            graphics.lineTo(laneX, LANE_TOP_Y - 20);
             graphics.stroke();
             graphics.lineWidth = 4;
             graphics.strokeColor = new Color(105, 126, 150, 255);
         }
-
-        this.drawBase(graphics, Team.AI);
-        this.drawBase(graphics, Team.Player);
 
         this.createLabel(this.gameLayer, 'Title', '狼羊四线战 · 补给争夺原型', 0, 338, 620, 38, 27, new Color(247, 243, 233, 255));
         this.createLabel(this.gameLayer, 'AITitle', 'AI 狼群', -574, 266, 120, 28, 18, new Color(255, 203, 196, 255));
@@ -339,22 +344,50 @@ export class GameController extends Component {
         this.gameLayer.getChildByName('PlayerTitle')?.destroy();
         const aiTitle = this.gameLayer.getChildByName('AITitle');
         if (aiTitle) {
-            aiTitle.setPosition(new Vec3(-520, 295, 0));
+            aiTitle.setPosition(new Vec3(-520, 322, 0));
         }
         for (let index = 0; index < LANE_X.length; index += 1) {
             this.gameLayer.getChildByName(`LaneNumber${index}`)?.destroy();
         }
     }
 
-    private drawBase(graphics: Graphics, team: Team): void {
-        const baseY = team === Team.Player ? PLAYER_BASE_Y : AI_BASE_Y;
-        graphics.fillColor = team === Team.Player ? new Color(65, 149, 230, 255) : new Color(222, 84, 78, 255);
-        graphics.roundRect(-470, baseY - 24, 940, 48, 18);
-        graphics.fill();
+    private createBaseBars(): void {
+        const aiBaseNode = this.createGraphicsNode('AIBaseBar', 940, 48, 0, AI_BASE_Y, this.gameLayer);
+        const playerBaseNode = this.createGraphicsNode('PlayerBaseBar', 940, 48, 0, PLAYER_BASE_Y, this.gameLayer);
+        this.aiBaseGraphics = aiBaseNode.getComponent(Graphics)!;
+        this.playerBaseGraphics = playerBaseNode.getComponent(Graphics)!;
+        this.refreshBaseBars();
+    }
 
-        graphics.fillColor = new Color(255, 255, 255, 70);
-        graphics.roundRect(-450, baseY + (team === Team.Player ? 3 : -12), 900, 9, 5);
+    private refreshBaseBars(): void {
+        if (!this.playerBaseGraphics || !this.aiBaseGraphics) {
+            return;
+        }
+        this.drawBase(this.aiBaseGraphics, Team.AI);
+        this.drawBase(this.playerBaseGraphics, Team.Player);
+    }
+
+    private drawBase(graphics: Graphics, team: Team): void {
+        const health = team === Team.Player ? this.playerBaseHealth : this.aiBaseHealth;
+        const healthRatio = Math.max(0, Math.min(1, health / BASE_MAX_HEALTH));
+        const fillColor = team === Team.Player ? new Color(55, 154, 232, 255) : new Color(227, 78, 74, 255);
+        const borderColor = team === Team.Player ? new Color(144, 219, 255, 255) : new Color(255, 170, 164, 255);
+
+        graphics.clear();
+        graphics.fillColor = new Color(13, 22, 34, 255);
+        graphics.roundRect(-470, -24, 940, 48, 18);
         graphics.fill();
+        graphics.lineWidth = 3;
+        graphics.strokeColor = borderColor;
+        graphics.roundRect(-470, -24, 940, 48, 18);
+        graphics.stroke();
+
+        const fillWidth = 928 * healthRatio;
+        if (fillWidth > 0) {
+            graphics.fillColor = fillColor;
+            graphics.roundRect(-464, -18, fillWidth, 36, Math.min(14, fillWidth / 2));
+            graphics.fill();
+        }
     }
 
     private createSupplyPoints(): void {
@@ -486,7 +519,8 @@ export class GameController extends Component {
     }
 
     private createHud(): void {
-        this.aiBaseLabel = this.createLabel(this.gameLayer, 'AIBaseHealth', '', 0, 270, 300, 28, 19, Color.WHITE);
+        this.aiBaseShadowLabel = this.createLabel(this.gameLayer, 'AIBaseHealthShadow', '', 2, AI_BASE_Y, 400, 34, 23, new Color(3, 9, 17, 255));
+        this.aiBaseLabel = this.createLabel(this.gameLayer, 'AIBaseHealth', '', 0, AI_BASE_Y + 2, 400, 34, 23, Color.WHITE);
         this.aiEnergyLabel = this.createLabel(this.gameLayer, 'AIEnergy', '', 0, 0, 1, 1, 1, Color.WHITE);
         this.aiSupplyLabel = this.createLabel(this.gameLayer, 'AISupply', '', 0, 0, 1, 1, 1, Color.WHITE);
         this.aiTacticLabel = this.createLabel(this.gameLayer, 'AITactic', '', 0, 0, 1, 1, 1, Color.WHITE);
@@ -494,21 +528,39 @@ export class GameController extends Component {
         this.aiSupplyLabel.node.active = false;
         this.aiTacticLabel.node.active = false;
 
-        this.playerBaseLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealth', '', -265, -258, 220, 28, 17, Color.WHITE);
-        this.playerEnergyLabel = this.createLabel(this.gameLayer, 'PlayerEnergy', '', -45, -258, 190, 28, 15, new Color(133, 220, 255, 255));
-        this.playerSupplyLabel = this.createLabel(this.gameLayer, 'PlayerSupply', '', 150, -258, 190, 28, 15, new Color(141, 218, 255, 255));
+        this.playerBaseShadowLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealthShadow', '', 2, PLAYER_BASE_Y - 1, 400, 34, 23, new Color(3, 9, 17, 255));
+        this.playerBaseLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealth', '', 0, PLAYER_BASE_Y + 1, 400, 34, 23, Color.WHITE);
+        this.playerEnergyBadge = this.createPlayerResourceBadge('PlayerEnergyBadge', -390,
+            new Color(9, 31, 51, 255), new Color(137, 220, 255, 255));
+        this.playerEnergyLabel = this.createLabel(this.playerEnergyBadge, 'Text', '', 0, 0, 142, 40, 16, new Color(226, 248, 255, 255));
+        this.playerSupplyBadge = this.createPlayerResourceBadge('PlayerSupplyBadge', 390,
+            new Color(10, 43, 46, 255), new Color(164, 244, 220, 255));
+        this.playerSupplyLabel = this.createLabel(this.playerSupplyBadge, 'Text', '', 0, 0, 142, 40, 16, new Color(230, 255, 242, 255));
 
-        this.statusToast = this.createGraphicsNode('StatusToast', 640, 42, 0, 164, this.gameLayer);
+        this.statusToast = this.createGraphicsNode('StatusToast', 440, 32, 0, 226, this.gameLayer);
         const toastGraphics = this.statusToast.getComponent(Graphics)!;
         toastGraphics.fillColor = new Color(10, 18, 29, 220);
-        toastGraphics.roundRect(-320, -21, 640, 42, 18);
+        toastGraphics.roundRect(-220, -16, 440, 32, 14);
         toastGraphics.fill();
         toastGraphics.lineWidth = 2;
         toastGraphics.strokeColor = new Color(188, 220, 242, 190);
-        toastGraphics.roundRect(-320, -21, 640, 42, 18);
+        toastGraphics.roundRect(-220, -16, 440, 32, 14);
         toastGraphics.stroke();
-        this.statusLabel = this.createLabel(this.statusToast, 'Text', '', 0, 0, 610, 38, 16, new Color(232, 237, 244, 255));
+        this.statusLabel = this.createLabel(this.statusToast, 'Text', '', 0, 0, 420, 30, 14, new Color(232, 237, 244, 255));
         this.statusToast.active = false;
+    }
+
+    private createPlayerResourceBadge(name: string, x: number, fillColor: Color, borderColor: Color): Node {
+        const badge = this.createGraphicsNode(name, 150, 44, x, PLAYER_BASE_Y + 1, this.gameLayer);
+        const graphics = badge.getComponent(Graphics)!;
+        graphics.fillColor = fillColor;
+        graphics.roundRect(-75, -22, 150, 44, 16);
+        graphics.fill();
+        graphics.lineWidth = 3;
+        graphics.strokeColor = borderColor;
+        graphics.roundRect(-75, -22, 150, 44, 16);
+        graphics.stroke();
+        return badge;
     }
 
     private createLaneButtons(): void {
@@ -562,7 +614,7 @@ export class GameController extends Component {
     }
 
     private createTacticButtons(): void {
-        this.playerTacticToggleButton = this.createButton(this.gameLayer, 'PlayerTacticToggleButton', '', 430, -258, 160, 34, 15, () => {
+        this.playerTacticToggleButton = this.createButton(this.gameLayer, 'PlayerTacticToggleButton', '', 555, -292, 150, 36, 16, () => {
             this.toggleTacticPanel();
         });
 
@@ -1096,7 +1148,8 @@ export class GameController extends Component {
             this.statusMessage = status;
             this.showStatusToast(status);
         }
-        if (!this.playerBaseLabel || !this.aiBaseLabel || !this.statusLabel || !this.statusToast) {
+        if (!this.playerBaseLabel || !this.aiBaseLabel || !this.playerBaseShadowLabel || !this.aiBaseShadowLabel
+            || !this.statusLabel || !this.statusToast) {
             return;
         }
 
@@ -1106,6 +1159,13 @@ export class GameController extends Component {
         this.aiEnergyLabel.string = `AI 能量  ${Math.floor(this.aiEnergy)} / ${ENERGY_MAX}`;
         this.playerSupplyLabel.string = `玩家补给  ${Math.floor(this.playerSupply)} / ${SUPPLY_MAX}  (+${this.getSupplyIncome(Team.Player)}/秒)`;
         this.aiSupplyLabel.string = `AI 补给  ${Math.floor(this.aiSupply)} / ${SUPPLY_MAX}  (+${this.getSupplyIncome(Team.AI)}/秒)`;
+        this.refreshBaseBars();
+        this.playerBaseLabel.string = `\u73A9\u5BB6\u57FA\u5730  ${this.playerBaseHealth} / ${BASE_MAX_HEALTH}`;
+        this.playerBaseShadowLabel.string = this.playerBaseLabel.string;
+        this.aiBaseLabel.string = `AI \u57FA\u5730  ${this.aiBaseHealth} / ${BASE_MAX_HEALTH}`;
+        this.aiBaseShadowLabel.string = this.aiBaseLabel.string;
+        this.playerEnergyLabel.string = `\u26A1 \u80FD\u91CF ${Math.floor(this.playerEnergy)} / ${ENERGY_MAX}`;
+        this.playerSupplyLabel.string = `\uD83D\uDCE6 \u8865\u7ED9 ${Math.floor(this.playerSupply)} / ${SUPPLY_MAX}`;
         this.refreshUnitTypeButtons();
         this.refreshTacticUi();
     }
@@ -1116,7 +1176,7 @@ export class GameController extends Component {
         }
         this.statusLabel.string = message;
         this.statusToast.active = true;
-        this.statusToastRemaining = 1.8;
+        this.statusToastRemaining = 1.35;
     }
 
     private refreshUnitTypeButtons(): void {
@@ -1477,11 +1537,11 @@ export class GameController extends Component {
         this.refreshSprintButton();
         this.refreshHealButton();
         this.playerTacticToggleButton.label.string = this.isTacticPanelOpen
-            ? '\u6218\u672F  \u25B2' : '\u6218\u672F  \u25BC';
+            ? '\u6218\u672F\u724C  \u25B2' : '\u6218\u672F\u724C  \u25BC';
         this.playerTacticToggleButton.label.color = Color.WHITE;
         this.drawButton(this.playerTacticToggleButton,
-            this.isTacticPanelOpen ? new Color(48, 126, 181, 255) : new Color(42, 91, 136, 255),
-            new Color(187, 228, 255, 255));
+            this.isTacticPanelOpen ? new Color(44, 121, 196, 255) : new Color(22, 74, 133, 255),
+            new Color(255, 224, 132, 255));
 
         const aiState = this.aiShockUsed ? '已使用' : this.aiShockUnlocked ? '已就绪' : '未解锁（基地低于 50%）';
         this.aiTacticLabel.string = `AI 领地震荡：${aiState}`;
