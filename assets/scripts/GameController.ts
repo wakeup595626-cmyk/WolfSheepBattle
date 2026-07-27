@@ -24,7 +24,7 @@ const { ccclass } = _decorator;
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
-const GAME_VERSION = 'v1.1.2';
+const GAME_VERSION = 'v1.1.3';
 const BATTLEFIELD_CENTER_X = -90;
 const LANE_SPACING = 270;
 const LANE_X = [
@@ -590,27 +590,19 @@ export class GameController extends Component {
     }
 
     private createLaneNumberBadges(): void {
-        const badgeSize = 34;
-        const badgeXOffset = -LANE_WIDTH / 2 + 20;
-        const badgeY = LANE_TOP_Y - 20;
+        const numberY = LANE_TOP_Y - 24;
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
-            const badge = this.createGraphicsNode(
-                `LaneBadge${lane + 1}`,
-                badgeSize,
-                badgeSize,
-                LANE_X[lane] + badgeXOffset,
-                badgeY,
-                this.hudLayer,
+            this.createLabel(
+                this.battleLayer,
+                `LaneNumber${lane + 1}`,
+                `${lane + 1}`,
+                LANE_X[lane],
+                numberY,
+                36,
+                30,
+                22,
+                new Color(175, 194, 216, 110),
             );
-            const graphics = badge.getComponent(Graphics)!;
-            graphics.fillColor = new Color(12, 22, 34, 220);
-            graphics.circle(0, 0, badgeSize / 2);
-            graphics.fill();
-            graphics.lineWidth = 2;
-            graphics.strokeColor = new Color(194, 224, 244, 235);
-            graphics.circle(0, 0, badgeSize / 2);
-            graphics.stroke();
-            this.createLabel(badge, 'Number', `${lane + 1}`, 0, 0, badgeSize, badgeSize, 21, new Color(244, 249, 255, 255));
         }
     }
 
@@ -2080,19 +2072,33 @@ export class GameController extends Component {
         const aiFront = aiFormation[0];
         const playerRange = this.getPlayerFrontRange(playerFormation);
         const aiRange = this.getAIFrontRange(aiFormation);
-        const playerShift = this.consumeLaneShift(Team.Player, lane);
-        const aiShift = this.consumeLaneShift(Team.AI, lane);
+        const playerShift = this.getAllowedTeamShift(
+            playerFormation,
+            this.consumeLaneShift(Team.Player, lane),
+        );
+        const aiShift = this.getAllowedTeamShift(
+            aiFormation,
+            this.consumeLaneShift(Team.AI, lane),
+        );
         let playerFrontY = playerFront && playerRange
-            ? this.clampRoadY(playerRange, playerFront.node.position.y + playerShift)
+            ? this.clampRoadY(
+                playerRange,
+                Number.isFinite(playerFront.node.position.y)
+                    ? playerFront.node.position.y + playerShift
+                    : playerRange.minY,
+            )
             : undefined;
         let aiFrontY = aiFront && aiRange
-            ? this.clampRoadY(aiRange, aiFront.node.position.y + aiShift)
+            ? this.clampRoadY(
+                aiRange,
+                Number.isFinite(aiFront.node.position.y)
+                    ? aiFront.node.position.y + aiShift
+                    : aiRange.maxY,
+            )
             : undefined;
 
-        const playerQueueInvalid = this.diagnoseTeamFormation(lane, Team.Player, playerFormation);
-        const aiQueueInvalid = this.diagnoseTeamFormation(lane, Team.AI, aiFormation);
-        let forcePlayerRepack = playerQueueInvalid || Math.abs(playerShift) > 0.001;
-        let forceAIRepack = aiQueueInvalid || Math.abs(aiShift) > 0.001;
+        this.diagnoseTeamFormation(lane, Team.Player, playerFormation);
+        this.diagnoseTeamFormation(lane, Team.AI, aiFormation);
 
         if (playerFront && aiFront && playerRange && aiRange && playerFrontY !== undefined && aiFrontY !== undefined) {
             const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
@@ -2111,7 +2117,7 @@ export class GameController extends Component {
 
             const enemyOrderWrong = playerFrontY >= aiFrontY;
             const enemyOverlap = playerFrontY + contactDistance > aiFrontY + 0.001;
-            if (enemyOrderWrong || enemyOverlap || gap <= contactDistance + 0.001) {
+            if (enemyOrderWrong || enemyOverlap) {
                 this.reportLaneInvariant(
                     lane,
                     playerFront,
@@ -2129,8 +2135,6 @@ export class GameController extends Component {
                     ? Math.max(minimumPlayerY, Math.min(maximumPlayerY, midpointPlayerY))
                     : this.clampRoadY(playerRange, midpointPlayerY);
                 aiFrontY = playerFrontY + contactDistance;
-                forcePlayerRepack = true;
-                forceAIRepack = true;
             }
         } else {
             if (playerFront && playerRange && playerFrontY !== undefined) {
@@ -2147,8 +2151,8 @@ export class GameController extends Component {
             }
         }
 
-        this.applyResolvedTeamFormation(Team.Player, playerFormation, playerFrontY, deltaTime, forcePlayerRepack);
-        this.applyResolvedTeamFormation(Team.AI, aiFormation, aiFrontY, deltaTime, forceAIRepack);
+        this.applyResolvedTeamFormation(Team.Player, playerFormation, playerFrontY, deltaTime, playerShift);
+        this.applyResolvedTeamFormation(Team.AI, aiFormation, aiFrontY, deltaTime, aiShift);
         this.validateResolvedLane(lane, playerFormation, aiFormation);
 
         const breakthroughs: BattleUnit[] = [];
@@ -2196,27 +2200,28 @@ export class GameController extends Component {
         });
     }
 
-    private diagnoseTeamFormation(lane: number, team: Team, formation: readonly BattleUnit[]): boolean {
-        let invalid = false;
+    private diagnoseTeamFormation(lane: number, team: Team, formation: readonly BattleUnit[]): void {
         for (let index = 0; index < formation.length; index += 1) {
             const unit = formation[index];
             const bounds = this.getUnitRoadBounds(unit);
-            const outOfBounds = unit.node.position.y < bounds.minY - 0.001 || unit.node.position.y > bounds.maxY + 0.001;
+            const invalidCoordinate = !Number.isFinite(unit.node.position.y);
+            const outOfBounds = invalidCoordinate
+                || unit.node.position.y < bounds.minY - 0.001
+                || unit.node.position.y > bounds.maxY + 0.001;
             const frontUnit = index > 0 ? formation[index - 1] : undefined;
             const targetY = frontUnit
                 ? frontUnit.node.position.y + (team === Team.Player ? -1 : 1) * this.getUnitQueueSpacing(frontUnit, unit)
                 : this.clampRoadY(bounds, unit.node.position.y);
             const overlap = frontUnit
-                ? (team === Team.Player
+                ? invalidCoordinate || !Number.isFinite(frontUnit.node.position.y) || (team === Team.Player
                     ? frontUnit.node.position.y - unit.node.position.y
                     : unit.node.position.y - frontUnit.node.position.y) < this.getUnitQueueSpacing(frontUnit, unit) - 0.001
                 : false;
             if (outOfBounds || overlap) {
-                invalid = true;
                 this.reportLaneInvariant(
                     lane,
                     unit,
-                    outOfBounds ? 'out-of-bounds' : 'ally-overlap',
+                    invalidCoordinate ? 'invalid-coordinate' : outOfBounds ? 'out-of-bounds' : 'ally-overlap',
                     targetY,
                     frontUnit,
                     outOfBounds,
@@ -2225,7 +2230,6 @@ export class GameController extends Component {
                 );
             }
         }
-        return invalid;
     }
 
     private applyResolvedTeamFormation(
@@ -2233,7 +2237,7 @@ export class GameController extends Component {
         formation: readonly BattleUnit[],
         frontY: number | undefined,
         deltaTime: number,
-        forceRepack: boolean,
+        teamShift: number,
     ): void {
         if (formation.length === 0 || frontY === undefined) {
             return;
@@ -2245,20 +2249,46 @@ export class GameController extends Component {
                 const frontUnit = formation[index - 1];
                 const targetY = resolvedY + (team === Team.Player ? -1 : 1) * this.getUnitQueueSpacing(frontUnit, unit);
                 const direction = team === Team.Player ? 1 : -1;
-                const forwardDistance = direction * (targetY - unit.node.position.y);
-                if (forceRepack || forwardDistance < -0.001) {
+                const bounds = this.getUnitRoadBounds(unit);
+                const shiftedY = unit.node.position.y + teamShift;
+                const currentY = Number.isFinite(shiftedY)
+                    ? this.clampRoadY(bounds, shiftedY)
+                    : this.clampRoadY(bounds, targetY);
+                const forwardDistance = direction * (targetY - currentY);
+                if (forwardDistance < -0.001) {
+                    // Immediate correction is reserved for overlap or an invalid
+                    // ally order. It only moves the unit to the closest legal
+                    // non-overlapping position behind the previous unit.
                     resolvedY = targetY;
                 } else if (forwardDistance > 0.001) {
                     const movement = Math.min(this.getUnitMovementDistance(unit, deltaTime), forwardDistance);
-                    resolvedY = unit.node.position.y + direction * movement;
+                    resolvedY = currentY + direction * movement;
                 } else {
-                    resolvedY = unit.node.position.y;
+                    resolvedY = currentY;
                 }
+                resolvedY = this.clampRoadY(bounds, resolvedY);
             }
             const previousY = unit.node.position.y;
             unit.node.setPosition(unit.node.position.x, resolvedY);
             unit.isMoving = Math.abs(resolvedY - previousY) > 0.001;
         }
+    }
+
+    private getAllowedTeamShift(formation: readonly BattleUnit[], requestedShift: number): number {
+        if (formation.length === 0 || Math.abs(requestedShift) <= 0.001) {
+            return 0;
+        }
+        let minimumShift = Number.NEGATIVE_INFINITY;
+        let maximumShift = Number.POSITIVE_INFINITY;
+        for (const unit of formation) {
+            if (!Number.isFinite(unit.node.position.y)) {
+                return 0;
+            }
+            const bounds = this.getUnitRoadBounds(unit);
+            minimumShift = Math.max(minimumShift, bounds.minY - unit.node.position.y);
+            maximumShift = Math.min(maximumShift, bounds.maxY - unit.node.position.y);
+        }
+        return Math.max(minimumShift, Math.min(maximumShift, requestedShift));
     }
 
     private validateResolvedLane(
@@ -2406,6 +2436,11 @@ export class GameController extends Component {
     }
 
     private collectFrontAttack(attacker: BattleUnit, target: BattleUnit, deltaTime: number, pendingDamage: Map<BattleUnit, number>): void {
+        const currentAttackerFront = this.getLaneFormation(attacker.team, attacker.lane)[0];
+        const currentTargetFront = this.getLaneFormation(target.team, target.lane)[0];
+        if (currentAttackerFront !== attacker || currentTargetFront !== target || attacker.lane !== target.lane) {
+            return;
+        }
         attacker.attackCooldown -= deltaTime;
         if (attacker.attackCooldown > 0) {
             return;
