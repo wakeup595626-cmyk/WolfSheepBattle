@@ -24,7 +24,7 @@ const { ccclass } = _decorator;
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
-const GAME_VERSION = 'v1.1.4-rc.1';
+const GAME_VERSION = 'v1.1.4';
 const BATTLEFIELD_CENTER_X = -90;
 const LANE_SPACING = 270;
 const LANE_X = [
