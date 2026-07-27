@@ -9,23 +9,61 @@ import {
     Node,
     NodeEventType,
     ResolutionPolicy,
+    UIOpacity,
     UITransform,
     Vec3,
     VerticalTextAlignment,
     view,
+    tween,
+    Tween,
+    sys,
 } from 'cc';
 
 const { ccclass } = _decorator;
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
-const LANE_X = [-405, -135, 135, 405];
+const GAME_VERSION = 'v1.1.1';
+const BATTLEFIELD_CENTER_X = -90;
+const LANE_SPACING = 270;
+const LANE_X = [
+    BATTLEFIELD_CENTER_X - LANE_SPACING * 1.5,
+    BATTLEFIELD_CENTER_X - LANE_SPACING * 0.5,
+    BATTLEFIELD_CENTER_X + LANE_SPACING * 0.5,
+    BATTLEFIELD_CENTER_X + LANE_SPACING * 1.5,
+];
 const LANE_WIDTH = 180;
 const LANE_BOTTOM_Y = -245;
 const LANE_TOP_Y = 270;
 const LANE_LENGTH = LANE_TOP_Y - LANE_BOTTOM_Y;
 const PLAYER_BASE_Y = -270;
 const AI_BASE_Y = 288;
+const AI_HUD_Y = 308;
+const PLAYER_HUD_Y = -284;
+const BASE_BAR_HEIGHT = 48;
+const HUD_BASE_BAR_WIDTH = 400;
+const PLAYER_RESOURCE_BADGE_WIDTH = 170;
+const PLAYER_RESOURCE_BADGE_HEIGHT = 44;
+const ENERGY_BAR_WIDTH = 300;
+const ENERGY_BAR_HEIGHT = 44;
+const ENERGY_BAR_ICON_BOX_WIDTH = 30;
+const ENERGY_BAR_FILL_LEFT = -ENERGY_BAR_WIDTH / 2 + 42;
+const ENERGY_BAR_FILL_WIDTH = ENERGY_BAR_WIDTH - 50;
+const ENERGY_BAR_FILL_HEIGHT = 24;
+const HUD_RESOURCE_GAP = 14;
+const AI_HUD_CENTER_X = BATTLEFIELD_CENTER_X - 60;
+const PLAYER_HUD_SUPPLY_X = BATTLEFIELD_CENTER_X - HUD_BASE_BAR_WIDTH / 2 - HUD_RESOURCE_GAP - PLAYER_RESOURCE_BADGE_WIDTH / 2;
+const PLAYER_HUD_ENERGY_X = BATTLEFIELD_CENTER_X + HUD_BASE_BAR_WIDTH / 2 + HUD_RESOURCE_GAP + ENERGY_BAR_WIDTH / 2;
+const AI_HUD_SUPPLY_X = AI_HUD_CENTER_X - HUD_BASE_BAR_WIDTH / 2 - HUD_RESOURCE_GAP - PLAYER_RESOURCE_BADGE_WIDTH / 2;
+const AI_HUD_ENERGY_X = AI_HUD_CENTER_X + HUD_BASE_BAR_WIDTH / 2 + HUD_RESOURCE_GAP + ENERGY_BAR_WIDTH / 2;
+const FUNCTION_SIDEBAR_X = 530;
+const FUNCTION_SIDEBAR_WIDTH = 200;
+const FUNCTION_HEADER_HEIGHT = 34;
+const PAUSE_BUTTON_Y = 338;
+const TACTIC_HEADER_Y = 232;
+const TACTIC_CARD_HEIGHT = 86;
+const TACTIC_CARD_GAP = 18;
+const TACTIC_FIRST_CARD_Y = TACTIC_HEADER_Y - FUNCTION_HEADER_HEIGHT / 2 - 13 - TACTIC_CARD_HEIGHT / 2;
 const BASE_MAX_HEALTH = 100;
 const ENERGY_MAX = 100;
 const ENERGY_START = 60;
@@ -33,8 +71,17 @@ const ENERGY_RECOVERY_PER_SECOND = 4;
 const PLAYER_SPAWN_COOLDOWN = 0.8;
 const AI_INITIAL_DECISION_DELAY = 1.8;
 const AI_IDLE_DECISION_INTERVAL = 1.1;
-const TEAM_MAX_ACTIVE_UNITS = 5;
-const TEAM_MAX_UNITS_PER_LANE = 2;
+const PLAYER_MAX_ACTIVE_UNITS = 8;
+const TEAM_MAX_UNITS_PER_LANE = 3;
+const UNIT_QUEUE_GAP = 10;
+const UNIT_ENEMY_CONTACT_GAP = 3;
+// Root positions stay inside these bounds. The margin also reserves room for
+// the health bar and keeps units away from the surrounding HUD/base visuals.
+const UNIT_ROAD_SAFETY_MARGIN = 22;
+const QUEUE_FULL_MARKER_SECONDS = 0.55;
+// Development-only lane diagnostics. Keep this false for normal Creator and
+// WeChat builds: warnings are emitted only when an invariant is actually broken.
+const DEBUG_LANE_ASSERT = false;
 const SUPPLY_CAPTURE_RADIUS = 62;
 const SUPPLY_CAPTURE_SECONDS = 1.7;
 const SUPPLY_VALUE_PER_POINT_PER_SECOND = 2;
@@ -49,6 +96,18 @@ const HEAL_COOLDOWN_SECONDS = 8;
 const SHOCK_UNLOCK_HEALTH = BASE_MAX_HEALTH * 0.5;
 const SHOCK_HEAVY_DAMAGE_RATIO = 0.55;
 const SHOCK_KNOCKBACK_DISTANCE = 145;
+const UNIT_HIT_FLASH_DURATION = 0.12;
+const UNIT_IMPACT_DURATION = 0.14;
+const UNIT_DEATH_DURATION = 0.28;
+const UNIT_HEALTH_DAMAGE_DISPLAY_SECONDS = 0.15;
+const UNIT_HEALTH_HEAL_DISPLAY_SECONDS = 0.2;
+const UNIT_HEALTH_DEATH_DISPLAY_SECONDS = 0.08;
+const BASE_HIT_FLASH_DURATION = 0.32;
+const HUD_DYNAMIC_REFRESH_INTERVAL = 0.25;
+const TACTIC_NOTICE_FADE_IN_SECONDS = 0.12;
+const TACTIC_NOTICE_HOLD_SECONDS = 0.7;
+const TACTIC_NOTICE_FADE_OUT_SECONDS = 0.22;
+const LEVEL_PROGRESS_STORAGE_KEY = 'wolf-sheep-battle.v1.highest-unlocked-level';
 
 enum Team {
     Player,
@@ -78,13 +137,45 @@ interface UnitDefinition {
 
 interface BattleUnit {
     readonly id: number;
+    readonly queueOrder: number;
     readonly team: Team;
     readonly lane: number;
     readonly definition: UnitDefinition;
     readonly node: Node;
-    readonly graphics: Graphics;
+    readonly visualNode: Node;
+    readonly visualGraphics: Graphics;
+    readonly hitFlashNode: Node;
+    readonly hitFlashOpacity: UIOpacity;
+    readonly healthNode: Node;
+    readonly healthGraphics: Graphics;
+    readonly healthFillNode: Node;
+    readonly healthFillGraphics: Graphics;
+    readonly opacity: UIOpacity;
     health: number;
+    displayHealth: number;
     attackCooldown: number;
+    walkPhase: number;
+    isMoving: boolean;
+    hitFlashRemaining: number;
+    attackKickRemaining: number;
+    hitRecoilRemaining: number;
+    isDying: boolean;
+    deathRemaining: number;
+}
+
+interface RoadBounds {
+    readonly minY: number;
+    readonly maxY: number;
+}
+
+interface FeedbackEffect {
+    readonly node: Node;
+    readonly opacity: UIOpacity;
+    readonly startX: number;
+    readonly startY: number;
+    readonly yOffset: number;
+    readonly duration: number;
+    elapsed: number;
 }
 
 interface ButtonView {
@@ -93,6 +184,39 @@ interface ButtonView {
     readonly label: Label;
     readonly width: number;
     readonly height: number;
+}
+
+interface EnergyBarView {
+    readonly node: Node;
+    readonly fillNode: Node;
+    readonly label: Label;
+    readonly shadowLabel: Label;
+    displayRatio: number;
+}
+
+interface LaneSpawnMarkerView {
+    readonly node: Node;
+    readonly graphics: Graphics;
+    readonly label: Label;
+    readonly queueLabel: Label;
+    fullRemaining: number;
+    isShowingFull: boolean;
+    lastQueueText: string;
+}
+
+type TacticIcon = 'sprint' | 'heal' | 'shock';
+
+interface TacticCardView {
+    readonly node: Node;
+    readonly graphics: Graphics;
+    readonly iconGraphics: Graphics;
+    readonly iconOpacity: UIOpacity;
+    readonly titleLabel: Label;
+    readonly statusLabel: Label;
+    readonly pressOverlay: Node;
+    readonly width: number;
+    readonly height: number;
+    enabled: boolean;
 }
 
 interface SupplyPoint {
@@ -113,6 +237,86 @@ interface BattleStats {
     healUses: number;
 }
 
+interface LevelConfig {
+    readonly id: number;
+    readonly title: string;
+    readonly description: string;
+    readonly playerStartEnergy: number;
+    readonly aiStartEnergy: number;
+    readonly aiInitialDecisionDelay: number;
+    readonly aiIdleDecisionInterval: number;
+    readonly aiDeployCooldownMultiplier: number;
+    readonly aiAllowedUnitTypes: readonly SheepType[];
+    readonly aiMaxActiveUnits: number;
+    readonly allowAITactics: boolean;
+    readonly aiSprintPowerRatio: number;
+    readonly aiSprintAdvanceY: number;
+    readonly aiHealInjuredUnitCount: number;
+    readonly aiHealHealthRatio: number;
+    readonly aiShockMinTargets: number;
+    readonly aiShockPowerThreshold: number;
+}
+
+const LEVEL_CONFIGS: readonly LevelConfig[] = [
+    {
+        id: 1,
+        title: '\u6559\u5B66\u8282\u594F',
+        description: 'AI \u4EC5\u4F7F\u7528\u5C0F\u72FC\u4E14\u51FA\u5175\u7F13\u6162\uFF0C\u7528\u4E8E\u719F\u6089\u56DB\u7EBF\u57FA\u7840\u3002',
+        playerStartEnergy: ENERGY_MAX,
+        aiStartEnergy: 0,
+        aiInitialDecisionDelay: 8.4,
+        aiIdleDecisionInterval: 2.75,
+        aiDeployCooldownMultiplier: 2.5,
+        aiAllowedUnitTypes: [SheepType.Small],
+        aiMaxActiveUnits: 2,
+        allowAITactics: false,
+        aiSprintPowerRatio: 1.65,
+        aiSprintAdvanceY: 65,
+        aiHealInjuredUnitCount: 3,
+        aiHealHealthRatio: 0.52,
+        aiShockMinTargets: 2,
+        aiShockPowerThreshold: 82,
+    },
+    {
+        id: 2,
+        title: '\u8F7B\u5EA6\u7EC3\u4E60',
+        description: 'AI \u4EC5\u4F7F\u7528\u5C0F\u72FC\u548C\u4E2D\u72FC\uFF0C\u7ED9\u4E88\u5145\u8DB3\u7684\u56DB\u7EBF\u7EC3\u4E60\u65F6\u95F4\u3002',
+        playerStartEnergy: ENERGY_MAX,
+        aiStartEnergy: 20,
+        aiInitialDecisionDelay: 5.6,
+        aiIdleDecisionInterval: 1.9,
+        aiDeployCooldownMultiplier: 1.65,
+        aiAllowedUnitTypes: [SheepType.Small, SheepType.Medium],
+        aiMaxActiveUnits: 3,
+        allowAITactics: false,
+        aiSprintPowerRatio: 1.25,
+        aiSprintAdvanceY: 140,
+        aiHealInjuredUnitCount: 2,
+        aiHealHealthRatio: 0.68,
+        aiShockMinTargets: 2,
+        aiShockPowerThreshold: 70,
+    },
+    {
+        id: 3,
+        title: '\u6807\u51C6\u8282\u594F',
+        description: 'AI \u6B63\u5E38\u4E89\u593A\u8865\u7ED9\uFF0C\u5E76\u4F7F\u7528\u5B8C\u6574\u5175\u79CD\u4E0E\u6218\u672F\u3002',
+        playerStartEnergy: ENERGY_START,
+        aiStartEnergy: ENERGY_START,
+        aiInitialDecisionDelay: 1.8,
+        aiIdleDecisionInterval: 1.1,
+        aiDeployCooldownMultiplier: 1,
+        aiAllowedUnitTypes: [SheepType.Small, SheepType.Medium, SheepType.Large, SheepType.Giant],
+        aiMaxActiveUnits: 5,
+        allowAITactics: true,
+        aiSprintPowerRatio: 1.25,
+        aiSprintAdvanceY: 140,
+        aiHealInjuredUnitCount: 2,
+        aiHealHealthRatio: 0.68,
+        aiShockMinTargets: 2,
+        aiShockPowerThreshold: 70,
+    },
+];
+
 const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
     [SheepType.Small]: {
         type: SheepType.Small,
@@ -120,7 +324,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 12,
         maxHealth: 32,
         damage: 6,
-        speed: 45,
+        speed: 20,
         attackInterval: 0.48,
         baseDamage: 8,
         battlePower: 18,
@@ -133,7 +337,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 24,
         maxHealth: 64,
         damage: 11,
-        speed: 38,
+        speed: 17,
         attackInterval: 0.58,
         baseDamage: 13,
         battlePower: 38,
@@ -146,7 +350,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 42,
         maxHealth: 116,
         damage: 19,
-        speed: 32,
+        speed: 14,
         attackInterval: 0.7,
         baseDamage: 21,
         battlePower: 72,
@@ -159,7 +363,7 @@ const UNIT_DEFINITIONS: Record<SheepType, UnitDefinition> = {
         cost: 70,
         maxHealth: 200,
         damage: 33,
-        speed: 26,
+        speed: 12,
         attackInterval: 0.9,
         baseDamage: 35,
         battlePower: 130,
@@ -182,8 +386,13 @@ const UNIT_ORDER: readonly SheepType[] = [
 @ccclass('GameController')
 export class GameController extends Component {
     private readonly units: BattleUnit[] = [];
+    private readonly dyingUnits: BattleUnit[] = [];
     private readonly typeButtons = new Map<SheepType, ButtonView>();
     private readonly supplyPoints: SupplyPoint[] = [];
+    private readonly feedbackEffects: FeedbackEffect[] = [];
+    private readonly laneSpawnMarkers: LaneSpawnMarkerView[] = [];
+    private readonly laneDebugSignatures = new Set<string>();
+    private readonly pendingLaneShifts = new Map<string, number>();
 
     private playerBaseHealth = BASE_MAX_HEALTH;
     private aiBaseHealth = BASE_MAX_HEALTH;
@@ -193,12 +402,17 @@ export class GameController extends Component {
     private aiSupply = 0;
     private playerStats: BattleStats = this.createEmptyBattleStats();
     private aiStats: BattleStats = this.createEmptyBattleStats();
+    private currentLevel = 1;
+    private highestUnlockedLevel = 1;
     private selectedSheepType = SheepType.Small;
     private nextUnitId = 1;
     private playerSpawnCooldown = 0;
     private aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
     private hudRefreshCooldown = 0;
     private statusToastRemaining = 0;
+    private lastBaseHudState = '';
+    private lastUnitButtonState = '';
+    private lastTacticHudState = '';
     private isStarted = false;
     private tutorialCompleted = false;
     private isFinished = false;
@@ -213,6 +427,8 @@ export class GameController extends Component {
     private aiSprintCooldown = 0;
     private playerHealCooldown = 0;
     private aiHealCooldown = 0;
+    private playerBaseFlashRemaining = 0;
+    private aiBaseFlashRemaining = 0;
     private statusMessage = '选择兵种后，点击一条通道出兵。';
 
     private gameLayer!: Node;
@@ -226,23 +442,28 @@ export class GameController extends Component {
     private aiEnergyLabel!: Label;
     private playerSupplyLabel!: Label;
     private aiSupplyLabel!: Label;
-    private playerEnergyBadge!: Node;
+    private playerEnergyBar!: EnergyBarView;
+    private aiEnergyBar!: EnergyBarView;
     private playerSupplyBadge!: Node;
     private aiTacticLabel!: Label;
     private statusLabel!: Label;
     private statusToast!: Node;
+    private tacticNotice!: Node;
+    private tacticNoticeLabel!: Label;
+    private tacticNoticeOpacity!: UIOpacity;
     private resultPanel!: Node;
-    private tacticPanel!: Node;
     private startPanel!: Node;
+    private levelSelectPanel!: Node;
     private tutorialPanel!: Node;
     private pausePanel!: Node;
     private helpPanel!: Node;
-    private playerShockButton!: ButtonView;
-    private playerSprintButton!: ButtonView;
-    private playerHealButton!: ButtonView;
-    private playerTacticToggleButton!: ButtonView;
+    private playerSprintCard!: TacticCardView;
+    private playerHealCard!: TacticCardView;
+    private playerShockCard!: TacticCardView;
     private pauseButton!: ButtonView;
-    private isTacticPanelOpen = false;
+    private startSelectedLevelLabel!: Label;
+    private levelSelectHintLabel!: Label;
+    private readonly levelButtons = new Map<number, ButtonView>();
 
     onLoad(): void {
         view.setDesignResolutionSize(DESIGN_WIDTH, DESIGN_HEIGHT, ResolutionPolicy.SHOW_ALL);
@@ -254,6 +475,7 @@ export class GameController extends Component {
 
         const transform = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
         transform.setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        this.loadLevelProgress();
         this.buildGame();
     }
 
@@ -281,13 +503,18 @@ export class GameController extends Component {
             this.aiDecisionCooldown += this.trySpawnAIUnit();
         }
 
+        this.updateEnergyBars(deltaTime);
         this.updateUnits(deltaTime);
+        this.updateLaneSpawnMarkers(deltaTime);
+        this.updateUnitVisuals(deltaTime);
+        this.updateBaseHitFeedback(deltaTime);
         this.updateSupplyPoints(deltaTime);
         this.tryUseAITacticCards();
         this.tryUseAIShock();
+        this.updateFeedbackEffects(deltaTime);
         this.hudRefreshCooldown -= deltaTime;
         if (this.hudRefreshCooldown <= 0) {
-            this.hudRefreshCooldown = 0.12;
+            this.hudRefreshCooldown = HUD_DYNAMIC_REFRESH_INTERVAL;
             this.refreshHud();
         }
     }
@@ -306,8 +533,11 @@ export class GameController extends Component {
         this.createTacticButtons();
         this.createResultPanel();
         this.createStartPanel();
+        this.createLevelSelectPanel();
         this.createTutorialPanel();
         this.createPauseControls();
+        this.refreshStartPanel();
+        this.refreshLevelSelectPanel();
         this.refreshHud(this.statusMessage);
     }
 
@@ -320,7 +550,7 @@ export class GameController extends Component {
         graphics.fill();
 
         graphics.fillColor = new Color(38, 51, 70, 255);
-        graphics.roundRect(-590, -250, 1180, 520, 28);
+        graphics.roundRect(-630, -250, 1260, 520, 28);
         graphics.fill();
 
         graphics.lineWidth = 4;
@@ -347,21 +577,22 @@ export class GameController extends Component {
         }
         this.gameLayer.getChildByName('Title')?.destroy();
         this.gameLayer.getChildByName('PlayerTitle')?.destroy();
-        const aiTitle = this.gameLayer.getChildByName('AITitle');
-        if (aiTitle) {
-            aiTitle.setPosition(new Vec3(-520, 322, 0));
-        }
+        this.gameLayer.getChildByName('AITitle')?.destroy();
         for (let index = 0; index < LANE_X.length; index += 1) {
             this.gameLayer.getChildByName(`LaneNumber${index}`)?.destroy();
         }
     }
 
     private createBaseBars(): void {
-        const aiBaseNode = this.createGraphicsNode('AIBaseBar', 940, 48, 0, AI_BASE_Y, this.gameLayer);
-        const playerBaseNode = this.createGraphicsNode('PlayerBaseBar', 940, 48, 0, PLAYER_BASE_Y, this.gameLayer);
+        const aiBaseNode = this.createGraphicsNode('AIBaseBar', HUD_BASE_BAR_WIDTH, BASE_BAR_HEIGHT, AI_HUD_CENTER_X, AI_HUD_Y, this.gameLayer);
+        const playerBaseNode = this.createGraphicsNode('PlayerBaseBar', HUD_BASE_BAR_WIDTH, BASE_BAR_HEIGHT, BATTLEFIELD_CENTER_X, PLAYER_HUD_Y, this.gameLayer);
         this.aiBaseGraphics = aiBaseNode.getComponent(Graphics)!;
         this.playerBaseGraphics = playerBaseNode.getComponent(Graphics)!;
-        this.refreshBaseBars();
+        const baseHudState = `${this.playerBaseHealth}:${this.aiBaseHealth}`;
+        if (baseHudState !== this.lastBaseHudState) {
+            this.lastBaseHudState = baseHudState;
+            this.refreshBaseBars();
+        }
     }
 
     private refreshBaseBars(): void {
@@ -375,23 +606,101 @@ export class GameController extends Component {
     private drawBase(graphics: Graphics, team: Team): void {
         const health = team === Team.Player ? this.playerBaseHealth : this.aiBaseHealth;
         const healthRatio = Math.max(0, Math.min(1, health / BASE_MAX_HEALTH));
-        const fillColor = team === Team.Player ? new Color(55, 154, 232, 255) : new Color(227, 78, 74, 255);
-        const borderColor = team === Team.Player ? new Color(144, 219, 255, 255) : new Color(255, 170, 164, 255);
+        const fillColor = team === Team.Player ? new Color(66, 213, 122, 255) : new Color(239, 83, 80, 255);
+        const borderColor = team === Team.Player ? new Color(140, 242, 178, 255) : new Color(255, 170, 164, 255);
+        const baseWidth = HUD_BASE_BAR_WIDTH;
+        const baseHalfWidth = baseWidth / 2;
+        const innerInset = 6;
+        const innerHeight = BASE_BAR_HEIGHT - 12;
+        const innerWidth = baseWidth - innerInset * 2;
 
         graphics.clear();
         graphics.fillColor = new Color(13, 22, 34, 255);
-        graphics.roundRect(-470, -24, 940, 48, 18);
+        graphics.roundRect(-baseHalfWidth, -BASE_BAR_HEIGHT / 2, baseWidth, BASE_BAR_HEIGHT, 18);
         graphics.fill();
         graphics.lineWidth = 3;
         graphics.strokeColor = borderColor;
-        graphics.roundRect(-470, -24, 940, 48, 18);
+        graphics.roundRect(-baseHalfWidth, -BASE_BAR_HEIGHT / 2, baseWidth, BASE_BAR_HEIGHT, 18);
         graphics.stroke();
 
-        const fillWidth = 928 * healthRatio;
+        const fillWidth = innerWidth * healthRatio;
         if (fillWidth > 0) {
             graphics.fillColor = fillColor;
-            graphics.roundRect(-464, -18, fillWidth, 36, Math.min(14, fillWidth / 2));
+            graphics.roundRect(-baseHalfWidth + innerInset, -innerHeight / 2, fillWidth, innerHeight, Math.min(14, fillWidth / 2));
             graphics.fill();
+        }
+
+        const flashRemaining = team === Team.Player ? this.playerBaseFlashRemaining : this.aiBaseFlashRemaining;
+        if (flashRemaining > 0) {
+            const flashAlpha = Math.round(145 * flashRemaining / BASE_HIT_FLASH_DURATION);
+            graphics.fillColor = new Color(borderColor.r, borderColor.g, borderColor.b, flashAlpha);
+            graphics.roundRect(-baseHalfWidth, -BASE_BAR_HEIGHT / 2, baseWidth, BASE_BAR_HEIGHT, 18);
+            graphics.fill();
+        }
+    }
+
+    private updateBaseHitFeedback(deltaTime: number): void {
+        const wasFlashing = this.playerBaseFlashRemaining > 0 || this.aiBaseFlashRemaining > 0;
+        this.playerBaseFlashRemaining = Math.max(0, this.playerBaseFlashRemaining - deltaTime);
+        this.aiBaseFlashRemaining = Math.max(0, this.aiBaseFlashRemaining - deltaTime);
+        if (wasFlashing) {
+            this.refreshBaseBars();
+        }
+    }
+
+    private createFloatingFeedback(text: string, x: number, y: number, color: Color, duration: number, yOffset: number, width: number, fontSize: number): void {
+        const effect = this.createGraphicsNode('BattleFeedback', width, 42, x, y, this.gameLayer);
+        const graphics = effect.getComponent(Graphics)!;
+        graphics.fillColor = new Color(8, 16, 27, 222);
+        graphics.roundRect(-width / 2, -21, width, 42, 14);
+        graphics.fill();
+        graphics.lineWidth = 2;
+        graphics.strokeColor = color;
+        graphics.roundRect(-width / 2, -21, width, 42, 14);
+        graphics.stroke();
+        this.createLabel(effect, 'Text', text, 0, 0, width - 18, 38, fontSize, color);
+        const opacity = effect.addComponent(UIOpacity);
+        this.feedbackEffects.push({
+            node: effect,
+            opacity,
+            startX: x,
+            startY: y,
+            yOffset,
+            duration,
+            elapsed: 0,
+        });
+    }
+
+    private updateFeedbackEffects(deltaTime: number): void {
+        for (const effect of [...this.feedbackEffects]) {
+            if (!effect.node.isValid) {
+                this.removeFeedbackEffect(effect);
+                continue;
+            }
+            effect.elapsed += deltaTime;
+            const progress = Math.min(1, effect.elapsed / effect.duration);
+            effect.node.setPosition(effect.startX, effect.startY + effect.yOffset * progress);
+            effect.node.setScale(1 - progress * 0.08, 1 - progress * 0.08, 1);
+            effect.opacity.opacity = Math.round(255 * (1 - progress));
+            if (progress >= 1) {
+                this.removeFeedbackEffect(effect);
+            }
+        }
+    }
+
+    private removeFeedbackEffect(effect: FeedbackEffect): void {
+        const index = this.feedbackEffects.indexOf(effect);
+        if (index >= 0) {
+            this.feedbackEffects.splice(index, 1);
+        }
+        if (effect.node.isValid) {
+            effect.node.destroy();
+        }
+    }
+
+    private clearFeedbackEffects(): void {
+        for (const effect of [...this.feedbackEffects]) {
+            this.removeFeedbackEffect(effect);
         }
     }
 
@@ -524,23 +833,26 @@ export class GameController extends Component {
     }
 
     private createHud(): void {
-        this.aiBaseShadowLabel = this.createLabel(this.gameLayer, 'AIBaseHealthShadow', '', 2, AI_BASE_Y, 400, 34, 23, new Color(3, 9, 17, 255));
-        this.aiBaseLabel = this.createLabel(this.gameLayer, 'AIBaseHealth', '', 0, AI_BASE_Y + 2, 400, 34, 23, Color.WHITE);
-        this.aiEnergyLabel = this.createLabel(this.gameLayer, 'AIEnergy', '', 0, 0, 1, 1, 1, Color.WHITE);
-        this.aiSupplyLabel = this.createLabel(this.gameLayer, 'AISupply', '', 0, 0, 1, 1, 1, Color.WHITE);
+        this.aiBaseShadowLabel = this.createLabel(this.gameLayer, 'AIBaseHealthShadow', '', AI_HUD_CENTER_X + 2, AI_HUD_Y, 400, 34, 23, new Color(3, 9, 17, 255));
+        this.aiBaseLabel = this.createLabel(this.gameLayer, 'AIBaseHealth', '', AI_HUD_CENTER_X, AI_HUD_Y + 2, 400, 34, 23, Color.WHITE);
+        const aiSupplyBadge = this.createResourceBadge('AISupplyBadge', AI_HUD_SUPPLY_X, AI_HUD_Y,
+            new Color(47, 34, 40, 255), new Color(178, 108, 116, 255));
+        this.aiSupplyLabel = this.createLabel(aiSupplyBadge, 'Text', '', 0, 0, PLAYER_RESOURCE_BADGE_WIDTH - 8, 40, 16, new Color(215, 255, 236, 255));
+        this.aiEnergyBar = this.createEnergyBar('AIEnergyBar', AI_HUD_ENERGY_X, AI_HUD_Y,
+            new Color(238, 137, 76, 255), new Color(211, 113, 94, 255), new Color(255, 202, 133, 255), '\u26A1 AI \u80FD\u91CF');
+        this.aiEnergyLabel = this.aiEnergyBar.label;
         this.aiTacticLabel = this.createLabel(this.gameLayer, 'AITactic', '', 0, 0, 1, 1, 1, Color.WHITE);
-        this.aiEnergyLabel.node.active = false;
-        this.aiSupplyLabel.node.active = false;
         this.aiTacticLabel.node.active = false;
 
-        this.playerBaseShadowLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealthShadow', '', 2, PLAYER_BASE_Y - 1, 400, 34, 23, new Color(3, 9, 17, 255));
-        this.playerBaseLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealth', '', 0, PLAYER_BASE_Y + 1, 400, 34, 23, Color.WHITE);
-        this.playerEnergyBadge = this.createPlayerResourceBadge('PlayerEnergyBadge', -390,
-            new Color(9, 31, 51, 255), new Color(137, 220, 255, 255));
-        this.playerEnergyLabel = this.createLabel(this.playerEnergyBadge, 'Text', '', 0, 0, 142, 40, 16, new Color(226, 248, 255, 255));
-        this.playerSupplyBadge = this.createPlayerResourceBadge('PlayerSupplyBadge', 390,
+        this.playerBaseShadowLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealthShadow', '', BATTLEFIELD_CENTER_X + 2, PLAYER_HUD_Y - 1, 400, 34, 23, new Color(3, 9, 17, 255));
+        this.playerBaseLabel = this.createLabel(this.gameLayer, 'PlayerBaseHealth', '', BATTLEFIELD_CENTER_X, PLAYER_HUD_Y + 1, 400, 34, 23, Color.WHITE);
+        this.playerSupplyBadge = this.createResourceBadge('PlayerSupplyBadge', PLAYER_HUD_SUPPLY_X, PLAYER_HUD_Y,
             new Color(10, 43, 46, 255), new Color(164, 244, 220, 255));
-        this.playerSupplyLabel = this.createLabel(this.playerSupplyBadge, 'Text', '', 0, 0, 142, 40, 16, new Color(230, 255, 242, 255));
+        this.playerSupplyLabel = this.createLabel(this.playerSupplyBadge, 'Text', '', 0, 0, PLAYER_RESOURCE_BADGE_WIDTH - 8, 40, 16, new Color(230, 255, 242, 255));
+        this.playerEnergyBar = this.createEnergyBar('PlayerEnergyBar', PLAYER_HUD_ENERGY_X, PLAYER_HUD_Y,
+            new Color(48, 195, 255, 255), new Color(137, 220, 255, 255), new Color(255, 216, 90, 255), '\u26A1 \u80FD\u91CF');
+        this.playerEnergyLabel = this.playerEnergyBar.label;
+        this.snapEnergyBarsToCurrentValues();
 
         this.statusToast = this.createGraphicsNode('StatusToast', 440, 32, 0, 226, this.gameLayer);
         const toastGraphics = this.statusToast.getComponent(Graphics)!;
@@ -553,19 +865,165 @@ export class GameController extends Component {
         toastGraphics.stroke();
         this.statusLabel = this.createLabel(this.statusToast, 'Text', '', 0, 0, 420, 30, 14, new Color(232, 237, 244, 255));
         this.statusToast.active = false;
+        this.createTacticNotice();
     }
 
-    private createPlayerResourceBadge(name: string, x: number, fillColor: Color, borderColor: Color): Node {
-        const badge = this.createGraphicsNode(name, 150, 44, x, PLAYER_BASE_Y + 1, this.gameLayer);
+    private createTacticNotice(): void {
+        this.tacticNotice = this.createGraphicsNode('TacticNotice', 300, 42, 0, 150, this.gameLayer);
+        const graphics = this.tacticNotice.getComponent(Graphics)!;
+        graphics.fillColor = new Color(8, 16, 27, 236);
+        graphics.roundRect(-150, -21, 300, 42, 14);
+        graphics.fill();
+        graphics.lineWidth = 2;
+        graphics.strokeColor = new Color(210, 235, 250, 255);
+        graphics.roundRect(-150, -21, 300, 42, 14);
+        graphics.stroke();
+        this.tacticNoticeLabel = this.createLabel(this.tacticNotice, 'Text', '', 0, 0, 280, 38, 19, Color.WHITE);
+        this.tacticNoticeOpacity = this.tacticNotice.addComponent(UIOpacity);
+        this.tacticNotice.active = false;
+    }
+
+    private showTacticNotice(team: Team, tacticName: string): void {
+        if (!this.tacticNotice || !this.tacticNoticeLabel || !this.tacticNoticeOpacity) {
+            return;
+        }
+        Tween.stopAllByTarget(this.tacticNotice);
+        Tween.stopAllByTarget(this.tacticNoticeOpacity);
+        if (this.statusToast) {
+            this.statusToast.active = false;
+        }
+        this.tacticNoticeLabel.string = `${team === Team.Player ? '\u73A9\u5BB6' : 'AI'}\uFF1A${tacticName}\uFF01`;
+        this.tacticNotice.active = true;
+        this.tacticNotice.setPosition(0, 150, 0);
+        this.tacticNotice.setScale(0.92, 0.92, 1);
+        this.tacticNoticeOpacity.opacity = 0;
+        tween(this.tacticNotice)
+            .to(TACTIC_NOTICE_FADE_IN_SECONDS, { position: new Vec3(0, 158, 0), scale: new Vec3(1.04, 1.04, 1) }, { easing: 'quadOut' })
+            .to(0.06, { scale: new Vec3(1, 1, 1) }, { easing: 'quadInOut' })
+            .delay(TACTIC_NOTICE_HOLD_SECONDS)
+            .to(TACTIC_NOTICE_FADE_OUT_SECONDS, { position: new Vec3(0, 174, 0), scale: new Vec3(0.98, 0.98, 1) }, { easing: 'quadIn' })
+            .call(() => { this.tacticNotice.active = false; })
+            .start();
+        tween(this.tacticNoticeOpacity)
+            .to(TACTIC_NOTICE_FADE_IN_SECONDS, { opacity: 255 }, { easing: 'quadOut' })
+            .delay(0.06 + TACTIC_NOTICE_HOLD_SECONDS)
+            .to(TACTIC_NOTICE_FADE_OUT_SECONDS, { opacity: 0 }, { easing: 'quadIn' })
+            .start();
+    }
+
+    private hideTacticNotice(): void {
+        if (!this.tacticNotice || !this.tacticNoticeOpacity) {
+            return;
+        }
+        Tween.stopAllByTarget(this.tacticNotice);
+        Tween.stopAllByTarget(this.tacticNoticeOpacity);
+        this.tacticNoticeOpacity.opacity = 0;
+        this.tacticNotice.active = false;
+    }
+
+    private createResourceBadge(name: string, x: number, y: number, fillColor: Color, borderColor: Color): Node {
+        const badge = this.createGraphicsNode(name, PLAYER_RESOURCE_BADGE_WIDTH, PLAYER_RESOURCE_BADGE_HEIGHT, x, y, this.gameLayer);
         const graphics = badge.getComponent(Graphics)!;
         graphics.fillColor = fillColor;
-        graphics.roundRect(-75, -22, 150, 44, 16);
+        graphics.roundRect(-PLAYER_RESOURCE_BADGE_WIDTH / 2, -PLAYER_RESOURCE_BADGE_HEIGHT / 2,
+            PLAYER_RESOURCE_BADGE_WIDTH, PLAYER_RESOURCE_BADGE_HEIGHT, 16);
         graphics.fill();
         graphics.lineWidth = 3;
         graphics.strokeColor = borderColor;
-        graphics.roundRect(-75, -22, 150, 44, 16);
+        graphics.roundRect(-PLAYER_RESOURCE_BADGE_WIDTH / 2, -PLAYER_RESOURCE_BADGE_HEIGHT / 2,
+            PLAYER_RESOURCE_BADGE_WIDTH, PLAYER_RESOURCE_BADGE_HEIGHT, 16);
         graphics.stroke();
         return badge;
+    }
+
+    private createEnergyBar(name: string, x: number, y: number, fillColor: Color, borderColor: Color, labelColor: Color, labelPrefix: string): EnergyBarView {
+        const bar = this.createGraphicsNode(name, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT, x, y, this.gameLayer);
+        const graphics = bar.getComponent(Graphics)!;
+        const barLeft = -ENERGY_BAR_WIDTH / 2;
+        const iconLeft = barLeft + 7;
+
+        graphics.fillColor = new Color(10, 20, 31, 255);
+        graphics.roundRect(barLeft, -ENERGY_BAR_HEIGHT / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT, 16);
+        graphics.fill();
+        graphics.fillColor = new Color(4, 12, 21, 255);
+        graphics.roundRect(ENERGY_BAR_FILL_LEFT, -ENERGY_BAR_FILL_HEIGHT / 2, ENERGY_BAR_FILL_WIDTH, ENERGY_BAR_FILL_HEIGHT, 9);
+        graphics.fill();
+        graphics.lineWidth = 3;
+        graphics.strokeColor = borderColor;
+        graphics.roundRect(barLeft, -ENERGY_BAR_HEIGHT / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT, 16);
+        graphics.stroke();
+
+        graphics.fillColor = new Color(borderColor.r, borderColor.g, borderColor.b, 58);
+        graphics.roundRect(iconLeft, -15, ENERGY_BAR_ICON_BOX_WIDTH, 30, 8);
+        graphics.fill();
+        graphics.lineWidth = 2;
+        graphics.strokeColor = borderColor;
+        graphics.roundRect(iconLeft, -15, ENERGY_BAR_ICON_BOX_WIDTH, 30, 8);
+        graphics.stroke();
+        graphics.fillColor = fillColor;
+        graphics.moveTo(iconLeft + 17, 12);
+        graphics.lineTo(iconLeft + 9, 1);
+        graphics.lineTo(iconLeft + 15, 1);
+        graphics.lineTo(iconLeft + 13, -11);
+        graphics.lineTo(iconLeft + 23, -1);
+        graphics.lineTo(iconLeft + 17, -1);
+        graphics.close();
+        graphics.fill();
+
+        const fillNode = new Node('Fill');
+        fillNode.setParent(bar);
+        const fillTransform = fillNode.addComponent(UITransform);
+        fillTransform.setContentSize(ENERGY_BAR_FILL_WIDTH, ENERGY_BAR_FILL_HEIGHT);
+        fillTransform.setAnchorPoint(0, 0.5);
+        fillNode.setPosition(ENERGY_BAR_FILL_LEFT, 0, 0);
+        const fillGraphics = fillNode.addComponent(Graphics);
+        fillGraphics.fillColor = fillColor;
+        fillGraphics.roundRect(0, -ENERGY_BAR_FILL_HEIGHT / 2, ENERGY_BAR_FILL_WIDTH, ENERGY_BAR_FILL_HEIGHT, 9);
+        fillGraphics.fill();
+        fillNode.setScale(0, 1, 1);
+
+        const shadowLabel = this.createLabel(bar, 'TextShadow', `${labelPrefix} 0 / ${ENERGY_MAX}`, 19, -2,
+            ENERGY_BAR_FILL_WIDTH - 2, ENERGY_BAR_HEIGHT - 4, 17, new Color(7, 12, 20, 255));
+        const label = this.createLabel(bar, 'Text', `${labelPrefix} 0 / ${ENERGY_MAX}`, 17, 0,
+            ENERGY_BAR_FILL_WIDTH - 2, ENERGY_BAR_HEIGHT - 4, 17, labelColor);
+        return {
+            node: bar,
+            fillNode,
+            label,
+            shadowLabel,
+            displayRatio: 0,
+        };
+    }
+
+    private updateEnergyBars(deltaTime: number): void {
+        this.updateEnergyBar(this.playerEnergyBar, this.playerEnergy / ENERGY_MAX, deltaTime);
+        this.updateEnergyBar(this.aiEnergyBar, this.aiEnergy / ENERGY_MAX, deltaTime);
+    }
+
+    private updateEnergyBar(bar: EnergyBarView, targetRatio: number, deltaTime: number): void {
+        const target = Math.max(0, Math.min(1, targetRatio));
+        const difference = target - bar.displayRatio;
+        if (Math.abs(difference) < 0.0001) {
+            return;
+        }
+        const duration = difference < 0 ? 0.1 : 0.12;
+        bar.displayRatio += difference * Math.min(1, deltaTime / duration);
+        if (Math.abs(target - bar.displayRatio) < 0.0001) {
+            bar.displayRatio = target;
+        }
+        bar.fillNode.setScale(bar.displayRatio, 1, 1);
+    }
+
+    private snapEnergyBarsToCurrentValues(): void {
+        if (!this.playerEnergyBar || !this.aiEnergyBar) {
+            return;
+        }
+        const playerRatio = Math.max(0, Math.min(1, this.playerEnergy / ENERGY_MAX));
+        const aiRatio = Math.max(0, Math.min(1, this.aiEnergy / ENERGY_MAX));
+        this.playerEnergyBar.displayRatio = playerRatio;
+        this.aiEnergyBar.displayRatio = aiRatio;
+        this.playerEnergyBar.fillNode.setScale(playerRatio, 1, 1);
+        this.aiEnergyBar.fillNode.setScale(aiRatio, 1, 1);
     }
 
     private createLaneButtons(): void {
@@ -585,14 +1043,33 @@ export class GameController extends Component {
             touchZone.on(NodeEventType.TOUCH_END, () => this.trySpawnPlayerUnit(lane), this);
 
             const marker = this.createGraphicsNode(`SpawnMarker${lane}`, 46, 46, LANE_X[lane], -216, this.gameLayer);
-            const graphics = marker.getComponent(Graphics)!;
-            graphics.fillColor = new Color(38, 127, 193, 230);
-            graphics.circle(0, 0, 19);
-            graphics.fill();
-            graphics.lineWidth = 3;
-            graphics.strokeColor = new Color(204, 242, 255, 255);
-            graphics.circle(0, 0, 19);
-            graphics.stroke();
+            const markerView: LaneSpawnMarkerView = {
+                node: marker,
+                graphics: marker.getComponent(Graphics)!,
+                label: this.createLabel(marker, 'QueueState', '', 0, 0, 42, 30, 14, Color.WHITE),
+                queueLabel: this.createLabel(marker, 'QueueCount', '', 0, -29, 118, 18, 11, new Color(255, 222, 126, 255)),
+                fullRemaining: 0,
+                isShowingFull: false,
+                lastQueueText: '',
+            };
+            this.laneSpawnMarkers.push(markerView);
+            this.drawLaneSpawnMarker(markerView, false);
+        }
+    }
+
+    private drawLaneSpawnMarker(marker: LaneSpawnMarkerView, isFull: boolean): void {
+        const graphics = marker.graphics;
+        const fillColor = isFull ? new Color(79, 88, 101, 240) : new Color(38, 127, 193, 230);
+        const borderColor = isFull ? new Color(202, 210, 219, 255) : new Color(204, 242, 255, 255);
+        graphics.clear();
+        graphics.fillColor = fillColor;
+        graphics.circle(0, 0, 19);
+        graphics.fill();
+        graphics.lineWidth = 3;
+        graphics.strokeColor = borderColor;
+        graphics.circle(0, 0, 19);
+        graphics.stroke();
+        if (!isFull) {
             graphics.fillColor = Color.WHITE;
             graphics.moveTo(0, 11);
             graphics.lineTo(-10, -4);
@@ -604,6 +1081,59 @@ export class GameController extends Component {
             graphics.close();
             graphics.fill();
         }
+        marker.label.string = isFull ? '\u6EE1' : '';
+        marker.label.color = isFull ? new Color(246, 246, 246, 255) : Color.WHITE;
+    }
+
+    private showLaneQueueFull(lane: number): void {
+        const marker = this.laneSpawnMarkers[lane];
+        if (!marker) {
+            return;
+        }
+        marker.fullRemaining = QUEUE_FULL_MARKER_SECONDS;
+        this.refreshLaneSpawnMarker(lane, marker);
+    }
+
+    private updateLaneSpawnMarkers(deltaTime: number): void {
+        for (let lane = 0; lane < this.laneSpawnMarkers.length; lane += 1) {
+            const marker = this.laneSpawnMarkers[lane];
+            if (marker.fullRemaining > 0) {
+                marker.fullRemaining = Math.max(0, marker.fullRemaining - deltaTime);
+            }
+            this.refreshLaneSpawnMarker(lane, marker);
+        }
+    }
+
+    private refreshLaneSpawnMarker(lane: number, marker: LaneSpawnMarkerView): void {
+        const unitCount = this.getLaneUnitCount(Team.Player, lane);
+        const isAtCapacity = unitCount >= TEAM_MAX_UNITS_PER_LANE;
+        const selectedDefinition = UNIT_DEFINITIONS[this.selectedSheepType];
+        const isSpawnBlocked = !isAtCapacity && !this.canSpawnUnitInLane(Team.Player, lane, selectedDefinition);
+        const queueText = isAtCapacity
+            ? `\u7B2C ${lane + 1} \u7EBF ${unitCount} / ${TEAM_MAX_UNITS_PER_LANE}`
+            : isSpawnBlocked ? `\u7B2C ${lane + 1} \u7EBF\u51FA\u751F\u7AEF\u5360\u7528` : '';
+        if (queueText !== marker.lastQueueText) {
+            marker.lastQueueText = queueText;
+            marker.queueLabel.string = queueText;
+        }
+        const shouldShowFull = isAtCapacity || isSpawnBlocked || marker.fullRemaining > 0;
+        if (shouldShowFull !== marker.isShowingFull) {
+            marker.isShowingFull = shouldShowFull;
+            this.drawLaneSpawnMarker(marker, shouldShowFull);
+        }
+    }
+
+    private refreshLaneSpawnMarkers(): void {
+        for (let lane = 0; lane < this.laneSpawnMarkers.length; lane += 1) {
+            this.refreshLaneSpawnMarker(lane, this.laneSpawnMarkers[lane]);
+        }
+    }
+
+    private resetLaneSpawnMarkers(): void {
+        for (const marker of this.laneSpawnMarkers) {
+            marker.fullRemaining = 0;
+        }
+        this.refreshLaneSpawnMarkers();
     }
 
     private createUnitTypeButtons(): void {
@@ -622,51 +1152,183 @@ export class GameController extends Component {
     }
 
     private createTacticButtons(): void {
-        this.playerTacticToggleButton = this.createButton(this.gameLayer, 'PlayerTacticToggleButton', '', 555, -292, 150, 36, 16, () => {
-            this.toggleTacticPanel();
-        });
+        const header = this.createGraphicsNode('TacticSidebarHeader', FUNCTION_SIDEBAR_WIDTH, FUNCTION_HEADER_HEIGHT,
+            FUNCTION_SIDEBAR_X, TACTIC_HEADER_Y, this.gameLayer);
+        const headerGraphics = header.getComponent(Graphics)!;
+        headerGraphics.fillColor = new Color(28, 48, 76, 250);
+        headerGraphics.roundRect(-FUNCTION_SIDEBAR_WIDTH / 2, -FUNCTION_HEADER_HEIGHT / 2,
+            FUNCTION_SIDEBAR_WIDTH, FUNCTION_HEADER_HEIGHT, 12);
+        headerGraphics.fill();
+        headerGraphics.lineWidth = 2;
+        headerGraphics.strokeColor = new Color(255, 222, 126, 255);
+        headerGraphics.roundRect(-FUNCTION_SIDEBAR_WIDTH / 2, -FUNCTION_HEADER_HEIGHT / 2,
+            FUNCTION_SIDEBAR_WIDTH, FUNCTION_HEADER_HEIGHT, 12);
+        headerGraphics.stroke();
+        this.createLabel(header, 'Title', '\u6218\u672F', 0, 0, FUNCTION_SIDEBAR_WIDTH - 26, 30, 19, new Color(255, 238, 180, 255));
 
-        this.tacticPanel = new Node('TacticPanel');
-        this.tacticPanel.setParent(this.gameLayer);
-        this.tacticPanel.setPosition(new Vec3(0, -144, 0));
-        this.tacticPanel.addComponent(UITransform).setContentSize(740, 70);
-        const panelGraphics = this.tacticPanel.addComponent(Graphics);
-        panelGraphics.fillColor = new Color(13, 24, 38, 245);
-        panelGraphics.roundRect(-370, -35, 740, 70, 18);
-        panelGraphics.fill();
-        panelGraphics.lineWidth = 2;
-        panelGraphics.strokeColor = new Color(158, 211, 241, 230);
-        panelGraphics.roundRect(-370, -35, 740, 70, 18);
-        panelGraphics.stroke();
-
-        this.playerSprintButton = this.createButton(this.tacticPanel, 'PlayerSprintButton', '', -240, 0, 210, 46, 14, () => {
+        this.playerSprintCard = this.createTacticCard('PlayerSprintCard', FUNCTION_SIDEBAR_X, TACTIC_FIRST_CARD_Y, 'sprint', () => {
             this.tryUseSprint(Team.Player);
-            this.closeTacticPanel();
         });
-        this.playerShockButton = this.createButton(this.tacticPanel, 'PlayerShockButton', '', 0, 0, 220, 46, 14, () => {
-            this.tryUseShock(Team.Player);
-            this.closeTacticPanel();
-        });
-        this.playerHealButton = this.createButton(this.tacticPanel, 'PlayerHealButton', '', 240, 0, 210, 46, 14, () => {
+        this.playerHealCard = this.createTacticCard('PlayerHealCard', FUNCTION_SIDEBAR_X,
+            TACTIC_FIRST_CARD_Y - TACTIC_CARD_HEIGHT - TACTIC_CARD_GAP, 'heal', () => {
             this.tryUseHeal(Team.Player);
-            this.closeTacticPanel();
         });
-        this.tacticPanel.active = false;
+        this.playerShockCard = this.createTacticCard('PlayerShockCard', FUNCTION_SIDEBAR_X,
+            TACTIC_FIRST_CARD_Y - (TACTIC_CARD_HEIGHT + TACTIC_CARD_GAP) * 2, 'shock', () => {
+            this.tryUseShock(Team.Player);
+        });
     }
 
-    private toggleTacticPanel(): void {
-        if (!this.isStarted || this.isFinished || this.isPaused) {
+    private createTacticCard(name: string, x: number, y: number, icon: TacticIcon, onClick: () => void): TacticCardView {
+        const width = FUNCTION_SIDEBAR_WIDTH;
+        const height = TACTIC_CARD_HEIGHT;
+        const node = this.createGraphicsNode(name, width, height, x, y, this.gameLayer);
+        const iconNode = this.createGraphicsNode('Icon', 50, 50, -width / 2 + 30, 0, node);
+        const titleLabel = this.createLabel(node, 'Title', '', 15, 16, 120, 26, 17, Color.WHITE);
+        const statusLabel = this.createLabel(node, 'Status', '', 15, -15, 120, 28, 12, new Color(209, 220, 230, 255));
+        titleLabel.horizontalAlign = HorizontalTextAlignment.LEFT;
+        statusLabel.horizontalAlign = HorizontalTextAlignment.LEFT;
+        const pressOverlay = this.createGraphicsNode('PressOverlay', width, height, 0, 0, node);
+        const overlayGraphics = pressOverlay.getComponent(Graphics)!;
+        overlayGraphics.fillColor = new Color(255, 255, 255, 38);
+        overlayGraphics.roundRect(-width / 2, -height / 2, width, height, 16);
+        overlayGraphics.fill();
+        pressOverlay.active = false;
+
+        const card: TacticCardView = {
+            node,
+            graphics: node.getComponent(Graphics)!,
+            iconGraphics: iconNode.getComponent(Graphics)!,
+            iconOpacity: iconNode.addComponent(UIOpacity),
+            titleLabel,
+            statusLabel,
+            pressOverlay,
+            width,
+            height,
+            enabled: false,
+        };
+        this.drawTacticIcon(card.iconGraphics, icon);
+        const resetPressState = (): void => {
+            node.setScale(1, 1, 1);
+            pressOverlay.active = false;
+        };
+        node.on(NodeEventType.TOUCH_START, () => {
+            if (!card.enabled || this.isPaused || !this.isStarted || this.isFinished) {
+                return;
+            }
+            node.setScale(0.97, 0.97, 1);
+            pressOverlay.active = true;
+        }, this);
+        node.on(NodeEventType.TOUCH_CANCEL, resetPressState, this);
+        node.on(NodeEventType.TOUCH_END, () => {
+            const canUse = card.enabled && this.isStarted && !this.isFinished && !this.isPaused;
+            resetPressState();
+            if (canUse) {
+                onClick();
+            }
+        }, this);
+        return card;
+    }
+
+    private drawTacticIcon(graphics: Graphics, icon: TacticIcon): void {
+        const accent = icon === 'sprint' ? new Color(249, 203, 72, 255)
+            : icon === 'heal' ? new Color(91, 219, 132, 255) : new Color(184, 132, 255, 255);
+        graphics.fillColor = new Color(15, 26, 42, 255);
+        graphics.roundRect(-25, -25, 50, 50, 13);
+        graphics.fill();
+        graphics.lineWidth = 2;
+        graphics.strokeColor = new Color(accent.r, accent.g, accent.b, 230);
+        graphics.roundRect(-25, -25, 50, 50, 13);
+        graphics.stroke();
+        graphics.fillColor = accent;
+        graphics.strokeColor = accent;
+        if (icon === 'sprint') {
+            graphics.moveTo(-4, 19);
+            graphics.lineTo(12, 2);
+            graphics.lineTo(3, 2);
+            graphics.lineTo(10, -18);
+            graphics.lineTo(-11, 7);
+            graphics.lineTo(-2, 7);
+            graphics.close();
+            graphics.fill();
+            graphics.lineWidth = 3;
+            graphics.moveTo(-18, -8);
+            graphics.lineTo(-8, 0);
+            graphics.lineTo(-18, 8);
+            graphics.stroke();
             return;
         }
-        this.isTacticPanelOpen = !this.isTacticPanelOpen;
-        this.tacticPanel.active = this.isTacticPanelOpen;
-        this.refreshTacticUi();
+        if (icon === 'heal') {
+            graphics.roundRect(-6, -18, 12, 36, 3);
+            graphics.fill();
+            graphics.roundRect(-18, -6, 36, 12, 3);
+            graphics.fill();
+            return;
+        }
+        graphics.lineWidth = 4;
+        graphics.arc(0, 0, 16, 0.22, Math.PI - 0.22, false);
+        graphics.stroke();
+        graphics.arc(0, 0, 9, 0.22, Math.PI - 0.22, false);
+        graphics.stroke();
+        graphics.lineWidth = 3;
+        graphics.moveTo(-16, -8);
+        graphics.lineTo(-5, -2);
+        graphics.lineTo(1, -11);
+        graphics.lineTo(12, -4);
+        graphics.lineTo(17, -12);
+        graphics.stroke();
     }
 
-    private closeTacticPanel(): void {
-        this.isTacticPanelOpen = false;
-        this.tacticPanel.active = false;
-        this.refreshTacticUi();
+    private refreshTacticCards(): void {
+        if (!this.playerSprintCard || !this.playerHealCard || !this.playerShockCard) {
+            return;
+        }
+        const sprintActive = this.playerSprintRemaining > 0;
+        const sprintEnabled = !sprintActive && this.playerSprintCooldown <= 0 && this.playerSupply >= SPRINT_SUPPLY_COST;
+        const sprintStatus = sprintActive
+            ? `\u51B2\u523A\u4E2D ${Math.max(1, Math.ceil(this.playerSprintRemaining))}\u79D2 \u00B7 \u6D88\u8017 ${SPRINT_SUPPLY_COST}`
+            : this.playerSprintCooldown > 0
+                ? `\u51B7\u5374\u4E2D ${Math.max(1, Math.ceil(this.playerSprintCooldown))}\u79D2 \u00B7 \u6D88\u8017 ${SPRINT_SUPPLY_COST}`
+                : this.playerSupply < SPRINT_SUPPLY_COST ? `\u8865\u7ED9\u4E0D\u8DB3 \u00B7 \u6D88\u8017 ${SPRINT_SUPPLY_COST}` : `\u53EF\u7528 \u00B7 \u6D88\u8017 ${SPRINT_SUPPLY_COST}`;
+        this.updateTacticCard(this.playerSprintCard, '\u5168\u4F53\u51B2\u523A', sprintStatus, sprintEnabled, sprintActive, new Color(249, 203, 72, 255));
+
+        const healEnabled = this.playerHealCooldown <= 0 && this.playerSupply >= HEAL_SUPPLY_COST;
+        const healStatus = this.playerHealCooldown > 0
+            ? `\u51B7\u5374\u4E2D ${Math.max(1, Math.ceil(this.playerHealCooldown))}\u79D2 \u00B7 \u6D88\u8017 ${HEAL_SUPPLY_COST}`
+            : this.playerSupply < HEAL_SUPPLY_COST ? `\u8865\u7ED9\u4E0D\u8DB3 \u00B7 \u6D88\u8017 ${HEAL_SUPPLY_COST}` : `\u53EF\u7528 \u00B7 \u6D88\u8017 ${HEAL_SUPPLY_COST}`;
+        this.updateTacticCard(this.playerHealCard, '\u6218\u5730\u6025\u6551', healStatus, healEnabled, false, new Color(91, 219, 132, 255));
+
+        const shockEnabled = this.playerShockUnlocked && !this.playerShockUsed;
+        const shockStatus = this.playerShockUsed ? '\u5DF2\u4F7F\u7528 \u00B7 \u6D88\u8017 0'
+            : this.playerShockUnlocked ? '\u53EF\u7528 \u00B7 \u6D88\u8017 0' : '\u57FA\u5730\u4F4E\u4E8E 50% \u89E3\u9501';
+        this.updateTacticCard(this.playerShockCard, '\u9886\u5730\u9707\u8361', shockStatus, shockEnabled, false, new Color(184, 132, 255, 255));
+    }
+
+    private updateTacticCard(card: TacticCardView, title: string, status: string, enabled: boolean, active: boolean, accent: Color): void {
+        const isLit = enabled || active;
+        card.enabled = enabled;
+        card.titleLabel.string = title;
+        card.statusLabel.string = status;
+        card.titleLabel.color = isLit ? Color.WHITE : new Color(181, 190, 199, 255);
+        card.statusLabel.color = isLit ? new Color(225, 235, 242, 255) : new Color(151, 160, 171, 255);
+        card.iconOpacity.opacity = isLit ? 255 : 105;
+        const fill = active ? new Color(37, 91, 112, 255)
+            : enabled ? new Color(37, 57, 77, 255) : new Color(38, 45, 54, 255);
+        const border = isLit ? accent : new Color(92, 103, 116, 255);
+        const graphics = card.graphics;
+        graphics.clear();
+        graphics.fillColor = fill;
+        graphics.roundRect(-card.width / 2, -card.height / 2, card.width, card.height, 16);
+        graphics.fill();
+        if (isLit) {
+            graphics.fillColor = new Color(accent.r, accent.g, accent.b, active ? 70 : 42);
+            graphics.roundRect(-card.width / 2 + 2, card.height / 2 - 14, card.width - 4, 12, 14);
+            graphics.fill();
+        }
+        graphics.lineWidth = 3;
+        graphics.strokeColor = border;
+        graphics.roundRect(-card.width / 2, -card.height / 2, card.width, card.height, 16);
+        graphics.stroke();
     }
 
     private createResultPanel(): void {
@@ -690,6 +1352,13 @@ export class GameController extends Component {
         this.createButton(this.resultPanel, 'RestartButton', '重新开始', 0, -72, 180, 48, 18, () => this.restartGame());
         this.resultPanel.getChildByName('ResultHint')?.setPosition(new Vec3(0, -96, 0));
         this.resultPanel.getChildByName('RestartButton')?.setPosition(new Vec3(0, -144, 0));
+        this.resultPanel.getChildByName('RestartButton')?.destroy();
+        this.resultPanel.getChildByName('ResultText')?.setPosition(new Vec3(0, 126, 0));
+        this.resultPanel.getChildByName('ResultReport')?.setPosition(new Vec3(0, 28, 0));
+        this.resultPanel.getChildByName('ResultHint')?.setPosition(new Vec3(0, -76, 0));
+        this.createButton(this.resultPanel, 'RetryButton', '\u91CD\u65B0\u6311\u6218', -190, -140, 170, 46, 18, () => this.restartGame());
+        this.createButton(this.resultPanel, 'NextLevelButton', '\u4E0B\u4E00\u5173', 0, -140, 170, 46, 18, () => this.startNextLevel());
+        this.createButton(this.resultPanel, 'ResultLevelSelectButton', '\u8FD4\u56DE\u9009\u5173', 190, -140, 170, 46, 18, () => this.leaveBattleToLevelSelect());
         this.resultPanel.active = false;
     }
 
@@ -697,12 +1366,127 @@ export class GameController extends Component {
         this.startPanel = new Node('StartPanel');
         this.startPanel.setParent(this.gameLayer);
         this.startPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
-        this.drawModalBackground(this.startPanel, 860, 420);
+        this.drawModalBackground(this.startPanel, 860, 480);
 
         this.createLabel(this.startPanel, 'StartTitle', '\u72FC\u7F8A\u56DB\u7EBF\u6218', 0, 126, 760, 58, 38, new Color(255, 244, 207, 255));
         this.createLabel(this.startPanel, 'StartSubtitle', '\u56DB\u7EBF\u6B63\u9762\u4EA4\u950B\u00B7\u593A\u53D6\u8865\u7ED9\u00B7\u5B88\u4F4F\u57FA\u5730', 0, 78, 760, 30, 18, new Color(190, 220, 242, 255));
         this.createLabel(this.startPanel, 'StartDescription', '\u9009\u62E9\u7F8A\u7FA4\uFF0C\u5728\u56DB\u6761\u901A\u9053\u51FA\u5175\u3002\n\u5360\u9886\u4E2D\u592E\u8865\u7ED9\u70B9\uFF0C\u79EF\u7D2F\u8865\u7ED9\u6765\u91CA\u653E\u6218\u672F\u3002\n\u51FB\u7834\u654C\u65B9\u57FA\u5730\u5373\u83B7\u80DC\u3002', 0, 5, 720, 120, 20, new Color(226, 233, 240, 255));
         this.createButton(this.startPanel, 'StartBattleButton', '\u5F00\u59CB\u6218\u6597', 0, -126, 260, 60, 22, () => this.beginBattle());
+        this.startPanel.getChildByName('StartBattleButton')?.setPosition(new Vec3(0, -118, 0));
+        this.startSelectedLevelLabel = this.createLabel(this.startPanel, 'StartSelectedLevel', '', 0, -70, 700, 30, 17, new Color(255, 225, 145, 255));
+        this.createButton(this.startPanel, 'LevelSelectButton', '\u9009\u62E9\u5173\u5361', 0, -184, 260, 48, 19, () => this.showLevelSelect());
+        this.createLabel(
+            this.startPanel,
+            'VersionLabel',
+            `\u72FC\u7F8A\u56DB\u7EBF\u6218 ${GAME_VERSION}`,
+            500,
+            -328,
+            230,
+            24,
+            14,
+            new Color(132, 151, 169, 210),
+        );
+    }
+
+    private createLevelSelectPanel(): void {
+        this.levelSelectPanel = new Node('LevelSelectPanel');
+        this.levelSelectPanel.setParent(this.gameLayer);
+        this.levelSelectPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        this.drawModalBackground(this.levelSelectPanel, 900, 500);
+        this.createLabel(this.levelSelectPanel, 'LevelSelectTitle', '\u5173\u5361\u9009\u62E9', 0, 166, 760, 50, 34, new Color(255, 244, 207, 255));
+        this.createLabel(this.levelSelectPanel, 'LevelSelectSubtitle', '\u901A\u5173\u4E0A\u4E00\u5173\u540E\u89E3\u9501\u4E0B\u4E00\u5173\u3002', 0, 126, 760, 28, 17, new Color(190, 220, 242, 255));
+        const levelButtonY = [66, 0, -66];
+        for (const config of LEVEL_CONFIGS) {
+            const button = this.createButton(this.levelSelectPanel, `LevelButton${config.id}`, '', 0, levelButtonY[config.id - 1], 640, 56, 16, () => {
+                this.selectLevel(config.id);
+            });
+            this.levelButtons.set(config.id, button);
+        }
+        this.levelSelectHintLabel = this.createLabel(this.levelSelectPanel, 'LevelSelectHint', '', 0, -122, 760, 28, 16, new Color(226, 233, 240, 255));
+        this.createButton(this.levelSelectPanel, 'LevelSelectBackButton', '\u8FD4\u56DE\u4E3B\u83DC\u5355', -170, -178, 250, 46, 18, () => this.returnToStartPanel());
+        this.createButton(this.levelSelectPanel, 'ResetProgressButton', '\u91CD\u7F6E\u672C\u5730\u8FDB\u5EA6\uFF08\u6D4B\u8BD5\uFF09', 170, -178, 270, 46, 17, () => this.resetLocalProgress());
+        this.levelSelectPanel.active = false;
+    }
+
+    private loadLevelProgress(): void {
+        const maxLevel = LEVEL_CONFIGS.length;
+        const savedValue = Number(sys.localStorage.getItem(LEVEL_PROGRESS_STORAGE_KEY));
+        if (Number.isFinite(savedValue)) {
+            this.highestUnlockedLevel = Math.max(1, Math.min(maxLevel, Math.floor(savedValue)));
+        }
+        this.currentLevel = Math.min(this.currentLevel, this.highestUnlockedLevel);
+    }
+
+    private saveLevelProgress(): void {
+        sys.localStorage.setItem(LEVEL_PROGRESS_STORAGE_KEY, `${this.highestUnlockedLevel}`);
+    }
+
+    private getCurrentLevelConfig(): LevelConfig {
+        return LEVEL_CONFIGS[this.currentLevel - 1] ?? LEVEL_CONFIGS[0];
+    }
+
+    private refreshStartPanel(): void {
+        if (!this.startSelectedLevelLabel || !this.startPanel) {
+            return;
+        }
+        const level = this.getCurrentLevelConfig();
+        this.startSelectedLevelLabel.string = `\u5F53\u524D\u5173\u5361\uFF1A\u7B2C ${level.id} \u5173 \u00B7 ${level.title}`;
+        const startButtonLabel = this.startPanel.getChildByName('StartBattleButton')?.getChildByName('Text')?.getComponent(Label);
+        if (startButtonLabel) {
+            startButtonLabel.string = `\u6311\u6218\u7B2C ${level.id} \u5173`;
+        }
+    }
+
+    private refreshLevelSelectPanel(message?: string): void {
+        if (!this.levelSelectHintLabel) {
+            return;
+        }
+        for (const config of LEVEL_CONFIGS) {
+            const button = this.levelButtons.get(config.id);
+            if (!button) {
+                continue;
+            }
+            const unlocked = config.id <= this.highestUnlockedLevel;
+            const selected = config.id === this.currentLevel;
+            const stateText = unlocked ? (selected ? '\u5F53\u524D\u9009\u62E9' : '\u53EF\u6311\u6218') : '\u672A\u89E3\u9501';
+            button.label.string = `\u7B2C ${config.id} \u5173 \u00B7 ${config.title}\n${config.description} \u00B7 ${stateText}`;
+            button.label.color = unlocked ? Color.WHITE : new Color(158, 167, 178, 255);
+            const fill = !unlocked ? new Color(48, 53, 62, 255)
+                : selected ? new Color(43, 117, 177, 255) : new Color(47, 76, 103, 255);
+            const border = !unlocked ? new Color(99, 109, 120, 255)
+                : selected ? new Color(255, 226, 136, 255) : new Color(150, 199, 231, 255);
+            this.drawButton(button, fill, border);
+        }
+        this.levelSelectHintLabel.string = message ?? `\u5DF2\u89E3\u9501\uFF1A${this.highestUnlockedLevel} / ${LEVEL_CONFIGS.length} \u5173`;
+    }
+
+    private showLevelSelect(): void {
+        this.startPanel.active = false;
+        this.levelSelectPanel.active = true;
+        this.refreshLevelSelectPanel();
+    }
+
+    private returnToStartPanel(): void {
+        this.levelSelectPanel.active = false;
+        this.startPanel.active = true;
+        this.refreshStartPanel();
+    }
+
+    private selectLevel(levelId: number): void {
+        if (levelId > this.highestUnlockedLevel) {
+            this.refreshLevelSelectPanel(`\u7B2C ${levelId - 1} \u5173\u901A\u5173\u540E\u624D\u80FD\u89E3\u9501\u3002`);
+            return;
+        }
+        this.currentLevel = levelId;
+        this.returnToStartPanel();
+    }
+
+    private resetLocalProgress(): void {
+        this.highestUnlockedLevel = 1;
+        this.currentLevel = 1;
+        this.saveLevelProgress();
+        this.refreshStartPanel();
+        this.refreshLevelSelectPanel('\u672C\u5730\u8FDB\u5EA6\u5DF2\u91CD\u7F6E\uFF1A\u4EC5\u7B2C 1 \u5173\u53EF\u6311\u6218\u3002');
     }
 
     private createTutorialPanel(): void {
@@ -712,14 +1496,16 @@ export class GameController extends Component {
         this.drawModalBackground(this.tutorialPanel, 900, 500);
 
         this.createLabel(this.tutorialPanel, 'TutorialTitle', '\u65B0\u624B\u5F15\u5BFC\u00B7\u7B2C\u4E00\u5C40', 0, 172, 800, 48, 32, new Color(255, 244, 207, 255));
-        this.createLabel(this.tutorialPanel, 'TutorialSteps', '\u2460 \u5148\u70B9\u51FB\u5E95\u90E8\u5175\u79CD\u5361\u724C\u9009\u62E9\u7F8A\u7C7B\u578B\u3002\n\u2461 \u518D\u70B9\u51FB\u5BF9\u5E94\u9053\u8DEF\u7684\u4E0B\u534A\u6BB5\u51FA\u5175\uFF0C\u7BAD\u5934\u4F1A\u6807\u8BB0\u90E8\u7F72\u4F4D\u7F6E\u3002\n\u2462 \u80FD\u91CF\u4F1A\u81EA\u52A8\u6062\u590D\uFF0C\u7528\u4E8E\u6D3E\u51FA\u5355\u4F4D\u3002\n\u2463 \u5360\u9886\u4E2D\u592E\u8865\u7ED9\u70B9\u53EF\u83B7\u5F97\u8865\u7ED9\u503C\u3002\n\u2464 \u70B9\u51FB\u57FA\u5730\u65C1\u7684\u201C\u6218\u672F\u201D\u53EF\u5C55\u5F00\u5361\u724C\uFF0C\u4F7F\u7528\u8865\u7ED9\u503C\u91CA\u653E\u6548\u679C\u3002', 0, 32, 790, 230, 20, new Color(226, 233, 240, 255));
+        this.createLabel(this.tutorialPanel, 'TutorialSteps', '\u2460 \u5148\u70B9\u51FB\u5E95\u90E8\u5175\u79CD\u5361\u724C\u9009\u62E9\u7F8A\u7C7B\u578B\u3002\n\u2461 \u518D\u70B9\u51FB\u5BF9\u5E94\u9053\u8DEF\u7684\u4E0B\u534A\u6BB5\u51FA\u5175\uFF0C\u7BAD\u5934\u4F1A\u6807\u8BB0\u90E8\u7F72\u4F4D\u7F6E\u3002\n\u2462 \u80FD\u91CF\u4F1A\u81EA\u52A8\u6062\u590D\uFF0C\u7528\u4E8E\u6D3E\u51FA\u5355\u4F4D\u3002\n\u2463 \u5360\u9886\u4E2D\u592E\u8865\u7ED9\u70B9\u53EF\u83B7\u5F97\u8865\u7ED9\u503C\u3002\n\u2464 \u70B9\u51FB\u53F3\u4FA7\u6218\u672F\u5361\uFF0C\u4F7F\u7528\u8865\u7ED9\u503C\u91CA\u653E\u6548\u679C\u3002', 0, 32, 790, 230, 20, new Color(226, 233, 240, 255));
         this.createButton(this.tutorialPanel, 'TutorialConfirmButton', '\u77E5\u9053\u4E86\uFF0C\u5F00\u59CB\u4F5C\u6218', 0, -168, 280, 56, 20, () => this.completeTutorial());
         this.tutorialPanel.active = false;
     }
 
     private createPauseControls(): void {
-        this.pauseButton = this.createButton(this.gameLayer, 'PauseButton', '\u6682\u505C', -565, 232, 100, 38, 16, () => this.pauseGame());
-        this.drawButton(this.pauseButton, new Color(28, 82, 133, 255), new Color(194, 230, 255, 255));
+        this.pauseButton = this.createButton(this.gameLayer, 'PauseButton', '\u2161 \u6682\u505C', FUNCTION_SIDEBAR_X, PAUSE_BUTTON_Y,
+            FUNCTION_SIDEBAR_WIDTH, FUNCTION_HEADER_HEIGHT, 18, () => this.pauseGame());
+        this.pauseButton.label.color = new Color(255, 238, 180, 255);
+        this.drawButton(this.pauseButton, new Color(28, 48, 76, 250), new Color(255, 222, 126, 255));
         this.pauseButton.node.active = false;
 
         this.pausePanel = new Node('PausePanel');
@@ -749,7 +1535,6 @@ export class GameController extends Component {
             return;
         }
         this.isPaused = true;
-        this.closeTacticPanel();
         this.pauseButton.node.active = false;
         this.pausePanel.active = true;
     }
@@ -784,8 +1569,10 @@ export class GameController extends Component {
         this.pausePanel.active = false;
         this.helpPanel.active = false;
         this.tutorialPanel.active = false;
+        this.levelSelectPanel.active = false;
         this.startPanel.active = true;
         this.statusToast.active = false;
+        this.refreshStartPanel();
     }
 
     private drawModalBackground(panel: Node, cardWidth: number, cardHeight: number): void {
@@ -804,6 +1591,7 @@ export class GameController extends Component {
 
     private beginBattle(): void {
         this.startPanel.active = false;
+        this.applyLevelStartingResources();
         if (this.tutorialCompleted) {
             this.activateBattle();
             return;
@@ -820,8 +1608,13 @@ export class GameController extends Component {
     private activateBattle(): void {
         this.isStarted = true;
         this.isPaused = false;
+        const level = this.getCurrentLevelConfig();
+        this.aiDecisionCooldown = level.aiInitialDecisionDelay;
         this.pauseButton.node.active = true;
-        this.refreshHud('\u6307\u5F15\u5B8C\u6210\uFF1A\u9009\u62E9\u5175\u79CD\u540E\uFF0C\u70B9\u51FB\u901A\u9053\u5F00\u59CB\u51FA\u5175\u3002');
+        const openingHint = level.id === 1
+            ? '\u9009\u62E9\u5175\u79CD\uFF0C\u70B9\u51FB\u9053\u8DEF\u5E95\u90E8\u7BAD\u5934\u51FA\u5175\uFF1B\u5148\u62A2\u8865\u7ED9\uFF0C\u518D\u7EC4\u7EC7\u63A8\u8FDB\u3002'
+            : `\u7B2C ${level.id} \u5173\u5F00\u59CB\uFF1A${level.title}\u3002`;
+        this.refreshHud(openingHint);
     }
 
     private trySpawnPlayerUnit(lane: number): void {
@@ -829,16 +1622,22 @@ export class GameController extends Component {
             return;
         }
 
-        if (this.getActiveUnitCount(Team.Player) >= TEAM_MAX_ACTIVE_UNITS) {
-            this.refreshHud('\u5DF1\u65B9\u5DF2\u8FBE\u5230 5 \u4E2A\u5B58\u6D3B\u5355\u4F4D\u4E0A\u9650\u3002');
+        const definition = UNIT_DEFINITIONS[this.selectedSheepType];
+        if (this.getLaneUnitCount(Team.Player, lane) >= TEAM_MAX_UNITS_PER_LANE) {
+            this.showLaneQueueFull(lane);
+            this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u961F\u5217\u5DF2\u6EE1\uFF0C\u8BF7\u7B49\u5F85\u6216\u9009\u62E9\u5176\u4ED6\u9053\u8DEF\u3002`);
             return;
         }
-        if (this.getLaneUnitCount(Team.Player, lane) >= TEAM_MAX_UNITS_PER_LANE) {
-            this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u5DF2\u8FBE\u5230 2 \u4E2A\u5355\u4F4D\u4E0A\u9650\u3002`);
+        if (!this.canSpawnUnitInLane(Team.Player, lane, definition)) {
+            this.showLaneQueueFull(lane);
+            this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u961F\u5DF2\u6EE1\uFF0C\u8BF7\u7B49\u5F85\u6216\u9009\u62E9\u5176\u4ED6\u9053\u8DEF\u3002`);
+            return;
+        }
+        if (this.getActiveUnitCount(Team.Player) >= PLAYER_MAX_ACTIVE_UNITS) {
+            this.refreshHud('\u5DF1\u65B9\u5DF2\u8FBE\u5230 8 \u4E2A\u5B58\u6D3B\u5355\u4F4D\u4E0A\u9650\u3002');
             return;
         }
 
-        const definition = UNIT_DEFINITIONS[this.selectedSheepType];
         if (this.playerSpawnCooldown > 0) {
             this.refreshHud('出兵操作过快，请稍候。');
             return;
@@ -848,47 +1647,57 @@ export class GameController extends Component {
             return;
         }
 
+        if (!this.spawnUnit(Team.Player, lane, definition)) {
+            this.showLaneQueueFull(lane);
+            this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u961F\u5217\u5DF2\u6EE1\uFF0C\u672C\u6B21\u51FA\u5175\u672A\u6263\u9664\u80FD\u91CF\u3002`);
+            return;
+        }
         this.playerEnergy -= definition.cost;
         this.playerSpawnCooldown = PLAYER_SPAWN_COOLDOWN;
-        this.spawnUnit(Team.Player, lane, definition);
+        this.refreshLaneSpawnMarkers();
         this.refreshHud(`第 ${lane + 1} 线派出${definition.name}，消耗 ${definition.cost} 能量。`);
     }
 
     private trySpawnAIUnit(): number {
+        const levelConfig = this.getCurrentLevelConfig();
         if (this.isPaused) {
-            return AI_IDLE_DECISION_INTERVAL;
+            return levelConfig.aiIdleDecisionInterval;
         }
-        if (this.getActiveUnitCount(Team.AI) >= TEAM_MAX_ACTIVE_UNITS) {
-            return AI_IDLE_DECISION_INTERVAL;
+        if (this.getActiveUnitCount(Team.AI) >= levelConfig.aiMaxActiveUnits) {
+            return levelConfig.aiIdleDecisionInterval;
         }
 
-        const affordableTypes = UNIT_ORDER.filter((type) => UNIT_DEFINITIONS[type].cost <= this.aiEnergy);
+        const affordableTypes = levelConfig.aiAllowedUnitTypes.filter((type) => UNIT_DEFINITIONS[type].cost <= this.aiEnergy);
         if (affordableTypes.length === 0) {
-            return AI_IDLE_DECISION_INTERVAL;
+            return levelConfig.aiIdleDecisionInterval;
         }
 
-        const lane = this.chooseAILane();
+        const lane = this.chooseAILane(affordableTypes);
         if (lane === undefined) {
-            return AI_IDLE_DECISION_INTERVAL;
+            return levelConfig.aiIdleDecisionInterval;
         }
         const lanePressure = this.getLanePressure(lane);
-        const type = this.chooseAIUnitType(affordableTypes, lanePressure, lane);
+        const spawnableTypes = affordableTypes.filter((type) => this.canSpawnUnitInLane(Team.AI, lane, UNIT_DEFINITIONS[type]));
+        const type = this.chooseAIUnitType(spawnableTypes, lanePressure, lane);
         if (type === undefined) {
-            return AI_IDLE_DECISION_INTERVAL;
+            return levelConfig.aiIdleDecisionInterval;
         }
         const definition = UNIT_DEFINITIONS[type];
+        if (!this.spawnUnit(Team.AI, lane, definition)) {
+            return levelConfig.aiIdleDecisionInterval;
+        }
         this.aiEnergy -= definition.cost;
-        this.spawnUnit(Team.AI, lane, definition);
         this.refreshHud(`AI 在第 ${lane + 1} 线派出${definition.name.replace('羊', '狼')}。`);
         return this.getAIDeployCooldown(definition);
     }
 
-    private chooseAILane(): number | undefined {
+    private chooseAILane(affordableTypes: readonly SheepType[]): number | undefined {
         const laneStates = LANE_X.map((_, lane) => ({
             lane,
             priority: this.getAILanePriority(lane),
             aiCount: this.getLaneUnitCount(Team.AI, lane),
-        })).filter((state) => state.aiCount < TEAM_MAX_UNITS_PER_LANE);
+        })).filter((state) => state.aiCount < TEAM_MAX_UNITS_PER_LANE
+            && affordableTypes.some((type) => this.canSpawnUnitInLane(Team.AI, state.lane, UNIT_DEFINITIONS[type])));
 
         if (laneStates.length === 0) {
             return undefined;
@@ -983,7 +1792,7 @@ export class GameController extends Component {
     }
 
     private chooseAIUnitType(affordableTypes: readonly SheepType[], lanePressure: number, lane: number): SheepType | undefined {
-        const canDeploy = (type: SheepType): boolean => affordableTypes.includes(type);
+        const canDeploy = (type: SheepType): boolean => affordableTypes.indexOf(type) >= 0;
         const playerHasHeavyUnit = this.units.some((unit) => unit.team === Team.Player && unit.lane === lane
             && (unit.definition.type === SheepType.Large || unit.definition.type === SheepType.Giant));
 
@@ -1003,7 +1812,7 @@ export class GameController extends Component {
     }
 
     private getAIDeployCooldown(definition: UnitDefinition): number {
-        return 1.6 + definition.cost * 0.04;
+        return (1.6 + definition.cost * 0.04) * this.getCurrentLevelConfig().aiDeployCooldownMultiplier;
     }
 
     private getLanePressure(lane: number): number {
@@ -1031,75 +1840,503 @@ export class GameController extends Component {
         return point.owner === Team.Player ? 26 : 10;
     }
 
-    private spawnUnit(team: Team, lane: number, definition: UnitDefinition): void {
-        const startY = team === Team.Player ? PLAYER_BASE_Y + definition.radius + 16 : AI_BASE_Y - definition.radius - 16;
-        const node = this.createGraphicsNode(
-            `${team === Team.Player ? 'Sheep' : 'Wolf'}_${definition.type}_${this.nextUnitId}`,
-            definition.radius * 2,
-            definition.radius * 2 + 18,
-            LANE_X[lane],
-            startY,
-            this.gameLayer,
-        );
+    private spawnUnit(team: Team, lane: number, definition: UnitDefinition): boolean {
+        if (!this.canSpawnUnitInLane(team, lane, definition)) {
+            return false;
+        }
+        const startY = this.getUnitSpawnY(team, lane, definition);
+        if (startY === undefined) {
+            return false;
+        }
+        const safeStartY = this.clampRoadY(this.getRoadBoundsForRadius(definition.radius), startY);
+        const node = new Node(`${team === Team.Player ? 'Sheep' : 'Wolf'}_${definition.type}_${this.nextUnitId}`);
+        node.setParent(this.gameLayer);
+        node.setPosition(LANE_X[lane], safeStartY, 0);
+        node.addComponent(UITransform).setContentSize(definition.radius * 2 + 12, definition.radius * 2 + 28);
+        const visualNode = this.createGraphicsNode('Visual', definition.radius * 2 + 12, definition.radius * 2 + 12, 0, 0, node);
+        const hitFlashNode = this.createGraphicsNode('HitFlash', definition.radius * 2 + 12, definition.radius * 2 + 12, 0, 0, node);
+        const healthNode = this.createGraphicsNode('HealthBar', definition.radius * 2 + 10, 18, 0, 0, node);
+        const healthFillNode = this.createGraphicsNode('HealthFill', definition.radius * 2 + 2, 10, 0, 0, healthNode);
+        healthFillNode.getComponent(UITransform)!.setAnchorPoint(0, 0);
         const unit: BattleUnit = {
             id: this.nextUnitId,
+            queueOrder: this.nextUnitId,
             team,
             lane,
             definition,
             node,
-            graphics: node.getComponent(Graphics)!,
+            visualNode,
+            visualGraphics: visualNode.getComponent(Graphics)!,
+            hitFlashNode,
+            hitFlashOpacity: hitFlashNode.addComponent(UIOpacity),
+            healthNode,
+            healthGraphics: healthNode.getComponent(Graphics)!,
+            healthFillNode,
+            healthFillGraphics: healthFillNode.getComponent(Graphics)!,
+            opacity: node.addComponent(UIOpacity),
             health: definition.maxHealth,
+            displayHealth: definition.maxHealth,
             attackCooldown: 0,
+            walkPhase: this.nextUnitId * 0.91,
+            isMoving: false,
+            hitFlashRemaining: 0,
+            attackKickRemaining: 0,
+            hitRecoilRemaining: 0,
+            isDying: false,
+            deathRemaining: 0,
         };
         this.nextUnitId += 1;
         this.units.push(unit);
+        this.resolveLaneFormation(lane, 0);
         this.getBattleStats(team).unitsSpawned += 1;
-        this.drawUnit(unit);
+        this.drawUnitVisual(unit);
+        this.drawHitFlash(unit);
+        this.createUnitHealthBar(unit);
+        unit.hitFlashNode.active = false;
+        unit.node.setScale(0.9, 0.9, 1);
+        tween(unit.node)
+            .to(0.12, { scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' })
+            .start();
+        return true;
     }
 
     private updateUnits(deltaTime: number): void {
+        this.resolveAllLaneFormations(0);
         const pendingDamage = new Map<BattleUnit, number>();
-        const movingUnits: BattleUnit[] = [];
+        const playerFormations = LANE_X.map((_, lane) => this.getLaneFormation(Team.Player, lane));
+        const aiFormations = LANE_X.map((_, lane) => this.getLaneFormation(Team.AI, lane));
+        const engagedFronts = new Set<BattleUnit>();
 
-        for (const unit of [...this.units]) {
-            if (unit.health <= 0 || !unit.node.isValid) {
+        for (const unit of this.units) {
+            if (this.isActiveBattleUnit(unit)) {
+                unit.isMoving = false;
+            }
+        }
+
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            const playerFront = playerFormations[lane][0];
+            const aiFront = aiFormations[lane][0];
+            if (!this.isActiveBattleUnit(playerFront) || !this.isActiveBattleUnit(aiFront)) {
                 continue;
             }
-
-            const target = this.findOpponentInRange(unit);
-            if (target) {
-                unit.attackCooldown -= deltaTime;
-                if (unit.attackCooldown <= 0) {
-                    unit.attackCooldown = unit.definition.attackInterval;
-                    const accumulatedDamage = pendingDamage.get(target) ?? 0;
-                    pendingDamage.set(target, accumulatedDamage + unit.definition.damage);
-                }
+            if (!this.areFrontUnitsInContact(playerFront, aiFront)) {
                 continue;
             }
-
-            movingUnits.push(unit);
+            engagedFronts.add(playerFront);
+            engagedFronts.add(aiFront);
+            this.collectFrontAttack(playerFront, aiFront, deltaTime, pendingDamage);
+            this.collectFrontAttack(aiFront, playerFront, deltaTime, pendingDamage);
         }
 
         this.resolvePendingCombatDamage(pendingDamage);
 
-        for (const unit of movingUnits) {
-            if (unit.health <= 0 || !unit.node.isValid) {
-                continue;
-            }
-
-            const direction = unit.team === Team.Player ? 1 : -1;
-            const movement = unit.definition.speed * this.getSprintMultiplier(unit.team) * deltaTime;
-            unit.node.setPosition(unit.node.position.x, unit.node.position.y + direction * movement);
-            const hasReachedBase = (unit.team === Team.Player && unit.node.position.y >= AI_BASE_Y - 30)
-                || (unit.team === Team.AI && unit.node.position.y <= PLAYER_BASE_Y + 30);
-            if (hasReachedBase) {
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            const breakthroughs = this.resolveLaneFormation(lane, deltaTime, engagedFronts);
+            for (const unit of breakthroughs) {
+                if (!this.isActiveBattleUnit(unit)) {
+                    continue;
+                }
                 this.damageBase(unit.team === Team.Player ? Team.AI : Team.Player, unit);
-                this.removeUnit(unit);
+                this.startUnitDeath(unit);
                 if (this.isFinished) {
                     return;
                 }
             }
         }
+    }
+
+    private isActiveBattleUnit(unit: BattleUnit | undefined): unit is BattleUnit {
+        return unit !== undefined && unit.health > 0 && !unit.isDying && unit.node.isValid;
+    }
+
+    private getLaneFormation(team: Team, lane: number): BattleUnit[] {
+        return this.units.filter((unit) => unit.team === team && unit.lane === lane && this.isActiveBattleUnit(unit))
+            .sort((left, right) => left.queueOrder - right.queueOrder);
+    }
+
+    private getUnitQueueSpacing(frontUnit: BattleUnit, rearUnit: BattleUnit): number {
+        return frontUnit.definition.radius + rearUnit.definition.radius + UNIT_QUEUE_GAP;
+    }
+
+    private getEnemyContactDistance(playerFront: BattleUnit, aiFront: BattleUnit): number {
+        return playerFront.definition.radius + aiFront.definition.radius + UNIT_ENEMY_CONTACT_GAP;
+    }
+
+    private getRoadBoundsForRadius(radius: number): RoadBounds {
+        return {
+            minY: LANE_BOTTOM_Y + radius + UNIT_ROAD_SAFETY_MARGIN,
+            maxY: LANE_TOP_Y - radius - UNIT_ROAD_SAFETY_MARGIN,
+        };
+    }
+
+    private getUnitRoadBounds(unit: BattleUnit): RoadBounds {
+        return this.getRoadBoundsForRadius(unit.definition.radius);
+    }
+
+    private clampRoadY(bounds: RoadBounds, y: number): number {
+        return Math.max(bounds.minY, Math.min(bounds.maxY, y));
+    }
+
+    private resolveAllLaneFormations(deltaTime = 0, engagedFronts?: ReadonlySet<BattleUnit>): void {
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            this.resolveLaneFormation(lane, deltaTime, engagedFronts);
+        }
+    }
+
+    /**
+     * The only method allowed to update a live BattleUnit root-node y position.
+     * Queue order is immutable; current y never decides who is in front.
+     */
+    private resolveLaneFormation(
+        lane: number,
+        deltaTime = 0,
+        engagedFronts?: ReadonlySet<BattleUnit>,
+    ): BattleUnit[] {
+        const playerFormation = this.getLaneFormation(Team.Player, lane);
+        const aiFormation = this.getLaneFormation(Team.AI, lane);
+        const playerFront = playerFormation[0];
+        const aiFront = aiFormation[0];
+        const playerRange = this.getPlayerFrontRange(playerFormation);
+        const aiRange = this.getAIFrontRange(aiFormation);
+        const playerShift = this.consumeLaneShift(Team.Player, lane);
+        const aiShift = this.consumeLaneShift(Team.AI, lane);
+        let playerFrontY = playerFront && playerRange
+            ? this.clampRoadY(playerRange, playerFront.node.position.y + playerShift)
+            : undefined;
+        let aiFrontY = aiFront && aiRange
+            ? this.clampRoadY(aiRange, aiFront.node.position.y + aiShift)
+            : undefined;
+
+        const playerQueueInvalid = this.diagnoseTeamFormation(lane, Team.Player, playerFormation);
+        const aiQueueInvalid = this.diagnoseTeamFormation(lane, Team.AI, aiFormation);
+        let forcePlayerRepack = playerQueueInvalid || Math.abs(playerShift) > 0.001;
+        let forceAIRepack = aiQueueInvalid || Math.abs(aiShift) > 0.001;
+
+        if (playerFront && aiFront && playerRange && aiRange && playerFrontY !== undefined && aiFrontY !== undefined) {
+            const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
+            const frontsEngaged = engagedFronts?.has(playerFront) === true && engagedFronts.has(aiFront);
+            let gap = aiFrontY - playerFrontY;
+            if (gap > contactDistance + 0.001 && !frontsEngaged) {
+                const availableDistance = gap - contactDistance;
+                const playerMovement = this.getUnitMovementDistance(playerFront, deltaTime);
+                const aiMovement = this.getUnitMovementDistance(aiFront, deltaTime);
+                const totalMovement = playerMovement + aiMovement;
+                const movementScale = totalMovement > 0 ? Math.min(1, availableDistance / totalMovement) : 0;
+                playerFrontY = this.clampRoadY(playerRange, playerFrontY + playerMovement * movementScale);
+                aiFrontY = this.clampRoadY(aiRange, aiFrontY - aiMovement * movementScale);
+                gap = aiFrontY - playerFrontY;
+            }
+
+            const enemyOrderWrong = playerFrontY >= aiFrontY;
+            const enemyOverlap = playerFrontY + contactDistance > aiFrontY + 0.001;
+            if (enemyOrderWrong || enemyOverlap || gap <= contactDistance + 0.001) {
+                this.reportLaneInvariant(
+                    lane,
+                    playerFront,
+                    enemyOrderWrong ? 'enemy-order' : 'enemy-overlap',
+                    aiFrontY - contactDistance,
+                    aiFront,
+                    false,
+                    enemyOverlap,
+                    enemyOrderWrong,
+                );
+                const minimumPlayerY = Math.max(playerRange.minY, aiRange.minY - contactDistance);
+                const maximumPlayerY = Math.min(playerRange.maxY, aiRange.maxY - contactDistance);
+                const midpointPlayerY = (playerFrontY + aiFrontY - contactDistance) / 2;
+                playerFrontY = minimumPlayerY <= maximumPlayerY
+                    ? Math.max(minimumPlayerY, Math.min(maximumPlayerY, midpointPlayerY))
+                    : this.clampRoadY(playerRange, midpointPlayerY);
+                aiFrontY = playerFrontY + contactDistance;
+                forcePlayerRepack = true;
+                forceAIRepack = true;
+            }
+        } else {
+            if (playerFront && playerRange && playerFrontY !== undefined) {
+                playerFrontY = this.clampRoadY(
+                    playerRange,
+                    playerFrontY + this.getUnitMovementDistance(playerFront, deltaTime),
+                );
+            }
+            if (aiFront && aiRange && aiFrontY !== undefined) {
+                aiFrontY = this.clampRoadY(
+                    aiRange,
+                    aiFrontY - this.getUnitMovementDistance(aiFront, deltaTime),
+                );
+            }
+        }
+
+        this.applyResolvedTeamFormation(Team.Player, playerFormation, playerFrontY, deltaTime, forcePlayerRepack);
+        this.applyResolvedTeamFormation(Team.AI, aiFormation, aiFrontY, deltaTime, forceAIRepack);
+        this.validateResolvedLane(lane, playerFormation, aiFormation);
+
+        const breakthroughs: BattleUnit[] = [];
+        if (playerFront && aiFormation.length === 0
+            && playerFront.node.position.y >= this.getBaseEndpointY(playerFront) - 0.001) {
+            breakthroughs.push(playerFront);
+        }
+        if (aiFront && playerFormation.length === 0
+            && aiFront.node.position.y <= this.getBaseEndpointY(aiFront) + 0.001) {
+            breakthroughs.push(aiFront);
+        }
+        return breakthroughs;
+    }
+
+    private reportLaneInvariant(
+        lane: number,
+        unit: BattleUnit,
+        status: string,
+        targetY: number,
+        frontUnit: BattleUnit | undefined,
+        outOfBounds: boolean,
+        overlap: boolean,
+        enemyOrderWrong: boolean,
+    ): void {
+        if (!DEBUG_LANE_ASSERT) {
+            return;
+        }
+        const signature = `${lane}:${unit.id}:${status}:${frontUnit?.id ?? 0}`;
+        if (this.laneDebugSignatures.has(signature)) {
+            return;
+        }
+        this.laneDebugSignatures.add(signature);
+        console.warn('[WolfSheepBattle][LaneAssert]', {
+            lane: lane + 1,
+            unitId: unit.id,
+            team: unit.team === Team.Player ? 'player' : 'ai',
+            queueOrder: unit.queueOrder,
+            status,
+            y: Math.round(unit.node.position.y * 10) / 10,
+            targetY: Math.round(targetY * 10) / 10,
+            frontUnitId: frontUnit?.id,
+            outOfBounds,
+            overlap,
+            enemyOrderWrong,
+        });
+    }
+
+    private diagnoseTeamFormation(lane: number, team: Team, formation: readonly BattleUnit[]): boolean {
+        let invalid = false;
+        for (let index = 0; index < formation.length; index += 1) {
+            const unit = formation[index];
+            const bounds = this.getUnitRoadBounds(unit);
+            const outOfBounds = unit.node.position.y < bounds.minY - 0.001 || unit.node.position.y > bounds.maxY + 0.001;
+            const frontUnit = index > 0 ? formation[index - 1] : undefined;
+            const targetY = frontUnit
+                ? frontUnit.node.position.y + (team === Team.Player ? -1 : 1) * this.getUnitQueueSpacing(frontUnit, unit)
+                : this.clampRoadY(bounds, unit.node.position.y);
+            const overlap = frontUnit
+                ? (team === Team.Player
+                    ? frontUnit.node.position.y - unit.node.position.y
+                    : unit.node.position.y - frontUnit.node.position.y) < this.getUnitQueueSpacing(frontUnit, unit) - 0.001
+                : false;
+            if (outOfBounds || overlap) {
+                invalid = true;
+                this.reportLaneInvariant(
+                    lane,
+                    unit,
+                    outOfBounds ? 'out-of-bounds' : 'ally-overlap',
+                    targetY,
+                    frontUnit,
+                    outOfBounds,
+                    overlap,
+                    false,
+                );
+            }
+        }
+        return invalid;
+    }
+
+    private applyResolvedTeamFormation(
+        team: Team,
+        formation: readonly BattleUnit[],
+        frontY: number | undefined,
+        deltaTime: number,
+        forceRepack: boolean,
+    ): void {
+        if (formation.length === 0 || frontY === undefined) {
+            return;
+        }
+        let resolvedY = frontY;
+        for (let index = 0; index < formation.length; index += 1) {
+            const unit = formation[index];
+            if (index > 0) {
+                const frontUnit = formation[index - 1];
+                const targetY = resolvedY + (team === Team.Player ? -1 : 1) * this.getUnitQueueSpacing(frontUnit, unit);
+                const direction = team === Team.Player ? 1 : -1;
+                const forwardDistance = direction * (targetY - unit.node.position.y);
+                if (forceRepack || forwardDistance < -0.001) {
+                    resolvedY = targetY;
+                } else if (forwardDistance > 0.001) {
+                    const movement = Math.min(this.getUnitMovementDistance(unit, deltaTime), forwardDistance);
+                    resolvedY = unit.node.position.y + direction * movement;
+                } else {
+                    resolvedY = unit.node.position.y;
+                }
+            }
+            const previousY = unit.node.position.y;
+            unit.node.setPosition(unit.node.position.x, resolvedY);
+            unit.isMoving = Math.abs(resolvedY - previousY) > 0.001;
+        }
+    }
+
+    private validateResolvedLane(
+        lane: number,
+        playerFormation: readonly BattleUnit[],
+        aiFormation: readonly BattleUnit[],
+    ): void {
+        this.diagnoseTeamFormation(lane, Team.Player, playerFormation);
+        this.diagnoseTeamFormation(lane, Team.AI, aiFormation);
+        const playerFront = playerFormation[0];
+        const aiFront = aiFormation[0];
+        if (!playerFront || !aiFront) {
+            return;
+        }
+        const contactDistance = this.getEnemyContactDistance(playerFront, aiFront);
+        const enemyOrderWrong = playerFront.node.position.y >= aiFront.node.position.y;
+        const enemyOverlap = playerFront.node.position.y + contactDistance > aiFront.node.position.y + 0.001;
+        if (enemyOrderWrong || enemyOverlap) {
+            this.reportLaneInvariant(
+                lane,
+                playerFront,
+                enemyOrderWrong ? 'enemy-order' : 'enemy-overlap',
+                aiFront.node.position.y - contactDistance,
+                aiFront,
+                false,
+                enemyOverlap,
+                enemyOrderWrong,
+            );
+        }
+    }
+
+    private getLaneShiftKey(team: Team, lane: number): string {
+        return `${team}:${lane}`;
+    }
+
+    private queueLaneShift(team: Team, lane: number, shiftY: number): void {
+        const key = this.getLaneShiftKey(team, lane);
+        const currentShift = this.pendingLaneShifts.get(key) ?? 0;
+        this.pendingLaneShifts.set(key, currentShift + shiftY);
+    }
+
+    private consumeLaneShift(team: Team, lane: number): number {
+        const key = this.getLaneShiftKey(team, lane);
+        const shift = this.pendingLaneShifts.get(key) ?? 0;
+        this.pendingLaneShifts.delete(key);
+        return shift;
+    }
+
+    private getPlayerFrontRange(formation: readonly BattleUnit[]): RoadBounds | undefined {
+        const frontUnit = formation[0];
+        const minimumY = this.getMinimumPlayerFrontYForDefinitions(formation.map((unit) => unit.definition));
+        if (!frontUnit || minimumY === undefined) {
+            return undefined;
+        }
+        return { minY: minimumY, maxY: this.getUnitRoadBounds(frontUnit).maxY };
+    }
+
+    private getAIFrontRange(formation: readonly BattleUnit[]): RoadBounds | undefined {
+        const frontUnit = formation[0];
+        const maximumY = this.getMaximumAIFrontYForDefinitions(formation.map((unit) => unit.definition));
+        if (!frontUnit || maximumY === undefined) {
+            return undefined;
+        }
+        return { minY: this.getUnitRoadBounds(frontUnit).minY, maxY: maximumY };
+    }
+
+    private getBaseEndpointY(unit: BattleUnit): number {
+        const bounds = this.getUnitRoadBounds(unit);
+        return unit.team === Team.Player ? bounds.maxY : bounds.minY;
+    }
+
+    private canSpawnUnitInLane(team: Team, lane: number, definition: UnitDefinition): boolean {
+        return this.getLaneUnitCount(team, lane) < TEAM_MAX_UNITS_PER_LANE
+            && this.getUnitSpawnY(team, lane, definition) !== undefined
+            && this.canFitProjectedLaneFormation(team, lane, definition);
+    }
+
+    private getUnitSpawnY(team: Team, lane: number, definition: UnitDefinition): number | undefined {
+        const bounds = this.getRoadBoundsForRadius(definition.radius);
+        // A unit always enters at its own base-side road endpoint. Queue state
+        // may reject this spawn, but must never move it forward into the lane.
+        const fixedSpawnY = team === Team.Player ? bounds.minY : bounds.maxY;
+        const formation = this.getLaneFormation(team, lane);
+        const rearUnit = formation[formation.length - 1];
+        if (!rearUnit) {
+            return fixedSpawnY;
+        }
+        const direction = team === Team.Player ? 1 : -1;
+        const requiredSpacing = rearUnit.definition.radius + definition.radius + UNIT_QUEUE_GAP;
+        const availableSpacing = direction * (rearUnit.node.position.y - fixedSpawnY);
+        return availableSpacing >= requiredSpacing - 0.001 ? fixedSpawnY : undefined;
+    }
+
+    private canFitProjectedLaneFormation(team: Team, lane: number, definition: UnitDefinition): boolean {
+        const playerDefinitions = this.getLaneFormation(Team.Player, lane).map((unit) => unit.definition);
+        const aiDefinitions = this.getLaneFormation(Team.AI, lane).map((unit) => unit.definition);
+        (team === Team.Player ? playerDefinitions : aiDefinitions).push(definition);
+        const playerMinimumFrontY = this.getMinimumPlayerFrontYForDefinitions(playerDefinitions);
+        const aiMaximumFrontY = this.getMaximumAIFrontYForDefinitions(aiDefinitions);
+        if (playerMinimumFrontY === undefined || aiMaximumFrontY === undefined) {
+            return false;
+        }
+        if (playerDefinitions.length === 0 || aiDefinitions.length === 0) {
+            return true;
+        }
+        const contactDistance = playerDefinitions[0].radius + aiDefinitions[0].radius + UNIT_ENEMY_CONTACT_GAP;
+        return playerMinimumFrontY + contactDistance <= aiMaximumFrontY + 0.001;
+    }
+
+    private getMinimumPlayerFrontYForDefinitions(definitions: readonly UnitDefinition[]): number | undefined {
+        if (definitions.length === 0) {
+            return 0;
+        }
+        let positionY = this.getRoadBoundsForRadius(definitions[definitions.length - 1].radius).minY;
+        for (let index = definitions.length - 2; index >= 0; index -= 1) {
+            const frontDefinition = definitions[index];
+            const rearDefinition = definitions[index + 1];
+            positionY += frontDefinition.radius + rearDefinition.radius + UNIT_QUEUE_GAP;
+            if (positionY > this.getRoadBoundsForRadius(frontDefinition.radius).maxY + 0.001) {
+                return undefined;
+            }
+        }
+        return positionY;
+    }
+
+    private getMaximumAIFrontYForDefinitions(definitions: readonly UnitDefinition[]): number | undefined {
+        if (definitions.length === 0) {
+            return 0;
+        }
+        let positionY = this.getRoadBoundsForRadius(definitions[definitions.length - 1].radius).maxY;
+        for (let index = definitions.length - 2; index >= 0; index -= 1) {
+            const frontDefinition = definitions[index];
+            const rearDefinition = definitions[index + 1];
+            positionY -= frontDefinition.radius + rearDefinition.radius + UNIT_QUEUE_GAP;
+            if (positionY < this.getRoadBoundsForRadius(frontDefinition.radius).minY - 0.001) {
+                return undefined;
+            }
+        }
+        return positionY;
+    }
+
+    private areFrontUnitsInContact(first: BattleUnit, second: BattleUnit): boolean {
+        const collisionDistance = first.definition.radius + second.definition.radius + UNIT_ENEMY_CONTACT_GAP;
+        return Math.abs(first.node.position.y - second.node.position.y) <= collisionDistance;
+    }
+
+    private collectFrontAttack(attacker: BattleUnit, target: BattleUnit, deltaTime: number, pendingDamage: Map<BattleUnit, number>): void {
+        attacker.attackCooldown -= deltaTime;
+        if (attacker.attackCooldown > 0) {
+            return;
+        }
+        attacker.attackCooldown = attacker.definition.attackInterval;
+        const accumulatedDamage = pendingDamage.get(target) ?? 0;
+        pendingDamage.set(target, accumulatedDamage + attacker.definition.damage);
+        this.triggerUnitImpact(attacker, false);
+        this.createImpactSpark(attacker, target);
+    }
+
+    private getUnitMovementDistance(unit: BattleUnit, deltaTime: number): number {
+        return unit.definition.speed * this.getSprintMultiplier(unit.team) * deltaTime;
     }
 
     private resolvePendingCombatDamage(pendingDamage: ReadonlyMap<BattleUnit, number>): void {
@@ -1110,6 +2347,7 @@ export class GameController extends Component {
         for (const [target, damage] of pendingDamage) {
             if (target.health > 0 && target.node.isValid) {
                 target.health -= damage;
+                this.triggerUnitImpact(target, true);
             }
         }
 
@@ -1117,30 +2355,116 @@ export class GameController extends Component {
         for (const target of pendingDamage.keys()) {
             if (target.health <= 0 || !target.node.isValid) {
                 defeatedUnits.push(target);
-            } else {
-                this.drawUnit(target);
             }
         }
         for (const unit of defeatedUnits) {
-            this.removeUnit(unit);
+            this.startUnitDeath(unit);
         }
     }
 
-    private findOpponentInRange(unit: BattleUnit): BattleUnit | undefined {
-        let closestTarget: BattleUnit | undefined;
-        let shortestDistance = Number.POSITIVE_INFINITY;
-        for (const candidate of this.units) {
-            if (candidate.team === unit.team || candidate.lane !== unit.lane || candidate.health <= 0 || !candidate.node.isValid) {
+    private triggerUnitImpact(unit: BattleUnit, shouldFlash: boolean): void {
+        if (unit.isDying || !unit.node.isValid) {
+            return;
+        }
+        if (shouldFlash) {
+            unit.hitFlashRemaining = UNIT_HIT_FLASH_DURATION;
+            unit.hitRecoilRemaining = UNIT_IMPACT_DURATION;
+        } else {
+            unit.attackKickRemaining = UNIT_IMPACT_DURATION;
+        }
+    }
+
+    private startUnitDeath(unit: BattleUnit): void {
+        if (unit.isDying || !unit.node.isValid) {
+            return;
+        }
+        const activeIndex = this.units.indexOf(unit);
+        if (activeIndex >= 0) {
+            this.units.splice(activeIndex, 1);
+        }
+        unit.health = 0;
+        unit.isMoving = false;
+        unit.isDying = true;
+        unit.deathRemaining = UNIT_DEATH_DURATION;
+        unit.hitFlashRemaining = 0;
+        unit.attackKickRemaining = 0;
+        unit.hitRecoilRemaining = 0;
+        unit.hitFlashNode.active = false;
+        this.dyingUnits.push(unit);
+        this.resolveLaneFormation(unit.lane, 0);
+    }
+
+    private updateUnitVisuals(deltaTime: number): void {
+        for (const unit of [...this.units, ...this.dyingUnits]) {
+            if (!unit.node.isValid) {
+                this.removeUnit(unit);
                 continue;
             }
-            const distance = Math.abs(candidate.node.position.y - unit.node.position.y);
-            const collisionDistance = unit.definition.radius + candidate.definition.radius + 3;
-            if (distance <= collisionDistance && distance < shortestDistance) {
-                closestTarget = candidate;
-                shortestDistance = distance;
+
+            if (unit.isDying) {
+                unit.deathRemaining = Math.max(0, unit.deathRemaining - deltaTime);
+                this.updateUnitHealthBarDisplay(unit, deltaTime);
+                const progress = 1 - unit.deathRemaining / UNIT_DEATH_DURATION;
+                const deathScale = Math.max(0.28, 1 - progress * 0.72);
+                unit.visualNode.setPosition(0, 0, 0);
+                unit.visualNode.setScale(deathScale, deathScale, 1);
+                unit.healthNode.setScale(deathScale, deathScale, 1);
+                unit.opacity.opacity = Math.round(255 * (1 - progress));
+                if (unit.deathRemaining <= 0) {
+                    this.removeUnit(unit);
+                }
+                continue;
             }
+
+            const stepRate = unit.isMoving ? 6.5 : 2.2;
+            const bobAmplitude = unit.isMoving ? 1.7 : 0.45;
+            unit.walkPhase += deltaTime * stepRate;
+            unit.hitFlashRemaining = Math.max(0, unit.hitFlashRemaining - deltaTime);
+            unit.attackKickRemaining = Math.max(0, unit.attackKickRemaining - deltaTime);
+            unit.hitRecoilRemaining = Math.max(0, unit.hitRecoilRemaining - deltaTime);
+            const forward = unit.team === Team.Player ? 1 : -1;
+            const attackKick = Math.sin(Math.PI * unit.attackKickRemaining / UNIT_IMPACT_DURATION) * 1.7;
+            const hitRecoil = Math.sin(Math.PI * unit.hitRecoilRemaining / UNIT_IMPACT_DURATION) * 1.3;
+            const visualY = Math.sin(unit.walkPhase) * bobAmplitude + forward * (attackKick - hitRecoil);
+            const visualScale = 1 + hitRecoil * 0.022;
+            unit.visualNode.setPosition(0, visualY, 0);
+            unit.visualNode.setScale(visualScale, visualScale, 1);
+            unit.healthNode.setScale(1, 1, 1);
+            unit.hitFlashNode.setPosition(0, visualY, 0);
+            unit.hitFlashNode.setScale(visualScale, visualScale, 1);
+            unit.hitFlashNode.active = unit.hitFlashRemaining > 0;
+            unit.hitFlashOpacity.opacity = Math.round(220 * unit.hitFlashRemaining / UNIT_HIT_FLASH_DURATION);
+            unit.opacity.opacity = 255;
+            this.updateUnitHealthBarDisplay(unit, deltaTime);
         }
-        return closestTarget;
+    }
+
+    private createImpactSpark(attacker: BattleUnit, target: BattleUnit): void {
+        if (!attacker.node.isValid || !target.node.isValid) {
+            return;
+        }
+        const spark = this.createGraphicsNode('HitSpark', 34, 34, attacker.node.position.x,
+            (attacker.node.position.y + target.node.position.y) * 0.5, this.gameLayer);
+        const graphics = spark.getComponent(Graphics)!;
+        graphics.lineWidth = 3;
+        graphics.strokeColor = new Color(255, 226, 130, 255);
+        graphics.moveTo(-10, -3);
+        graphics.lineTo(10, 3);
+        graphics.moveTo(-4, -10);
+        graphics.lineTo(4, 10);
+        graphics.moveTo(-8, 8);
+        graphics.lineTo(8, -8);
+        graphics.stroke();
+        const opacity = spark.addComponent(UIOpacity);
+        this.feedbackEffects.push({
+            node: spark,
+            opacity,
+            startX: spark.position.x,
+            startY: spark.position.y,
+            yOffset: 0,
+            duration: 0.1,
+            elapsed: 0,
+        });
     }
 
     private damageBase(target: Team, attacker: BattleUnit): void {
@@ -1148,9 +2472,13 @@ export class GameController extends Component {
         let message: string;
         if (target === Team.Player) {
             this.playerBaseHealth = Math.max(0, this.playerBaseHealth - damage);
+            this.playerBaseFlashRemaining = BASE_HIT_FLASH_DURATION;
+            this.createFloatingFeedback(`-${damage}`, 0, PLAYER_BASE_Y + 64, new Color(151, 221, 255, 255), 0.7, 24, 120, 24);
             message = `AI 的${attacker.definition.name.replace('羊', '狼')}突破防线，基地受到 ${damage} 点伤害！`;
         } else {
             this.aiBaseHealth = Math.max(0, this.aiBaseHealth - damage);
+            this.aiBaseFlashRemaining = BASE_HIT_FLASH_DURATION;
+            this.createFloatingFeedback(`-${damage}`, 0, AI_BASE_Y - 48, new Color(255, 183, 168, 255), 0.7, -24, 120, 24);
             message = `${attacker.definition.name}突破防线，AI 基地受到 ${damage} 点伤害！`;
         }
 
@@ -1166,11 +2494,31 @@ export class GameController extends Component {
 
     private finishGame(playerWon: boolean): void {
         this.isFinished = true;
+        this.clearBattleUnits();
+        this.clearFeedbackEffects();
+        this.hideTacticNotice();
         this.isPaused = false;
         this.pauseButton.node.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
         this.refreshHud(playerWon ? 'AI 基地归零，玩家获胜！' : '玩家基地归零，挑战失败。');
+        const level = this.getCurrentLevelConfig();
+        const nextLevelId = level.id + 1;
+        let resultHint: string;
+        if (playerWon && nextLevelId <= LEVEL_CONFIGS.length) {
+            const newlyUnlocked = nextLevelId > this.highestUnlockedLevel;
+            if (newlyUnlocked) {
+                this.highestUnlockedLevel = nextLevelId;
+                this.saveLevelProgress();
+            }
+            resultHint = newlyUnlocked
+                ? `\u7B2C ${nextLevelId} \u5173\u5DF2\u89E3\u9501\uFF01\u53EF\u7EE7\u7EED\u6311\u6218\u3002`
+                : `\u7B2C ${nextLevelId} \u5173\u5DF2\u53EF\u6311\u6218\u3002`;
+        } else if (playerWon) {
+            resultHint = '\u5168\u90E8\u5173\u5361\u5B8C\u6210\uFF01\u53EF\u4ECE\u9009\u5173\u91CD\u65B0\u6311\u6218\u3002';
+        } else {
+            resultHint = '\u5931\u8D25\u539F\u56E0\uFF1A\u73A9\u5BB6\u57FA\u5730\u88AB\u6467\u6BC1\u3002\u53EF\u91CD\u65B0\u6311\u6218\u6216\u8FD4\u56DE\u9009\u5173\u3002';
+        }
         const resultText = this.resultPanel.getChildByName('ResultText')?.getComponent(Label);
         if (resultText) {
             resultText.string = playerWon ? '胜利！羊群守住了家园' : '失败！狼群攻破了基地';
@@ -1179,22 +2527,65 @@ export class GameController extends Component {
         if (resultReport) {
             resultReport.string = this.buildBattleReport();
         }
+        if (resultText) {
+            resultText.string = playerWon ? `\u7B2C ${level.id} \u5173\u901A\u5173\uFF01` : `\u7B2C ${level.id} \u5173\u5931\u8D25`;
+        }
+        const resultHintLabel = this.resultPanel.getChildByName('ResultHint')?.getComponent(Label);
+        if (resultHintLabel) {
+            resultHintLabel.string = resultHint;
+        }
+        const nextButton = this.resultPanel.getChildByName('NextLevelButton');
+        if (nextButton) {
+            nextButton.active = playerWon && nextLevelId <= LEVEL_CONFIGS.length;
+        }
         this.resultPanel.active = true;
     }
 
-    private restartGame(): void {
-        for (const unit of [...this.units]) {
-            this.removeUnit(unit);
+    private startNextLevel(): void {
+        if (this.currentLevel >= LEVEL_CONFIGS.length) {
+            return;
         }
+        this.currentLevel += 1;
+        this.restartGame();
+        this.activateBattle();
+    }
+
+    private leaveBattleToLevelSelect(): void {
+        this.restartGame();
+        this.isStarted = false;
+        this.isPaused = false;
+        this.pauseButton.node.active = false;
+        this.pausePanel.active = false;
+        this.helpPanel.active = false;
+        this.tutorialPanel.active = false;
+        this.resultPanel.active = false;
+        this.startPanel.active = false;
+        this.levelSelectPanel.active = true;
+        this.statusToast.active = false;
+        this.refreshLevelSelectPanel();
+    }
+
+    private applyLevelStartingResources(): void {
+        const level = this.getCurrentLevelConfig();
+        this.playerEnergy = level.playerStartEnergy;
+        this.aiEnergy = level.aiStartEnergy;
+        this.aiDecisionCooldown = level.aiInitialDecisionDelay;
+        this.snapEnergyBarsToCurrentValues();
+    }
+
+    private restartGame(): void {
+        this.clearBattleUnits();
         this.playerBaseHealth = BASE_MAX_HEALTH;
         this.aiBaseHealth = BASE_MAX_HEALTH;
-        this.playerEnergy = ENERGY_START;
-        this.aiEnergy = ENERGY_START;
+        this.playerBaseFlashRemaining = 0;
+        this.aiBaseFlashRemaining = 0;
+        this.clearFeedbackEffects();
+        this.hideTacticNotice();
+        this.applyLevelStartingResources();
         this.playerSupply = 0;
         this.aiSupply = 0;
         this.selectedSheepType = SheepType.Small;
         this.playerSpawnCooldown = 0;
-        this.aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
         this.playerShockUnlocked = false;
         this.aiShockUnlocked = false;
         this.playerShockUsed = false;
@@ -1213,10 +2604,12 @@ export class GameController extends Component {
             point.captureTime = 0;
             this.drawSupplyPoint(point);
         }
+        this.resetLaneSpawnMarkers();
         this.isFinished = false;
         this.isPaused = false;
-        this.isTacticPanelOpen = false;
-        this.tacticPanel.active = false;
+        this.lastBaseHudState = '';
+        this.lastUnitButtonState = '';
+        this.lastTacticHudState = '';
         this.resultPanel.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
@@ -1229,19 +2622,39 @@ export class GameController extends Component {
     }
 
     private removeUnit(unit: BattleUnit): void {
-        const index = this.units.indexOf(unit);
-        if (index >= 0) {
-            this.units.splice(index, 1);
+        const activeIndex = this.units.indexOf(unit);
+        if (activeIndex >= 0) {
+            this.units.splice(activeIndex, 1);
+        }
+        const dyingIndex = this.dyingUnits.indexOf(unit);
+        if (dyingIndex >= 0) {
+            this.dyingUnits.splice(dyingIndex, 1);
         }
         if (unit.node.isValid) {
             unit.node.destroy();
         }
+        this.resolveLaneFormation(unit.lane, 0);
+    }
+
+    private clearBattleUnits(): void {
+        for (const unit of [...this.units, ...this.dyingUnits]) {
+            if (unit.node.isValid) {
+                unit.node.destroy();
+            }
+        }
+        this.units.length = 0;
+        this.dyingUnits.length = 0;
+        this.laneDebugSignatures.clear();
+        this.pendingLaneShifts.clear();
+        this.resolveAllLaneFormations(0);
     }
 
     private refreshHud(status?: string): void {
         if (status !== undefined) {
             this.statusMessage = status;
-            this.showStatusToast(status);
+            if (!this.tacticNotice?.active) {
+                this.showStatusToast(status);
+            }
         }
         if (!this.playerBaseLabel || !this.aiBaseLabel || !this.playerBaseShadowLabel || !this.aiBaseShadowLabel
             || !this.statusLabel || !this.statusToast) {
@@ -1259,10 +2672,29 @@ export class GameController extends Component {
         this.playerBaseShadowLabel.string = this.playerBaseLabel.string;
         this.aiBaseLabel.string = `AI \u57FA\u5730  ${this.aiBaseHealth} / ${BASE_MAX_HEALTH}`;
         this.aiBaseShadowLabel.string = this.aiBaseLabel.string;
+        this.aiSupplyLabel.string = `\uD83D\uDCE6 AI \u8865\u7ED9 ${Math.floor(this.aiSupply)} / ${SUPPLY_MAX}`;
+        this.aiEnergyLabel.string = `\u26A1 AI \u80FD\u91CF ${Math.floor(this.aiEnergy)} / ${ENERGY_MAX}`;
         this.playerEnergyLabel.string = `\u26A1 \u80FD\u91CF ${Math.floor(this.playerEnergy)} / ${ENERGY_MAX}`;
+        this.aiEnergyBar.shadowLabel.string = this.aiEnergyLabel.string;
+        this.playerEnergyBar.shadowLabel.string = this.playerEnergyLabel.string;
         this.playerSupplyLabel.string = `\uD83D\uDCE6 \u8865\u7ED9 ${Math.floor(this.playerSupply)} / ${SUPPLY_MAX}`;
-        this.refreshUnitTypeButtons();
-        this.refreshTacticUi();
+        const unitButtonState = `${this.selectedSheepType}:${UNIT_ORDER.map((type) => this.playerEnergy >= UNIT_DEFINITIONS[type].cost ? '1' : '0').join('')}`;
+        if (unitButtonState !== this.lastUnitButtonState) {
+            this.lastUnitButtonState = unitButtonState;
+            this.refreshUnitTypeButtons();
+        }
+        const tacticHudState = [
+            this.playerShockUnlocked,
+            this.playerShockUsed,
+            Math.floor(this.playerSupply),
+            Math.ceil(this.playerSprintRemaining),
+            Math.ceil(this.playerSprintCooldown),
+            Math.ceil(this.playerHealCooldown),
+        ].join(':');
+        if (tacticHudState !== this.lastTacticHudState) {
+            this.lastTacticHudState = tacticHudState;
+            this.refreshTacticCards();
+        }
     }
 
     private showStatusToast(message: string): void {
@@ -1312,7 +2744,8 @@ export class GameController extends Component {
     }
 
     private tryUseAIShock(): void {
-        if (!this.aiShockUnlocked || this.aiShockUsed || this.isFinished || this.isPaused) {
+        const levelConfig = this.getCurrentLevelConfig();
+        if (!levelConfig.allowAITactics || !this.aiShockUnlocked || this.aiShockUsed || this.isFinished || this.isPaused) {
             return;
         }
 
@@ -1322,8 +2755,8 @@ export class GameController extends Component {
         }
 
         const threatPower = threats.reduce((total, unit) => total + unit.definition.battlePower * unit.health / unit.definition.maxHealth, 0);
-        const enemyNearBase = threats.some((unit) => unit.node.position.y >= AI_BASE_Y - 115);
-        if (threats.length >= 2 || threatPower >= 70 || enemyNearBase) {
+        const enemyNearBase = threats.some((unit) => unit.node.position.y >= this.getBaseEndpointY(unit) - 115);
+        if (threats.length >= levelConfig.aiShockMinTargets || threatPower >= levelConfig.aiShockPowerThreshold || enemyNearBase) {
             this.tryUseShock(Team.AI);
         }
     }
@@ -1366,25 +2799,30 @@ export class GameController extends Component {
 
         let defeatedCount = 0;
         let repelledCount = 0;
+        const shiftedLanes = new Set<number>();
         for (const target of targets) {
             const isLightUnit = target.definition.type === SheepType.Small || target.definition.type === SheepType.Medium;
             if (isLightUnit) {
-                this.removeUnit(target);
+                this.startUnitDeath(target);
                 defeatedCount += 1;
                 continue;
             }
 
             const damage = Math.ceil(target.definition.maxHealth * SHOCK_HEAVY_DAMAGE_RATIO);
             target.health = Math.max(1, target.health - damage);
-            const direction = owner === Team.Player ? 1 : -1;
-            const knockedBackY = target.node.position.y + direction * SHOCK_KNOCKBACK_DISTANCE;
-            const boundedY = Math.max(PLAYER_BASE_Y + 35, Math.min(AI_BASE_Y - 35, knockedBackY));
-            target.node.setPosition(target.node.position.x, boundedY);
-            this.drawUnit(target);
+            this.triggerUnitImpact(target, true);
+            shiftedLanes.add(target.lane);
             repelledCount += 1;
         }
 
+        const knockbackDirection = owner === Team.Player ? 1 : -1;
+        const targetTeam = owner === Team.Player ? Team.AI : Team.Player;
+        for (const lane of shiftedLanes) {
+            this.queueLaneShift(targetTeam, lane, knockbackDirection * SHOCK_KNOCKBACK_DISTANCE);
+        }
         this.createShockEffect(owner);
+        this.resolveAllLaneFormations(0);
+        this.showTacticNotice(owner, '\u9886\u5730\u9707\u8361');
         const ownerName = isPlayer ? '玩家' : 'AI';
         this.refreshHud(`${ownerName}释放领地震荡：消灭 ${defeatedCount} 名轻型敌军，击退 ${repelledCount} 名重型敌军。`);
     }
@@ -1461,6 +2899,8 @@ export class GameController extends Component {
             this.aiSprintCooldown = SPRINT_COOLDOWN_SECONDS;
         }
         this.getBattleStats(team).sprintUses += 1;
+        this.resolveAllLaneFormations(0);
+        this.showTacticNotice(team, tacticName);
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A\u5168\u90E8\u5B58\u6D3B\u5355\u4F4D\u79FB\u52A8\u901F\u5EA6 +50%\uFF0C\u6301\u7EED ${SPRINT_DURATION_SECONDS} \u79D2\u3002`);
     }
 
@@ -1498,7 +2938,6 @@ export class GameController extends Component {
         for (const unit of damagedUnits) {
             const healAmount = Math.ceil(unit.definition.maxHealth * HEAL_AMOUNT_RATIO);
             unit.health = Math.min(unit.definition.maxHealth, unit.health + healAmount);
-            this.drawUnit(unit);
         }
         if (isPlayer) {
             this.playerSupply -= HEAL_SUPPLY_COST;
@@ -1508,6 +2947,8 @@ export class GameController extends Component {
             this.aiHealCooldown = HEAL_COOLDOWN_SECONDS;
         }
         this.getBattleStats(team).healUses += 1;
+        this.resolveAllLaneFormations(0);
+        this.showTacticNotice(team, tacticName);
         this.refreshHud(`${isPlayer ? '\u73A9\u5BB6' : 'AI'} \u4F7F\u7528${tacticName}\uFF1A${damagedUnits.length} \u4E2A\u5B58\u6D3B\u5355\u4F4D\u6062\u590D\u4E86 40% \u6700\u5927\u751F\u547D\u3002`);
     }
 
@@ -1516,9 +2957,13 @@ export class GameController extends Component {
             return;
         }
 
+        const levelConfig = this.getCurrentLevelConfig();
+        if (!levelConfig.allowAITactics) {
+            return;
+        }
         const aiUnits = this.units.filter((unit) => unit.team === Team.AI && unit.health > 0 && unit.node.isValid);
-        const injuredUnits = aiUnits.filter((unit) => unit.health / unit.definition.maxHealth <= 0.68);
-        if (injuredUnits.length >= 2 && this.aiSupply >= HEAL_SUPPLY_COST && this.aiHealCooldown <= 0) {
+        const injuredUnits = aiUnits.filter((unit) => unit.health / unit.definition.maxHealth <= levelConfig.aiHealHealthRatio);
+        if (injuredUnits.length >= levelConfig.aiHealInjuredUnitCount && this.aiSupply >= HEAL_SUPPLY_COST && this.aiHealCooldown <= 0) {
             this.tryUseHeal(Team.AI);
             return;
         }
@@ -1529,8 +2974,8 @@ export class GameController extends Component {
         }
         const aiPower = this.getTeamBattlePower(Team.AI);
         const playerPower = this.getTeamBattlePower(Team.Player);
-        const hasAdvancedUnit = aiUnits.some((unit) => unit.node.position.y < 140);
-        if (hasAdvancedUnit && aiPower >= Math.max(36, playerPower * 1.25)) {
+        const hasAdvancedUnit = aiUnits.some((unit) => unit.node.position.y < levelConfig.aiSprintAdvanceY);
+        if (hasAdvancedUnit && aiPower >= Math.max(36, playerPower * levelConfig.aiSprintPowerRatio)) {
             this.tryUseSprint(Team.AI);
         }
     }
@@ -1540,6 +2985,10 @@ export class GameController extends Component {
             .reduce((total, unit) => total + unit.definition.battlePower * unit.health / unit.definition.maxHealth, 0);
     }
 
+    /*
+     * Removed in v0.9: the previous bottom toggle and popup tactic controls.
+     * The fixed sidebar above owns tactic state rendering now.
+     *
     private refreshSprintButton(): void {
         const tacticName = '\u5168\u7EBF\u51B2\u523A';
         let text: string;
@@ -1643,57 +3092,201 @@ export class GameController extends Component {
         this.aiTacticLabel.string = this.getAITacticStatusText();
     }
 
-    private drawUnit(unit: BattleUnit): void {
-        const graphics = unit.graphics;
+    */
+
+    private drawUnitVisual(unit: BattleUnit): void {
+        const graphics = unit.visualGraphics;
         const { definition } = unit;
         const radius = definition.radius;
-        graphics.clear();
-
+        const isPlayer = unit.team === Team.Player;
         const [red, green, blue] = definition.color;
-        const bodyColor = unit.team === Team.Player
-            ? new Color(red, green, blue, 255)
-            : new Color(Math.max(80, red - 74), Math.max(35, green - 125), Math.max(35, blue - 126), 255);
-        const outlineColor = unit.team === Team.Player ? new Color(73, 157, 228, 255) : new Color(130, 42, 42, 255);
+        const sheepColor = new Color(red, green, blue, 255);
+        const wolfColor = new Color(Math.max(110, red - 35), Math.max(48, green - 130), Math.max(42, blue - 125), 255);
+        const outlineColor = isPlayer ? new Color(55, 132, 204, 255) : new Color(115, 38, 42, 255);
+        const rankColor = isPlayer ? new Color(69, 151, 222, 255) : new Color(255, 194, 93, 255);
+        graphics.clear();
+        if (isPlayer) {
+            this.drawSheepUnit(graphics, radius, 0, sheepColor, outlineColor);
+        } else {
+            this.drawWolfUnit(graphics, radius, 0, wolfColor, outlineColor);
+        }
+        this.drawUnitRankMark(graphics, definition.type, radius, 0, rankColor, isPlayer);
+    }
 
+    private drawHitFlash(unit: BattleUnit): void {
+        const graphics = unit.hitFlashNode.getComponent(Graphics)!;
+        const radius = unit.definition.radius;
+        graphics.clear();
+        graphics.fillColor = new Color(255, 255, 238, 235);
+        if (unit.team === Team.Player) {
+            graphics.circle(-radius * 0.38, 0, radius * 0.47);
+            graphics.circle(radius * 0.38, 0, radius * 0.47);
+            graphics.circle(0, radius * 0.2, radius * 0.53);
+            graphics.fill();
+            return;
+        }
+        graphics.moveTo(-radius * 0.7, -radius * 0.5);
+        graphics.lineTo(-radius * 0.46, radius * 0.7);
+        graphics.lineTo(0, radius * 0.35);
+        graphics.lineTo(radius * 0.46, radius * 0.7);
+        graphics.lineTo(radius * 0.7, -radius * 0.5);
+        graphics.lineTo(0, -radius * 0.72);
+        graphics.close();
+        graphics.fill();
+    }
+
+    private createUnitHealthBar(unit: BattleUnit): void {
+        const graphics = unit.healthGraphics;
+        const radius = unit.definition.radius;
+        const barHeight = 10;
+        const barY = radius + 9;
+        const barWidth = radius * 2 + 2;
+        graphics.clear();
+        graphics.fillColor = new Color(18, 25, 34, 255);
+        graphics.roundRect(-barWidth / 2, barY, barWidth, barHeight, 4);
+        graphics.fill();
+        graphics.lineWidth = 2;
+        graphics.strokeColor = new Color(142, 158, 174, 255);
+        graphics.roundRect(-barWidth / 2, barY, barWidth, barHeight, 4);
+        graphics.stroke();
+        unit.healthFillNode.setPosition(-barWidth / 2 + 1, barY + 1, 0);
+        this.drawUnitHealthFill(unit);
+        this.updateUnitHealthBarDisplay(unit, 0);
+    }
+
+    private drawUnitHealthFill(unit: BattleUnit): void {
+        const graphics = unit.healthFillGraphics;
+        const barWidth = unit.definition.radius * 2;
+        const barHeight = 8;
+        graphics.clear();
+        graphics.fillColor = unit.team === Team.Player
+            ? new Color(66, 213, 122, 255)
+            : new Color(239, 83, 80, 255);
+        graphics.roundRect(0, 0, barWidth, barHeight, 3);
+        graphics.fill();
+    }
+
+    private updateUnitHealthBarDisplay(unit: BattleUnit, deltaTime: number): void {
+        const targetHealth = unit.isDying ? 0 : Math.max(0, unit.health);
+        if (deltaTime <= 0 || Math.abs(unit.displayHealth - targetHealth) <= 0.01) {
+            unit.displayHealth = targetHealth;
+        } else {
+            const duration = unit.isDying ? UNIT_HEALTH_DEATH_DISPLAY_SECONDS
+                : targetHealth < unit.displayHealth ? UNIT_HEALTH_DAMAGE_DISPLAY_SECONDS : UNIT_HEALTH_HEAL_DISPLAY_SECONDS;
+            const factor = 1 - Math.exp(-4.6 * deltaTime / duration);
+            unit.displayHealth += (targetHealth - unit.displayHealth) * factor;
+        }
+        const displayRatio = Math.max(0, Math.min(1, unit.displayHealth / unit.definition.maxHealth));
+        unit.healthFillNode.setScale(displayRatio, 1, 1);
+    }
+
+    private drawSheepUnit(graphics: Graphics, radius: number, drawY: number, bodyColor: Color, outlineColor: Color): void {
         graphics.fillColor = bodyColor;
-        graphics.circle(0, 0, radius);
+        graphics.circle(-radius * 0.38, drawY, radius * 0.47);
+        graphics.circle(radius * 0.38, drawY, radius * 0.47);
+        graphics.circle(0, drawY + radius * 0.2, radius * 0.53);
         graphics.fill();
         graphics.lineWidth = 3;
         graphics.strokeColor = outlineColor;
-        graphics.circle(0, 0, radius);
+        graphics.circle(0, drawY + radius * 0.08, radius * 0.73);
         graphics.stroke();
 
-        if (unit.team === Team.Player) {
-            graphics.fillColor = new Color(45, 66, 92, 255);
-            graphics.circle(-radius * 0.3, 3, 3);
-            graphics.circle(radius * 0.3, 3, 3);
+        graphics.fillColor = new Color(55, 72, 94, 255);
+        graphics.circle(0, drawY - radius * 0.18, radius * 0.39);
+        graphics.fill();
+        graphics.fillColor = new Color(244, 250, 255, 255);
+        graphics.circle(-radius * 0.15, drawY - radius * 0.12, Math.max(2, radius * 0.09));
+        graphics.circle(radius * 0.15, drawY - radius * 0.12, Math.max(2, radius * 0.09));
+        graphics.fill();
+
+        graphics.fillColor = new Color(188, 211, 228, 255);
+        graphics.moveTo(-radius * 0.46, drawY + radius * 0.23);
+        graphics.lineTo(-radius * 0.72, drawY + radius * 0.56);
+        graphics.lineTo(-radius * 0.28, drawY + radius * 0.43);
+        graphics.close();
+        graphics.moveTo(radius * 0.46, drawY + radius * 0.23);
+        graphics.lineTo(radius * 0.72, drawY + radius * 0.56);
+        graphics.lineTo(radius * 0.28, drawY + radius * 0.43);
+        graphics.close();
+        graphics.fill();
+    }
+
+    private drawWolfUnit(graphics: Graphics, radius: number, drawY: number, bodyColor: Color, outlineColor: Color): void {
+        graphics.fillColor = bodyColor;
+        graphics.moveTo(-radius * 0.7, drawY - radius * 0.5);
+        graphics.lineTo(-radius * 0.46, drawY + radius * 0.7);
+        graphics.lineTo(0, drawY + radius * 0.35);
+        graphics.lineTo(radius * 0.46, drawY + radius * 0.7);
+        graphics.lineTo(radius * 0.7, drawY - radius * 0.5);
+        graphics.lineTo(0, drawY - radius * 0.72);
+        graphics.close();
+        graphics.fill();
+        graphics.lineWidth = 3;
+        graphics.strokeColor = outlineColor;
+        graphics.moveTo(-radius * 0.7, drawY - radius * 0.5);
+        graphics.lineTo(-radius * 0.46, drawY + radius * 0.7);
+        graphics.lineTo(0, drawY + radius * 0.35);
+        graphics.lineTo(radius * 0.46, drawY + radius * 0.7);
+        graphics.lineTo(radius * 0.7, drawY - radius * 0.5);
+        graphics.lineTo(0, drawY - radius * 0.72);
+        graphics.close();
+        graphics.stroke();
+
+        graphics.fillColor = new Color(238, 222, 201, 255);
+        graphics.moveTo(-radius * 0.46, drawY - radius * 0.15);
+        graphics.lineTo(0, drawY - radius * 0.52);
+        graphics.lineTo(radius * 0.46, drawY - radius * 0.15);
+        graphics.lineTo(0, drawY + radius * 0.1);
+        graphics.close();
+        graphics.fill();
+        graphics.fillColor = new Color(255, 206, 82, 255);
+        graphics.circle(-radius * 0.23, drawY + radius * 0.02, Math.max(2, radius * 0.1));
+        graphics.circle(radius * 0.23, drawY + radius * 0.02, Math.max(2, radius * 0.1));
+        graphics.fill();
+        graphics.fillColor = new Color(49, 27, 30, 255);
+        graphics.circle(-radius * 0.23, drawY + radius * 0.02, Math.max(1, radius * 0.045));
+        graphics.circle(radius * 0.23, drawY + radius * 0.02, Math.max(1, radius * 0.045));
+        graphics.fill();
+    }
+
+    private drawUnitRankMark(graphics: Graphics, type: SheepType, radius: number, drawY: number, color: Color, isPlayer: boolean): void {
+        graphics.lineWidth = Math.max(2, radius * 0.09);
+        graphics.strokeColor = color;
+        graphics.fillColor = color;
+        if (type === SheepType.Small) {
+            graphics.circle(0, drawY - radius * 0.48, Math.max(2, radius * 0.11));
             graphics.fill();
-            graphics.moveTo(-radius * 0.3, -radius * 0.28);
-            graphics.lineTo(radius * 0.3, -radius * 0.28);
+            return;
+        }
+        if (type === SheepType.Medium) {
+            graphics.moveTo(-radius * 0.22, drawY - radius * 0.47);
+            graphics.lineTo(radius * 0.22, drawY - radius * 0.47);
             graphics.stroke();
-        } else {
-            graphics.fillColor = new Color(255, 240, 221, 255);
-            graphics.moveTo(-radius * 0.5, radius * 0.12);
-            graphics.lineTo(-radius * 0.28, radius * 0.72);
-            graphics.lineTo(-radius * 0.04, radius * 0.12);
-            graphics.lineTo(radius * 0.04, radius * 0.12);
-            graphics.lineTo(radius * 0.28, radius * 0.72);
-            graphics.lineTo(radius * 0.5, radius * 0.12);
-            graphics.close();
+            return;
+        }
+        if (type === SheepType.Large) {
+            graphics.roundRect(-radius * 0.19, drawY - radius * 0.57, radius * 0.38, radius * 0.16, 3);
             graphics.fill();
-            graphics.fillColor = new Color(51, 31, 31, 255);
-            graphics.circle(-radius * 0.28, 1, 3);
-            graphics.circle(radius * 0.28, 1, 3);
-            graphics.fill();
+            return;
         }
 
-        const healthRatio = Math.max(0, unit.health) / definition.maxHealth;
-        graphics.fillColor = new Color(41, 49, 60, 255);
-        graphics.roundRect(-radius, radius + 7, radius * 2, 7, 3);
+        const crownY = drawY - radius * 0.48;
+        graphics.moveTo(-radius * 0.3, crownY);
+        graphics.lineTo(-radius * 0.18, crownY - radius * 0.22);
+        graphics.lineTo(0, crownY - radius * 0.04);
+        graphics.lineTo(radius * 0.18, crownY - radius * 0.22);
+        graphics.lineTo(radius * 0.3, crownY);
+        graphics.close();
         graphics.fill();
-        graphics.fillColor = healthRatio > 0.4 ? new Color(98, 214, 111, 255) : new Color(240, 178, 72, 255);
-        graphics.roundRect(-radius, radius + 7, radius * 2 * healthRatio, 7, 3);
-        graphics.fill();
+        if (!isPlayer) {
+            graphics.lineWidth = Math.max(2, radius * 0.07);
+            graphics.strokeColor = new Color(112, 38, 42, 255);
+            graphics.moveTo(-radius * 0.44, drawY + radius * 0.34);
+            graphics.lineTo(-radius * 0.18, drawY + radius * 0.12);
+            graphics.moveTo(radius * 0.44, drawY + radius * 0.34);
+            graphics.lineTo(radius * 0.18, drawY + radius * 0.12);
+            graphics.stroke();
+        }
     }
 
     private createGraphicsNode(name: string, width: number, height: number, x: number, y: number, parent: Node): Node {
