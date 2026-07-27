@@ -5,6 +5,7 @@ import {
     Canvas,
     Color,
     Component,
+    EventTouch,
     Graphics,
     HorizontalTextAlignment,
     Label,
@@ -210,6 +211,21 @@ interface ButtonView {
     readonly label: Label;
     readonly width: number;
     readonly height: number;
+}
+
+type AudioChannel = 'music' | 'sfx';
+
+interface VolumeControlView {
+    readonly channel: AudioChannel;
+    readonly root: Node;
+    readonly accent: Color;
+    readonly trackNode: Node;
+    readonly fillNode: Node;
+    readonly knobNode: Node;
+    readonly percentLabel: Label;
+    readonly muteButton: ButtonView;
+    readonly trackWidth: number;
+    dragging: boolean;
 }
 
 interface EnergyBarView {
@@ -508,8 +524,25 @@ export class GameController extends Component {
     private playerHealCard!: TacticCardView;
     private playerShockCard!: TacticCardView;
     private pauseButton!: ButtonView;
-    private musicToggleButton!: ButtonView;
-    private sfxToggleButton!: ButtonView;
+    private musicVolumeControl!: VolumeControlView;
+    private sfxVolumeControl!: VolumeControlView;
+    private resultBackdropOpacity!: UIOpacity;
+    private resultCard!: Node;
+    private resultCardGraphics!: Graphics;
+    private resultCardOpacity!: UIOpacity;
+    private resultBadge!: Node;
+    private resultBadgeOpacity!: UIOpacity;
+    private resultTitleGroup!: Node;
+    private resultTitleOpacity!: UIOpacity;
+    private resultDetailsGroup!: Node;
+    private resultDetailsOpacity!: UIOpacity;
+    private resultButtonsGroup!: Node;
+    private resultButtonsOpacity!: UIOpacity;
+    private resultTitleLabel!: Label;
+    private resultReportLabel!: Label;
+    private resultHintLabel!: Label;
+    private resultNextButton!: Node;
+    private resultAudioPlayed = false;
     private startSelectedLevelLabel!: Label;
     private levelSelectHintLabel!: Label;
     private readonly levelButtons = new Map<number, ButtonView>();
@@ -1467,33 +1500,303 @@ export class GameController extends Component {
         this.resultPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
         this.resultPanel.addComponent(BlockInputEvents);
 
-        const background = this.resultPanel.addComponent(Graphics);
-        background.fillColor = new Color(8, 14, 24, 218);
-        background.rect(-DESIGN_WIDTH / 2, -DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT);
-        background.fill();
-        background.fillColor = new Color(15, 22, 34, 238);
-        background.roundRect(-360, -180, 720, 360, 28);
-        background.fill();
-        background.lineWidth = 4;
-        background.strokeColor = new Color(238, 215, 133, 255);
-        background.roundRect(-360, -180, 720, 360, 28);
-        background.stroke();
+        const backdrop = this.createGraphicsNode(
+            'ResultBackdrop',
+            DESIGN_WIDTH,
+            DESIGN_HEIGHT,
+            0,
+            0,
+            this.resultPanel,
+        );
+        const backdropGraphics = backdrop.getComponent(Graphics)!;
+        backdropGraphics.fillColor = new Color(4, 8, 16, 232);
+        backdropGraphics.rect(-DESIGN_WIDTH / 2, -DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT);
+        backdropGraphics.fill();
+        this.resultBackdropOpacity = backdrop.addComponent(UIOpacity);
 
-        this.createLabel(this.resultPanel, 'ResultText', '', 0, 42, 460, 58, 36, new Color(255, 244, 207, 255));
-        this.resultPanel.getChildByName('ResultText')?.setPosition(new Vec3(0, 128, 0));
-        this.createLabel(this.resultPanel, 'ResultReport', '', 0, 30, 660, 110, 16, new Color(226, 233, 240, 255));
-        this.createLabel(this.resultPanel, 'ResultHint', '重新开始会恢复双方基地与指挥能量。', 0, -10, 460, 34, 18, new Color(226, 233, 240, 255));
-        this.createButton(this.resultPanel, 'RestartButton', '重新开始', 0, -72, 180, 48, 18, () => this.restartGame());
-        this.resultPanel.getChildByName('ResultHint')?.setPosition(new Vec3(0, -96, 0));
-        this.resultPanel.getChildByName('RestartButton')?.setPosition(new Vec3(0, -144, 0));
-        this.resultPanel.getChildByName('RestartButton')?.destroy();
-        this.resultPanel.getChildByName('ResultText')?.setPosition(new Vec3(0, 126, 0));
-        this.resultPanel.getChildByName('ResultReport')?.setPosition(new Vec3(0, 28, 0));
-        this.resultPanel.getChildByName('ResultHint')?.setPosition(new Vec3(0, -76, 0));
-        this.createButton(this.resultPanel, 'RetryButton', '\u91CD\u65B0\u6311\u6218', -190, -140, 170, 46, 18, () => this.restartGame());
-        this.createButton(this.resultPanel, 'NextLevelButton', '\u4E0B\u4E00\u5173', 0, -140, 170, 46, 18, () => this.startNextLevel());
-        this.createButton(this.resultPanel, 'ResultLevelSelectButton', '\u8FD4\u56DE\u9009\u5173', 190, -140, 170, 46, 18, () => this.leaveBattleToLevelSelect());
+        this.resultCard = this.createGraphicsNode('ResultCard', 760, 470, 0, 0, this.resultPanel);
+        this.resultCardGraphics = this.resultCard.getComponent(Graphics)!;
+        this.resultCardOpacity = this.resultCard.addComponent(UIOpacity);
+
+        this.resultBadge = this.createGraphicsNode('ResultBadge', 118, 118, 0, 162, this.resultCard);
+        this.resultBadgeOpacity = this.resultBadge.addComponent(UIOpacity);
+
+        this.resultTitleGroup = new Node('ResultTitleGroup');
+        this.resultTitleGroup.setParent(this.resultCard);
+        this.resultTitleGroup.addComponent(UITransform).setContentSize(680, 56);
+        this.resultTitleOpacity = this.resultTitleGroup.addComponent(UIOpacity);
+        this.resultTitleLabel = this.createLabel(
+            this.resultTitleGroup,
+            'ResultText',
+            '',
+            0,
+            88,
+            620,
+            58,
+            36,
+            new Color(255, 244, 207, 255),
+        );
+
+        this.resultDetailsGroup = new Node('ResultDetailsGroup');
+        this.resultDetailsGroup.setParent(this.resultCard);
+        this.resultDetailsGroup.addComponent(UITransform).setContentSize(700, 210);
+        this.resultDetailsOpacity = this.resultDetailsGroup.addComponent(UIOpacity);
+        this.resultReportLabel = this.createLabel(
+            this.resultDetailsGroup,
+            'ResultReport',
+            '',
+            0,
+            4,
+            680,
+            116,
+            16,
+            new Color(226, 233, 240, 255),
+        );
+        this.resultHintLabel = this.createLabel(
+            this.resultDetailsGroup,
+            'ResultHint',
+            '',
+            0,
+            -79,
+            680,
+            48,
+            17,
+            new Color(202, 220, 235, 255),
+        );
+
+        this.resultButtonsGroup = new Node('ResultButtonsGroup');
+        this.resultButtonsGroup.setParent(this.resultCard);
+        this.resultButtonsGroup.setPosition(0, -170, 0);
+        this.resultButtonsGroup.addComponent(UITransform).setContentSize(650, 54);
+        this.resultButtonsOpacity = this.resultButtonsGroup.addComponent(UIOpacity);
+        this.createButton(
+            this.resultButtonsGroup,
+            'RetryButton',
+            '\u91CD\u65B0\u6311\u6218',
+            -190,
+            0,
+            170,
+            48,
+            18,
+            () => this.restartGame(),
+        );
+        const nextButton = this.createButton(
+            this.resultButtonsGroup,
+            'NextLevelButton',
+            '\u4E0B\u4E00\u5173',
+            0,
+            0,
+            170,
+            48,
+            18,
+            () => this.startNextLevel(),
+        );
+        this.resultNextButton = nextButton.node;
+        this.createButton(
+            this.resultButtonsGroup,
+            'ResultLevelSelectButton',
+            '\u8FD4\u56DE\u9009\u5173',
+            190,
+            0,
+            170,
+            48,
+            18,
+            () => this.leaveBattleToLevelSelect(),
+        );
+        this.drawResultCard(true);
+        this.drawResultBadge(true);
+        this.resetResultPresentation(false);
         this.resultPanel.active = false;
+    }
+
+    private drawResultCard(playerWon: boolean): void {
+        const graphics = this.resultCardGraphics;
+        graphics.clear();
+        graphics.fillColor = new Color(15, 23, 36, 250);
+        graphics.roundRect(-380, -235, 760, 470, 30);
+        graphics.fill();
+        graphics.fillColor = playerWon
+            ? new Color(83, 67, 27, 72) : new Color(91, 39, 52, 74);
+        graphics.roundRect(-374, 138, 748, 90, 24);
+        graphics.fill();
+        graphics.lineWidth = 4;
+        graphics.strokeColor = playerWon
+            ? new Color(242, 207, 101, 255) : new Color(174, 91, 111, 255);
+        graphics.roundRect(-380, -235, 760, 470, 30);
+        graphics.stroke();
+    }
+
+    private drawResultBadge(playerWon: boolean): void {
+        const graphics = this.resultBadge.getComponent(Graphics)!;
+        graphics.clear();
+        if (playerWon) {
+            graphics.fillColor = new Color(48, 42, 30, 255);
+            graphics.circle(0, 0, 55);
+            graphics.fill();
+            graphics.lineWidth = 5;
+            graphics.strokeColor = new Color(255, 213, 92, 255);
+            graphics.circle(0, 0, 52);
+            graphics.stroke();
+
+            graphics.fillColor = new Color(229, 177, 54, 255);
+            graphics.moveTo(-31, 28);
+            graphics.lineTo(31, 28);
+            graphics.lineTo(26, -10);
+            graphics.quadraticCurveTo(19, -35, 0, -42);
+            graphics.quadraticCurveTo(-19, -35, -26, -10);
+            graphics.close();
+            graphics.fill();
+            graphics.lineWidth = 4;
+            graphics.strokeColor = new Color(255, 237, 158, 255);
+            graphics.moveTo(-17, -3);
+            graphics.lineTo(-4, -16);
+            graphics.lineTo(21, 12);
+            graphics.stroke();
+            graphics.lineWidth = 4;
+            graphics.strokeColor = new Color(95, 193, 255, 255);
+            graphics.moveTo(-37, -28);
+            graphics.quadraticCurveTo(-50, -4, -42, 24);
+            graphics.moveTo(37, -28);
+            graphics.quadraticCurveTo(50, -4, 42, 24);
+            graphics.stroke();
+        } else {
+            graphics.fillColor = new Color(43, 31, 43, 255);
+            graphics.circle(0, 0, 55);
+            graphics.fill();
+            graphics.lineWidth = 5;
+            graphics.strokeColor = new Color(153, 78, 101, 255);
+            graphics.circle(0, 0, 52);
+            graphics.stroke();
+
+            graphics.fillColor = new Color(128, 65, 80, 255);
+            graphics.moveTo(-31, 28);
+            graphics.lineTo(31, 28);
+            graphics.lineTo(25, -12);
+            graphics.quadraticCurveTo(17, -34, 0, -42);
+            graphics.quadraticCurveTo(-18, -34, -26, -11);
+            graphics.close();
+            graphics.fill();
+            graphics.lineWidth = 5;
+            graphics.strokeColor = new Color(222, 147, 158, 255);
+            graphics.moveTo(4, 28);
+            graphics.lineTo(-8, 8);
+            graphics.lineTo(7, -2);
+            graphics.lineTo(-7, -22);
+            graphics.lineTo(0, -41);
+            graphics.stroke();
+            graphics.lineWidth = 4;
+            graphics.strokeColor = new Color(116, 99, 148, 255);
+            graphics.moveTo(-37, -28);
+            graphics.lineTo(-47, -42);
+            graphics.moveTo(37, -28);
+            graphics.lineTo(47, -42);
+            graphics.stroke();
+        }
+    }
+
+    private playResultTransition(playerWon: boolean): void {
+        this.resetResultPresentation(false);
+        this.showModal(this.resultPanel);
+        this.resultBackdropOpacity.opacity = 0;
+        this.resultCardOpacity.opacity = 0;
+        this.resultBadgeOpacity.opacity = 0;
+        this.resultBadge.setScale(0.75, 0.75, 1);
+        this.resultTitleOpacity.opacity = 0;
+        this.resultDetailsOpacity.opacity = 0;
+        this.resultButtonsOpacity.opacity = 0;
+        this.resultButtonsGroup.active = false;
+
+        tween(this.resultBackdropOpacity)
+            .to(0.26, { opacity: 255 }, { easing: 'quadOut' })
+            .start();
+        tween(this.resultCardOpacity)
+            .to(0.28, { opacity: 255 }, { easing: 'quadOut' })
+            .start();
+        tween(this.resultBadgeOpacity)
+            .delay(0.16)
+            .to(0.34, { opacity: 255 }, { easing: 'quadOut' })
+            .start();
+        tween(this.resultBadge)
+            .delay(0.16)
+            .to(0.34, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
+            .start();
+        tween(this.resultTitleOpacity)
+            .delay(0.4)
+            .to(0.2, { opacity: 255 }, { easing: 'quadOut' })
+            .start();
+        tween(this.resultDetailsOpacity)
+            .delay(0.5)
+            .to(0.23, { opacity: 255 }, { easing: 'quadOut' })
+            .start();
+        tween(this.resultPanel)
+            .delay(0.16)
+            .call(() => {
+                if (!this.resultAudioPlayed && this.isFinished) {
+                    this.resultAudioPlayed = true;
+                    this.audioManager.playSfx(playerWon ? 'victory' : 'defeat');
+                }
+            })
+            .delay(0.52)
+            .call(() => {
+                if (!this.isFinished) {
+                    return;
+                }
+                this.resultButtonsGroup.active = true;
+                this.resultButtonsOpacity.opacity = 0;
+                tween(this.resultButtonsOpacity)
+                    .to(0.22, { opacity: 255 }, { easing: 'quadOut' })
+                    .start();
+            })
+            .start();
+    }
+
+    private resetResultPresentation(hidePanel = true): void {
+        if (!this.resultPanel) {
+            return;
+        }
+        const tweenTargets: object[] = [
+            this.resultPanel,
+            this.resultBackdropOpacity,
+            this.resultCardOpacity,
+            this.resultBadge,
+            this.resultBadgeOpacity,
+            this.resultTitleOpacity,
+            this.resultDetailsOpacity,
+            this.resultButtonsOpacity,
+        ];
+        for (const target of tweenTargets) {
+            if (target) {
+                Tween.stopAllByTarget(target);
+            }
+        }
+        this.resultAudioPlayed = false;
+        if (this.resultBackdropOpacity) {
+            this.resultBackdropOpacity.opacity = 0;
+        }
+        if (this.resultCardOpacity) {
+            this.resultCardOpacity.opacity = 0;
+        }
+        if (this.resultBadgeOpacity) {
+            this.resultBadgeOpacity.opacity = 0;
+        }
+        if (this.resultBadge) {
+            this.resultBadge.setScale(0.75, 0.75, 1);
+        }
+        if (this.resultTitleOpacity) {
+            this.resultTitleOpacity.opacity = 0;
+        }
+        if (this.resultDetailsOpacity) {
+            this.resultDetailsOpacity.opacity = 0;
+        }
+        if (this.resultButtonsOpacity) {
+            this.resultButtonsOpacity.opacity = 0;
+        }
+        if (this.resultButtonsGroup) {
+            this.resultButtonsGroup.active = false;
+        }
+        if (hidePanel) {
+            this.resultPanel.active = false;
+        }
     }
 
     private createStartPanel(): void {
@@ -1645,36 +1948,30 @@ export class GameController extends Component {
         this.pausePanel = new Node('PausePanel');
         this.pausePanel.setParent(this.modalLayer);
         this.pausePanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
-        this.drawModalBackground(this.pausePanel, 500, 430);
-        this.createLabel(this.pausePanel, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 148, 420, 50, 32, new Color(255, 244, 207, 255));
-        this.createLabel(this.pausePanel, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 106, 420, 28, 16, new Color(204, 225, 241, 255));
-        this.createButton(this.pausePanel, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', 0, 50, 250, 48, 19, () => this.resumeGame());
-        this.createButton(this.pausePanel, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', 0, -12, 250, 48, 19, () => this.restartGame());
-        this.createButton(this.pausePanel, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', 0, -74, 250, 48, 19, () => this.openHelpPanel());
-        this.createButton(this.pausePanel, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', 0, -136, 250, 48, 19, () => this.returnToTitle());
-        this.musicToggleButton = this.createButton(
+        this.drawModalBackground(this.pausePanel, 650, 650);
+        this.createLabel(this.pausePanel, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 260, 560, 50, 32, new Color(255, 244, 207, 255));
+        this.createLabel(this.pausePanel, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 220, 560, 28, 16, new Color(204, 225, 241, 255));
+        this.createButton(this.pausePanel, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', 0, 162, 260, 46, 19, () => this.resumeGame());
+        this.createButton(this.pausePanel, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', 0, 108, 260, 46, 19, () => this.restartGame());
+        this.createButton(this.pausePanel, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', 0, 54, 260, 46, 19, () => this.openHelpPanel());
+        this.createButton(this.pausePanel, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', 0, 0, 260, 46, 19, () => this.returnToTitle());
+        this.musicVolumeControl = this.createVolumeControl(
             this.pausePanel,
-            'MusicToggleButton',
-            '',
-            -105,
-            -190,
-            190,
-            36,
-            15,
-            () => this.toggleMusicEnabled(),
+            'MusicVolume',
+            'music',
+            '\u97F3\u4E50',
+            -96,
+            new Color(132, 136, 245, 255),
         );
-        this.sfxToggleButton = this.createButton(
+        this.sfxVolumeControl = this.createVolumeControl(
             this.pausePanel,
-            'SfxToggleButton',
-            '',
-            105,
-            -190,
-            190,
-            36,
-            15,
-            () => this.toggleSfxEnabled(),
+            'SfxVolume',
+            'sfx',
+            '\u97F3\u6548',
+            -202,
+            new Color(72, 216, 186, 255),
         );
-        this.refreshAudioSettingButtons();
+        this.refreshAudioVolumeControls();
         this.pausePanel.active = false;
 
         this.helpPanel = new Node('HelpPanel');
@@ -1695,7 +1992,7 @@ export class GameController extends Component {
         this.setBattleTweensPaused(true);
         this.audioManager.setBattlePaused(true);
         this.pauseButton.node.active = false;
-        this.refreshAudioSettingButtons();
+        this.refreshAudioVolumeControls();
         this.showModal(this.pausePanel);
         this.refreshLaneSpawnMarkers();
     }
@@ -1715,33 +2012,165 @@ export class GameController extends Component {
         this.refreshHud('\u5DF2\u7EE7\u7EED\u6218\u6597\u3002');
     }
 
-    private toggleMusicEnabled(): void {
-        this.audioManager.setMusicEnabled(!this.audioManager.isMusicEnabled());
-        this.refreshAudioSettingButtons();
+    private createVolumeControl(
+        parent: Node,
+        name: string,
+        channel: AudioChannel,
+        title: string,
+        y: number,
+        accent: Color,
+    ): VolumeControlView {
+        const root = this.createGraphicsNode(name, 580, 84, 0, y, parent);
+        const background = root.getComponent(Graphics)!;
+        background.fillColor = new Color(20, 30, 44, 248);
+        background.roundRect(-290, -42, 580, 84, 16);
+        background.fill();
+        background.lineWidth = 2;
+        background.strokeColor = new Color(accent.r, accent.g, accent.b, 178);
+        background.roundRect(-290, -42, 580, 84, 16);
+        background.stroke();
+
+        this.createLabel(root, `${name}Title`, title, -250, 0, 64, 44, 19, new Color(232, 240, 248, 255));
+        const muteButton = this.createButton(root, `${name}Mute`, '\uD83D\uDD0A', -190, 0, 44, 42, 20, () => {
+            if (channel === 'music') {
+                this.audioManager.toggleMusicMute();
+            } else {
+                this.audioManager.toggleSfxMute();
+            }
+            this.refreshAudioVolumeControls();
+        });
+        const minusButton = this.createButton(root, `${name}Minus`, '\u2212', -140, 0, 38, 42, 22, () => {
+            this.adjustAudioVolume(channel, -5);
+        });
+        const plusButton = this.createButton(root, `${name}Plus`, '+', 134, 0, 38, 42, 22, () => {
+            this.adjustAudioVolume(channel, 5);
+        });
+        this.drawButton(muteButton, new Color(34, 49, 67, 255), new Color(accent.r, accent.g, accent.b, 220));
+        this.drawButton(minusButton, new Color(34, 49, 67, 255), new Color(116, 137, 158, 255));
+        this.drawButton(plusButton, new Color(34, 49, 67, 255), new Color(116, 137, 158, 255));
+
+        const trackWidth = 210;
+        const trackNode = this.createGraphicsNode(`${name}Track`, trackWidth, 46, -1, 0, root);
+        const trackGraphics = trackNode.getComponent(Graphics)!;
+        trackGraphics.fillColor = new Color(9, 16, 25, 255);
+        trackGraphics.roundRect(-trackWidth / 2, -7, trackWidth, 14, 7);
+        trackGraphics.fill();
+        trackGraphics.lineWidth = 2;
+        trackGraphics.strokeColor = new Color(78, 94, 111, 255);
+        trackGraphics.roundRect(-trackWidth / 2, -7, trackWidth, 14, 7);
+        trackGraphics.stroke();
+
+        const fillNode = this.createGraphicsNode(`${name}Fill`, trackWidth, 14, -trackWidth / 2, 0, trackNode);
+        const fillGraphics = fillNode.getComponent(Graphics)!;
+        fillGraphics.fillColor = accent;
+        fillGraphics.roundRect(0, -6, trackWidth, 12, 6);
+        fillGraphics.fill();
+
+        const knobNode = this.createGraphicsNode(`${name}Knob`, 28, 28, -trackWidth / 2, 0, trackNode);
+        const knobGraphics = knobNode.getComponent(Graphics)!;
+        knobGraphics.fillColor = new Color(241, 247, 252, 255);
+        knobGraphics.circle(0, 0, 11);
+        knobGraphics.fill();
+        knobGraphics.lineWidth = 3;
+        knobGraphics.strokeColor = accent;
+        knobGraphics.circle(0, 0, 11);
+        knobGraphics.stroke();
+
+        const percentLabel = this.createLabel(
+            root,
+            `${name}Percent`,
+            '0%',
+            236,
+            0,
+            80,
+            42,
+            19,
+            new Color(243, 247, 251, 255),
+        );
+
+        const control: VolumeControlView = {
+            channel,
+            root,
+            accent,
+            trackNode,
+            fillNode,
+            knobNode,
+            percentLabel,
+            muteButton,
+            trackWidth,
+            dragging: false,
+        };
+        trackNode.on(NodeEventType.TOUCH_START, (event: EventTouch) => {
+            control.dragging = true;
+            this.setVolumeFromTouch(control, event);
+        }, this);
+        trackNode.on(NodeEventType.TOUCH_MOVE, (event: EventTouch) => {
+            if (control.dragging) {
+                this.setVolumeFromTouch(control, event);
+            }
+        }, this);
+        trackNode.on(NodeEventType.TOUCH_END, (event: EventTouch) => {
+            this.setVolumeFromTouch(control, event);
+            control.dragging = false;
+            if (control.channel === 'sfx' && this.audioManager.getSfxVolume() > 0) {
+                this.audioManager.playSfx('ui_click');
+            }
+        }, this);
+        trackNode.on(NodeEventType.TOUCH_CANCEL, () => {
+            control.dragging = false;
+        }, this);
+        return control;
     }
 
-    private toggleSfxEnabled(): void {
-        this.audioManager.setSfxEnabled(!this.audioManager.isSfxEnabled());
-        this.refreshAudioSettingButtons();
+    private adjustAudioVolume(channel: AudioChannel, deltaPercent: number): void {
+        const current = channel === 'music'
+            ? this.audioManager.getMusicVolume()
+            : this.audioManager.getSfxVolume();
+        const currentPercent = Math.round(current * 100);
+        this.setAudioVolume(channel, currentPercent + deltaPercent);
     }
 
-    private refreshAudioSettingButtons(): void {
-        if (!this.musicToggleButton || !this.sfxToggleButton) {
+    private setVolumeFromTouch(control: VolumeControlView, event: EventTouch): void {
+        const location = event.getUILocation();
+        const local = control.trackNode.getComponent(UITransform)!.convertToNodeSpaceAR(
+            new Vec3(location.x, location.y, 0),
+        );
+        const ratio = Math.max(0, Math.min(1, (local.x + control.trackWidth / 2) / control.trackWidth));
+        this.setAudioVolume(control.channel, Math.round(ratio * 100));
+    }
+
+    private setAudioVolume(channel: AudioChannel, percent: number): void {
+        const normalized = Math.max(0, Math.min(100, Math.round(percent))) / 100;
+        if (channel === 'music') {
+            this.audioManager.setMusicVolume(normalized);
+        } else {
+            this.audioManager.setSfxVolume(normalized);
+        }
+        this.refreshAudioVolumeControls();
+    }
+
+    private refreshAudioVolumeControls(): void {
+        if (!this.musicVolumeControl || !this.sfxVolumeControl) {
             return;
         }
-        const musicEnabled = this.audioManager.isMusicEnabled();
-        const sfxEnabled = this.audioManager.isSfxEnabled();
-        this.musicToggleButton.label.string = `\u97F3\u4E50\uFF1A${musicEnabled ? '\u5F00' : '\u5173'}`;
-        this.sfxToggleButton.label.string = `\u97F3\u6548\uFF1A${sfxEnabled ? '\u5F00' : '\u5173'}`;
+        this.refreshAudioVolumeControl(this.musicVolumeControl, this.audioManager.getMusicVolume());
+        this.refreshAudioVolumeControl(this.sfxVolumeControl, this.audioManager.getSfxVolume());
+    }
+
+    private refreshAudioVolumeControl(control: VolumeControlView, volume: number): void {
+        const ratio = Math.max(0, Math.min(1, volume));
+        const percentage = Math.round(ratio * 100);
+        control.percentLabel.string = `${percentage}%`;
+        control.percentLabel.color = percentage > 0
+            ? new Color(245, 249, 252, 255) : new Color(153, 164, 176, 255);
+        control.muteButton.label.string = percentage > 0 ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+        control.fillNode.setScale(Math.max(0.0001, ratio), 1, 1);
+        control.fillNode.active = percentage > 0;
+        control.knobNode.setPosition(-control.trackWidth / 2 + control.trackWidth * ratio, 0, 0);
         this.drawButton(
-            this.musicToggleButton,
-            musicEnabled ? new Color(39, 112, 164, 255) : new Color(61, 67, 76, 255),
-            musicEnabled ? new Color(170, 222, 255, 255) : new Color(122, 132, 143, 255),
-        );
-        this.drawButton(
-            this.sfxToggleButton,
-            sfxEnabled ? new Color(39, 112, 164, 255) : new Color(61, 67, 76, 255),
-            sfxEnabled ? new Color(170, 222, 255, 255) : new Color(122, 132, 143, 255),
+            control.muteButton,
+            percentage > 0 ? new Color(34, 49, 67, 255) : new Color(48, 51, 58, 255),
+            percentage > 0 ? control.accent : new Color(105, 111, 121, 255),
         );
     }
 
@@ -1749,11 +2178,16 @@ export class GameController extends Component {
         if (!this.isPaused) {
             return;
         }
+        this.pausePanel.active = false;
         this.showModal(this.helpPanel);
     }
 
     private closeHelpPanel(): void {
         this.helpPanel.active = false;
+        if (this.isPaused) {
+            this.refreshAudioVolumeControls();
+            this.showModal(this.pausePanel);
+        }
     }
 
     private setBattleTweensPaused(paused: boolean): void {
@@ -3018,19 +3452,23 @@ export class GameController extends Component {
     }
 
     private finishGame(playerWon: boolean): void {
+        if (this.isFinished) {
+            return;
+        }
         this.isFinished = true;
-        this.audioManager.setBattlePaused(false);
+        this.isPaused = false;
+        this.setBattleTweensPaused(true);
         this.audioManager.stopBattleSfx();
-        this.audioManager.stopBgm();
-        this.audioManager.playSfx(playerWon ? 'victory' : 'defeat');
-        this.clearBattleUnits();
+        this.audioManager.fadeOutBgm(0.4);
         this.clearFeedbackEffects();
         this.hideTacticNotice();
-        this.isPaused = false;
         this.pauseButton.node.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
-        this.refreshHud(playerWon ? 'AI 基地归零，玩家获胜！' : '玩家基地归零，挑战失败。');
+        this.refreshHud(playerWon
+            ? '\u654C\u65B9\u57FA\u5730\u5DF2\u88AB\u6467\u6BC1\uFF0C\u6218\u6597\u80DC\u5229\uFF01'
+            : '\u73A9\u5BB6\u57FA\u5730\u5DF2\u88AB\u6467\u6BC1\uFF0C\u6311\u6218\u5931\u8D25\u3002');
+
         const level = this.getCurrentLevelConfig();
         const nextLevelId = level.id + 1;
         let resultHint: string;
@@ -3048,26 +3486,16 @@ export class GameController extends Component {
         } else {
             resultHint = '\u5931\u8D25\u539F\u56E0\uFF1A\u73A9\u5BB6\u57FA\u5730\u88AB\u6467\u6BC1\u3002\u53EF\u91CD\u65B0\u6311\u6218\u6216\u8FD4\u56DE\u9009\u5173\u3002';
         }
-        const resultText = this.resultPanel.getChildByName('ResultText')?.getComponent(Label);
-        if (resultText) {
-            resultText.string = playerWon ? '胜利！羊群守住了家园' : '失败！狼群攻破了基地';
-        }
-        const resultReport = this.resultPanel.getChildByName('ResultReport')?.getComponent(Label);
-        if (resultReport) {
-            resultReport.string = this.buildBattleReport();
-        }
-        if (resultText) {
-            resultText.string = playerWon ? `\u7B2C ${level.id} \u5173\u901A\u5173\uFF01` : `\u7B2C ${level.id} \u5173\u5931\u8D25`;
-        }
-        const resultHintLabel = this.resultPanel.getChildByName('ResultHint')?.getComponent(Label);
-        if (resultHintLabel) {
-            resultHintLabel.string = resultHint;
-        }
-        const nextButton = this.resultPanel.getChildByName('NextLevelButton');
-        if (nextButton) {
-            nextButton.active = playerWon && nextLevelId <= LEVEL_CONFIGS.length;
-        }
-        this.showModal(this.resultPanel);
+
+        this.resultTitleLabel.string = playerWon ? '\u6218\u6597\u80DC\u5229' : '\u6218\u6597\u5931\u8D25';
+        this.resultTitleLabel.color = playerWon
+            ? new Color(255, 226, 120, 255) : new Color(225, 158, 165, 255);
+        this.resultReportLabel.string = this.buildBattleReport();
+        this.resultHintLabel.string = resultHint;
+        this.resultNextButton.active = playerWon && nextLevelId <= LEVEL_CONFIGS.length;
+        this.drawResultCard(playerWon);
+        this.drawResultBadge(playerWon);
+        this.playResultTransition(playerWon);
     }
 
     private startNextLevel(): void {
@@ -3107,6 +3535,8 @@ export class GameController extends Component {
     private restartGame(): void {
         this.audioManager.stopBattleSfx();
         this.audioManager.setBattlePaused(false);
+        this.resetResultPresentation();
+        this.setBattleTweensPaused(false);
         this.clearBattleUnits();
         this.playerBaseHealth = BASE_MAX_HEALTH;
         this.aiBaseHealth = BASE_MAX_HEALTH;
@@ -3143,14 +3573,10 @@ export class GameController extends Component {
         this.lastBaseHudState = '';
         this.lastUnitButtonState = '';
         this.lastTacticHudState = '';
-        this.resultPanel.active = false;
         this.pausePanel.active = false;
         this.helpPanel.active = false;
         this.pauseButton.node.active = true;
-        const resultReport = this.resultPanel.getChildByName('ResultReport')?.getComponent(Label);
-        if (resultReport) {
-            resultReport.string = '';
-        }
+        this.resultReportLabel.string = '';
         if (this.isStarted) {
             this.audioManager.playBgm('battle_bgm');
         }
