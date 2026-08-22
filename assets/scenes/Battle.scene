@@ -144,9 +144,9 @@
     "_far": 2000,
     "_color": {
       "__type__": "cc.Color",
-      "r": 0,
-      "g": 0,
-      "b": 0,
+      "r": 83,
+      "g": 126,
+      "b": 74,
       "a": 255
     },
     "_depth": 1,
@@ -393,10 +393,6 @@
         "__expectedType__": "cc.AudioClip"
       },
       {
-        "__uuid__": "8d0352b2-12cc-436d-85b1-c77ddadef6f8",
-        "__expectedType__": "cc.AudioClip"
-      },
-      {
         "__uuid__": "486fa023-8014-4884-a395-420c9f3da71a",
         "__expectedType__": "cc.AudioClip"
       },
@@ -437,6 +433,34 @@
         "__expectedType__": "cc.AudioClip"
       }
     ],
+    "loadingBackgroundFrame": {
+      "__uuid__": "53f5416b-8251-45b4-847e-088aa066f2dc@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "loadingMascotSheepFrame": {
+      "__uuid__": "27472098-2f1b-4168-b5ce-a2b69201ffaf@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "loadingMascotWolfFrame": {
+      "__uuid__": "f48bf377-db15-4a00-b581-c08fe4d53112@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "loadingProgressFrame": {
+      "__uuid__": "875eb9cb-7920-4563-a82e-1bc1c321618a@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "loadingProgressFillFrame": {
+      "__uuid__": "b5e85a8b-a9df-48b1-aa5c-f117e4026ce4@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "loadingTipPanelFrame": {
+      "__uuid__": "cf4b9484-29c4-44b6-ae1a-cee5c9a87f60@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "loadingUiFont": {
+      "__uuid__": "c258c81d-5a85-42e3-9b74-22611e76d89d",
+      "__expectedType__": "cc.Font"
+    },
     "_id": "aa89dd7e-956e-43c6-bc8d-412c2bd179b4"
   }
 ]

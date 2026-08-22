@@ -3,21 +3,28 @@ import {
     AudioClip,
     AudioSource,
     assetManager,
+    AssetManager,
     Component,
+    director,
     game,
     Game,
+    input,
+    Input,
     Node,
-    resources,
     sys,
 } from 'cc';
 
 const { ccclass } = _decorator;
 
 export type BgmTrackId = 'cheerful_lighthearted' | 'cyberwave_upbeat';
+export type BgmContext = 'menu' | 'battle';
 
 export interface BgmTrackConfig {
     readonly id: BgmTrackId;
     readonly displayName: string;
+    readonly subtitle: string;
+    readonly auxiliaryName?: string;
+    readonly bundleName: 'audio_bgm';
     readonly resourcePath: string;
     readonly volumeGain: number;
 }
@@ -62,26 +69,32 @@ const MUSIC_VOLUME_KEY = 'wolf-sheep-battle.audio.music-volume';
 const SFX_VOLUME_KEY = 'wolf-sheep-battle.audio.sfx-volume';
 const MUSIC_LAST_VOLUME_KEY = 'wolf-sheep-battle.audio.music-last-volume';
 const SFX_LAST_VOLUME_KEY = 'wolf-sheep-battle.audio.sfx-last-volume';
-const DEFAULT_MUSIC_VOLUME = 0.5;
-const DEFAULT_SFX_VOLUME = 0.75;
+const DEFAULT_MUSIC_VOLUME = 0.8;
+const DEFAULT_SFX_VOLUME = 0.8;
 const PAUSED_MUSIC_MULTIPLIER = 0.35;
 const DEFAULT_BGM_TRACK_ID: BgmTrackId = 'cheerful_lighthearted';
 const DEFAULT_BGM_CROSS_FADE_SECONDS = 0.6;
-const BGM_LOAD_TIMEOUT_SECONDS = 3;
+const BGM_LOAD_TIMEOUT_SECONDS = 12;
 const BGM_PLAYBACK_CHECK_SECONDS = 1.25;
 const SFX_POOL_SIZE = 6;
 
 const BGM_TRACKS: readonly BgmTrackConfig[] = [
     {
         id: 'cheerful_lighthearted',
-        displayName: '\u8F7B\u677E\u6B22\u5FEB',
-        resourcePath: 'audio/bgm/bgm_cheerful_lighthearted',
+        displayName: '轻松欢快',
+        subtitle: '温暖、治愈、轻松的草原旋律',
+        auxiliaryName: 'Ear0 · 欢乐',
+        bundleName: 'audio_bgm',
+        resourcePath: 'bgm/bgm_cheerful_lighthearted_runtime_v01',
         volumeGain: 1,
     },
     {
         id: 'cyberwave_upbeat',
-        displayName: '\u8D5B\u535A\u6B22\u4E50',
-        resourcePath: 'audio/bgm/bgm_cyberwave_upbeat',
+        displayName: '热血对战',
+        subtitle: '节奏明快、适合激烈对抗',
+        auxiliaryName: 'Pixabay · Fun Game',
+        bundleName: 'audio_bgm',
+        resourcePath: 'bgm/bgm_cyberwave_upbeat_runtime_v01',
         volumeGain: 1,
     },
 ];
@@ -100,9 +113,8 @@ const SFX_RESOURCE_PATHS: Readonly<Record<SfxName, string>> = {
     defeat: 'defeat',
 };
 
-// Existing SFX assets predate the resources-path layout. These UUIDs are kept
-// only for those existing clips. New BGM assets are loaded by resources path
-// and receive their metadata from Cocos Creator's importer.
+// Existing SFX assets predate the bundle layout. These UUIDs remain stable.
+// BGM is loaded from the dedicated audio_bgm Asset Bundle.
 const SFX_ASSET_UUIDS: Readonly<Record<SfxName, string>> = {
     ui_click: '2a5d79af-67a6-467f-a3e7-93431399189d',
     deploy: '9ad52951-0b8c-46a1-a26e-9c316cf1fc10',
@@ -144,6 +156,25 @@ const UI_SFX = new Set<SfxName>(['ui_click']);
 
 @ccclass('AudioManager')
 export class AudioManager extends Component {
+    private static instance?: AudioManager;
+
+    static getOrCreate(): AudioManager {
+        const existing = AudioManager.instance;
+        if (existing?.node?.isValid) {
+            return existing;
+        }
+        const scene = director.getScene();
+        if (!scene) {
+            throw new Error('[WolfSheepBattle][Audio] Cannot create the persistent audio root before a scene is loaded.');
+        }
+        const root = new Node('GlobalAudioManager');
+        scene.addChild(root);
+        director.addPersistRootNode(root);
+        const manager = root.addComponent(AudioManager);
+        AudioManager.instance = manager;
+        return manager;
+    }
+
     private readonly clipCache = new Map<string, AudioClip>();
     private readonly loadingSfxClips = new Set<SfxName>();
     private readonly loadingBgmCallbacks = new Map<BgmTrackId, BgmLoadCallback[]>();
@@ -153,6 +184,10 @@ export class AudioManager extends Component {
     private readonly lastSfxTimes = new Map<SfxName, number>();
     private readonly missingClipWarnings = new Set<string>();
     private readonly invalidBgmWarnings = new Set<string>();
+    private readonly failedBgmTracks = new Set<BgmTrackId>();
+    private readonly bgmPlaybackStartedListeners = new Set<() => void>();
+    private bgmBundle?: AssetManager.Bundle;
+    private pendingBgmBundle?: Promise<AssetManager.Bundle>;
 
     private bgmSource!: AudioSource;
     private selectedBgmId: BgmTrackId = DEFAULT_BGM_TRACK_ID;
@@ -178,16 +213,37 @@ export class AudioManager extends Component {
     private bgmPlaybackCheckRemaining = 0;
     private bgmPlaybackCheckId: BgmTrackId | undefined;
     private bgmPlaybackCheckToken = 0;
+    private initialized = false;
+    private userGestureListenersAttached = false;
+    private bgmPlaybackConfirmed = false;
+    private playbackBlockedWarningShown = false;
+    private allBgmUnavailableWarningShown = false;
 
     onLoad(): void {
+        const existing = AudioManager.instance;
+        if (existing && existing !== this && existing.node.isValid) {
+            this.node.destroy();
+            return;
+        }
+        AudioManager.instance = this;
+        if (this.node.parent === director.getScene() && !director.isPersistRootNode(this.node)) {
+            director.addPersistRootNode(this.node);
+        }
+        this.initialized = true;
         this.loadSettings();
         this.desiredBgm = this.selectedBgmId;
         this.createAudioSources();
+        this.installUserGestureListeners();
         game.on(Game.EVENT_HIDE, this.handleGameHide, this);
         game.on(Game.EVENT_SHOW, this.handleGameShow, this);
     }
 
     onDestroy(): void {
+        if (!this.initialized) {
+            return;
+        }
+        this.initialized = false;
+        this.removeUserGestureListeners();
         game.off(Game.EVENT_HIDE, this.handleGameHide, this);
         game.off(Game.EVENT_SHOW, this.handleGameShow, this);
         this.bgmRequestToken += 1;
@@ -202,6 +258,10 @@ export class AudioManager extends Component {
         this.loadingBgmCallbacks.clear();
         this.loadingBgmElapsed.clear();
         this.pendingSfx.clear();
+        this.bgmPlaybackStartedListeners.clear();
+        if (AudioManager.instance === this) {
+            AudioManager.instance = undefined;
+        }
     }
 
     update(deltaTime: number): void {
@@ -236,7 +296,57 @@ export class AudioManager extends Component {
     }
 
     activateAudio(): void {
+        this.unlockAudio();
+    }
+
+    unlockAudio(): boolean {
+        const wasActivated = this.audioActivated;
         this.audioActivated = true;
+        this.removeUserGestureListeners();
+        if (wasActivated && this.bgmSource?.playing) {
+            return false;
+        }
+        this.resumeBgm();
+        return !wasActivated;
+    }
+
+    isAudioActivated(): boolean {
+        return this.audioActivated;
+    }
+
+    isBgmPlaybackConfirmed(): boolean {
+        return this.bgmPlaybackConfirmed;
+    }
+
+    onBgmPlaybackStarted(listener: () => void): void {
+        this.bgmPlaybackStartedListeners.add(listener);
+        if (this.bgmPlaybackConfirmed) {
+            listener();
+        }
+    }
+
+    offBgmPlaybackStarted(listener: () => void): void {
+        this.bgmPlaybackStartedListeners.delete(listener);
+    }
+
+    preloadMenuBgm(): void {
+        this.preloadBgm(this.selectedBgmId);
+    }
+
+    preloadBattleBgm(): void {
+        for (const track of BGM_TRACKS) this.preloadBgm(track.id);
+    }
+
+    requestMenuBgm(): void {
+        this.requestSelectedBgm();
+    }
+
+    requestBattleBgm(): void {
+        this.requestSelectedBgm();
+    }
+
+    getRequestedBgmTrack(): BgmTrackConfig | undefined {
+        return this.getBgmTrack(this.selectedBgmId);
     }
 
     getAvailableBgmTracks(): readonly BgmTrackConfig[] {
@@ -355,10 +465,14 @@ export class AudioManager extends Component {
     }
 
     resumeBgm(): void {
-        if (!this.audioActivated || !this.musicEnabled || this.lifecyclePaused) {
+        if ((!this.audioActivated && !this.bgmPlaybackConfirmed)
+            || !this.musicEnabled || this.lifecyclePaused) {
             return;
         }
-        const desired = this.previewBgmId ?? this.selectedBgmId;
+        const desired = this.previewBgmId ?? this.desiredBgm;
+        if (!desired) {
+            return;
+        }
         this.desiredBgm = desired;
         if (this.currentBgm === desired && this.bgmSource.clip) {
             if (this.bgmFadeMode === 'fadeIn') {
@@ -366,7 +480,12 @@ export class AudioManager extends Component {
             } else if (this.bgmFadeMode === 'none') {
                 this.refreshBgmVolume();
             }
-            this.bgmSource.play();
+            if (!this.bgmSource.playing) {
+                this.bgmSource.play();
+                this.beginBgmPlaybackCheck(desired, this.bgmRequestToken);
+            } else {
+                this.confirmBgmPlayback();
+            }
             return;
         }
         this.transitionToBgm(desired, DEFAULT_BGM_CROSS_FADE_SECONDS);
@@ -514,12 +633,43 @@ export class AudioManager extends Component {
         }
     }
 
+    private preloadBgm(id: BgmTrackId): void {
+        this.loadBgmClip(id, () => {
+            // Loading and decoding are intentionally separated from playback so
+            // WeChat can wait for the first user gesture without creating a new player.
+        });
+    }
+
+    private requestSelectedBgm(): void {
+        const selected = this.selectedBgmId;
+        const wasPreviewing = this.previewBgmId !== undefined;
+        this.previewBgmId = undefined;
+        if (wasPreviewing || this.desiredBgm !== selected) {
+            this.transitionToBgm(selected, DEFAULT_BGM_CROSS_FADE_SECONDS);
+            return;
+        }
+
+        this.preloadBgm(selected);
+        if (!this.musicEnabled || this.lifecyclePaused || this.bgmFadeMode !== 'none') {
+            return;
+        }
+        if (this.currentBgm === selected && this.bgmSource?.clip && this.bgmSource.playing) {
+            this.confirmBgmPlayback();
+            return;
+        }
+
+        // Establish a real playback attempt during loading when the platform permits it.
+        // If WeChat blocks autoplay, the existing gesture listener keeps the same intent
+        // and retries only after a genuine player interaction.
+        this.transitionToBgm(selected, DEFAULT_BGM_CROSS_FADE_SECONDS);
+    }
+
     private transitionToBgm(id: BgmTrackId, duration: number): void {
         this.desiredBgm = id;
         const requestToken = ++this.bgmRequestToken;
         this.cancelBgmFade();
         this.cancelBgmPlaybackCheck();
-        if (!this.audioActivated || !this.musicEnabled || this.lifecyclePaused) {
+        if (!this.musicEnabled || this.lifecyclePaused) {
             return;
         }
         this.loadBgmClip(id, (clip) => {
@@ -552,32 +702,67 @@ export class AudioManager extends Component {
         this.loadingBgmCallbacks.set(id, [callback]);
         this.loadingBgmElapsed.set(id, 0);
         const track = this.getBgmTrack(id)!;
-        resources.load(track.resourcePath, AudioClip, (error: Error | null, clip: AudioClip) => {
+        void this.ensureBgmBundle().then((bundle) => new Promise<AudioClip>((resolve, reject) => {
+            bundle.load(track.resourcePath, AudioClip, (error: Error | null, clip: AudioClip) => {
+                if (error || !clip) {
+                    reject(error ?? new Error(`BGM asset is empty: ${track.resourcePath}`));
+                    return;
+                }
+                resolve(clip);
+            });
+        })).then((clip) => {
             const waitingCallbacks = this.loadingBgmCallbacks.get(id) ?? [];
             this.loadingBgmCallbacks.delete(id);
             this.loadingBgmElapsed.delete(id);
-            if (error || !clip) {
-                this.warnMissingBgm(track, error);
-                for (const waiting of waitingCallbacks) {
-                    waiting(undefined);
-                }
-                return;
-            }
             this.clipCache.set(cacheKey, clip);
             this.missingClipWarnings.delete(cacheKey);
             for (const waiting of waitingCallbacks) {
                 waiting(clip);
             }
+        }).catch((error: unknown) => {
+            const waitingCallbacks = this.loadingBgmCallbacks.get(id) ?? [];
+            this.loadingBgmCallbacks.delete(id);
+            this.loadingBgmElapsed.delete(id);
+            this.warnMissingBgm(track, error instanceof Error ? error : new Error(`${error}`));
+            for (const waiting of waitingCallbacks) {
+                waiting(undefined);
+            }
         });
     }
 
+    private ensureBgmBundle(): Promise<AssetManager.Bundle> {
+        const cached = this.bgmBundle ?? assetManager.getBundle('audio_bgm');
+        if (cached) {
+            this.bgmBundle = cached;
+            return Promise.resolve(cached);
+        }
+        if (this.pendingBgmBundle) {
+            return this.pendingBgmBundle;
+        }
+        this.pendingBgmBundle = new Promise<AssetManager.Bundle>((resolve, reject) => {
+            assetManager.loadBundle('audio_bgm', (error, bundle) => {
+                this.pendingBgmBundle = undefined;
+                if (error || !bundle) {
+                    reject(error ?? new Error('BGM Asset Bundle is empty: audio_bgm'));
+                    return;
+                }
+                this.bgmBundle = bundle;
+                resolve(bundle);
+            });
+        });
+        return this.pendingBgmBundle;
+    }
+
     private playLoadedBgm(id: BgmTrackId, clip: AudioClip, duration: number, requestToken: number): void {
+        this.failedBgmTracks.delete(id);
         if (this.currentBgm === id && this.bgmSource.clip === clip) {
             this.bgmSource.loop = true;
             this.refreshBgmVolume();
             if (!this.bgmSource.playing) {
                 this.bgmSource.play();
                 this.beginBgmPlaybackCheck(id, requestToken);
+            } else {
+                this.confirmBgmPlayback();
             }
             return;
         }
@@ -611,15 +796,21 @@ export class AudioManager extends Component {
         if (requestToken !== this.bgmRequestToken) {
             return;
         }
-        if (id !== DEFAULT_BGM_TRACK_ID) {
-            this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
+        this.failedBgmTracks.add(id);
+        const fallback = BGM_TRACKS.find((track) => !this.failedBgmTracks.has(track.id));
+        if (fallback) {
+            this.selectedBgmId = fallback.id;
             this.previewBgmId = undefined;
             this.saveSelectedBgm();
-            this.transitionToBgm(DEFAULT_BGM_TRACK_ID, 0.4);
+            this.transitionToBgm(fallback.id, 0.6);
             return;
         }
         this.desiredBgm = undefined;
         this.stopBgmPlayback();
+        if (!this.allBgmUnavailableWarningShown) {
+            this.allBgmUnavailableWarningShown = true;
+            console.warn('[WolfSheepBattle][Audio] Both BGM tracks are unavailable; continuing silently.');
+        }
     }
 
     private beginBgmFade(
@@ -792,6 +983,7 @@ export class AudioManager extends Component {
         }
         if (this.bgmSource?.playing) {
             this.cancelBgmPlaybackCheck();
+            this.confirmBgmPlayback();
             return;
         }
         this.bgmPlaybackCheckRemaining = Math.max(0, this.bgmPlaybackCheckRemaining - deltaTime);
@@ -799,11 +991,10 @@ export class AudioManager extends Component {
             return;
         }
         const id = this.bgmPlaybackCheckId;
-        const requestToken = this.bgmPlaybackCheckToken;
         this.cancelBgmPlaybackCheck();
         const track = this.getBgmTrack(id)!;
-        this.warnMissingBgm(track, new Error('AudioSource did not enter the playing state.'));
-        this.handleBgmLoadFailure(id, requestToken);
+        this.warnPlaybackBlocked(track);
+        this.installUserGestureListeners();
     }
 
     private cancelBgmPlaybackCheck(): void {
@@ -848,29 +1039,75 @@ export class AudioManager extends Component {
         this.resumeBgm();
     }
 
+    private readonly handleUserGesture = (): void => {
+        this.unlockAudio();
+    };
+
+    private installUserGestureListeners(): void {
+        if (this.userGestureListenersAttached || this.bgmSource?.playing
+            || (this.audioActivated && !this.musicEnabled)) {
+            return;
+        }
+        this.userGestureListenersAttached = true;
+        input.on(Input.EventType.TOUCH_START, this.handleUserGesture, this);
+        input.on(Input.EventType.MOUSE_DOWN, this.handleUserGesture, this);
+    }
+
+    private removeUserGestureListeners(): void {
+        if (!this.userGestureListenersAttached) {
+            return;
+        }
+        this.userGestureListenersAttached = false;
+        input.off(Input.EventType.TOUCH_START, this.handleUserGesture, this);
+        input.off(Input.EventType.MOUSE_DOWN, this.handleUserGesture, this);
+    }
+
+    private confirmBgmPlayback(): void {
+        this.removeUserGestureListeners();
+        if (this.bgmPlaybackConfirmed) {
+            return;
+        }
+        this.bgmPlaybackConfirmed = true;
+        for (const listener of this.bgmPlaybackStartedListeners) {
+            listener();
+        }
+    }
+
+    private warnPlaybackBlocked(track: BgmTrackConfig): void {
+        if (this.playbackBlockedWarningShown) {
+            return;
+        }
+        this.playbackBlockedWarningShown = true;
+        console.warn('[WolfSheepBattle][Audio] BGM playback is waiting for a user gesture.', {
+            trackId: track.id,
+            resourcePath: track.resourcePath,
+        });
+    }
+
     private loadSettings(): void {
         const stored = this.readStoredAudioSettings();
         if (stored) {
             const storedTrackId = typeof stored.selectedBgmId === 'string'
                 ? stored.selectedBgmId : DEFAULT_BGM_TRACK_ID;
-            if (this.getBgmTrack(storedTrackId)) {
+            const storedTrackIsValid = !!this.getBgmTrack(storedTrackId);
+            if (storedTrackIsValid) {
                 this.selectedBgmId = storedTrackId as BgmTrackId;
             } else {
                 this.warnInvalidBgmId(storedTrackId, 'stored-settings');
                 this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
             }
-            this.lastNonZeroMusicVolume = this.loadStoredVolume(
+            this.lastNonZeroMusicVolume = this.loadStoredPositiveVolume(
                 stored.lastNonZeroMusicVolume,
                 DEFAULT_MUSIC_VOLUME,
             );
-            this.lastNonZeroSfxVolume = this.loadStoredVolume(
+            this.lastNonZeroSfxVolume = this.loadStoredPositiveVolume(
                 stored.lastNonZeroSfxVolume,
                 DEFAULT_SFX_VOLUME,
             );
-            const storedMusicVolume = this.loadStoredVolume(stored.musicVolume, this.lastNonZeroMusicVolume);
-            const storedSfxVolume = this.loadStoredVolume(stored.sfxVolume, this.lastNonZeroSfxVolume);
-            this.musicVolume = stored.musicMuted ? 0 : storedMusicVolume;
-            this.sfxVolume = stored.sfxMuted ? 0 : storedSfxVolume;
+            const storedMusicVolume = this.loadStoredVolume(stored.musicVolume, DEFAULT_MUSIC_VOLUME);
+            const storedSfxVolume = this.loadStoredVolume(stored.sfxVolume, DEFAULT_SFX_VOLUME);
+            this.musicVolume = stored.musicMuted === true ? 0 : storedMusicVolume;
+            this.sfxVolume = stored.sfxMuted === true ? 0 : storedSfxVolume;
             this.musicEnabled = this.musicVolume > 0;
             this.sfxEnabled = this.sfxVolume > 0;
             if (storedMusicVolume > 0) {
@@ -879,9 +1116,29 @@ export class AudioManager extends Component {
             if (storedSfxVolume > 0) {
                 this.lastNonZeroSfxVolume = storedSfxVolume;
             }
-            if (storedTrackId !== this.selectedBgmId) {
+            const settingsNeedRepair = !storedTrackIsValid
+                || typeof stored.selectedBgmId !== 'string'
+                || !this.isValidStoredVolume(stored.musicVolume)
+                || !this.isValidStoredVolume(stored.sfxVolume)
+                || typeof stored.musicMuted !== 'boolean'
+                || typeof stored.sfxMuted !== 'boolean'
+                || !this.isValidStoredPositiveVolume(stored.lastNonZeroMusicVolume)
+                || !this.isValidStoredPositiveVolume(stored.lastNonZeroSfxVolume);
+            if (settingsNeedRepair) {
                 this.saveAudioSettings();
             }
+            return;
+        }
+
+        if (stored === null) {
+            this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
+            this.musicVolume = DEFAULT_MUSIC_VOLUME;
+            this.sfxVolume = DEFAULT_SFX_VOLUME;
+            this.lastNonZeroMusicVolume = DEFAULT_MUSIC_VOLUME;
+            this.lastNonZeroSfxVolume = DEFAULT_SFX_VOLUME;
+            this.musicEnabled = true;
+            this.sfxEnabled = true;
+            this.saveAudioSettings();
             return;
         }
 
@@ -894,10 +1151,12 @@ export class AudioManager extends Component {
         this.lastNonZeroMusicVolume = this.loadNumber(
             MUSIC_LAST_VOLUME_KEY,
             this.musicVolume > 0 ? this.musicVolume : DEFAULT_MUSIC_VOLUME,
+            true,
         );
         this.lastNonZeroSfxVolume = this.loadNumber(
             SFX_LAST_VOLUME_KEY,
             this.sfxVolume > 0 ? this.sfxVolume : DEFAULT_SFX_VOLUME,
+            true,
         );
         this.musicEnabled = this.musicVolume > 0;
         this.sfxEnabled = this.sfxVolume > 0;
@@ -905,19 +1164,19 @@ export class AudioManager extends Component {
         this.saveAudioSettings();
     }
 
-    private readStoredAudioSettings(): StoredAudioSettingsV1 | undefined {
+    private readStoredAudioSettings(): StoredAudioSettingsV1 | null | undefined {
         try {
             const value = sys.localStorage.getItem(AUDIO_SETTINGS_KEY);
             if (!value) {
                 return undefined;
             }
             const parsed = JSON.parse(value);
-            return parsed && typeof parsed === 'object' ? parsed as StoredAudioSettingsV1 : undefined;
+            return parsed && typeof parsed === 'object' ? parsed as StoredAudioSettingsV1 : null;
         } catch (error) {
             console.warn('[WolfSheepBattle][Audio] Audio settings are invalid; defaults will be used.', {
                 error: error instanceof Error ? error.message : `${error}`,
             });
-            return undefined;
+            return null;
         }
     }
 
@@ -953,8 +1212,11 @@ export class AudioManager extends Component {
     }
 
     private loadStoredVolume(value: unknown, fallback: number): number {
-        return typeof value === 'number' && Number.isFinite(value)
-            ? this.clampVolume(value) : fallback;
+        return this.isValidStoredVolume(value) ? value : fallback;
+    }
+
+    private loadStoredPositiveVolume(value: unknown, fallback: number): number {
+        return this.isValidStoredPositiveVolume(value) ? value : fallback;
     }
 
     private loadBoolean(key: string, fallback: boolean): boolean {
@@ -966,17 +1228,31 @@ export class AudioManager extends Component {
         }
     }
 
-    private loadNumber(key: string, fallback: number): number {
+    private loadNumber(key: string, fallback: number, requirePositive = false): number {
         try {
             const stored = sys.localStorage.getItem(key);
-            if (stored === null) {
+            if (stored === null || stored.trim().length === 0) {
                 return fallback;
             }
             const value = Number(stored);
-            return Number.isFinite(value) ? this.clampVolume(value) : fallback;
+            if (!this.isValidStoredVolume(value)) {
+                return fallback;
+            }
+            return requirePositive && value <= 0 ? fallback : value;
         } catch {
             return fallback;
         }
+    }
+
+    private isValidStoredVolume(value: unknown): value is number {
+        return typeof value === 'number'
+            && Number.isFinite(value)
+            && value >= 0
+            && value <= 1;
+    }
+
+    private isValidStoredPositiveVolume(value: unknown): value is number {
+        return this.isValidStoredVolume(value) && value > 0;
     }
 
     private saveBoolean(key: string, value: boolean): void {

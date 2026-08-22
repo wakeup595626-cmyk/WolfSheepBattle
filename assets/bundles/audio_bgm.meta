@@ -1,0 +1,20 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "ecfef620-3f4f-46d9-9b30-6c7f53702069",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "art07LocalSubpackage",
+    "bundleName": "audio_bgm",
+    "priority": 2,
+    "compressionType": {
+      "default": "subpackage"
+    },
+    "isRemoteBundle": {
+      "default": false
+    }
+  }
+}

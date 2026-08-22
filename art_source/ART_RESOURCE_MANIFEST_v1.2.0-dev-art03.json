@@ -1,0 +1,4833 @@
+{
+  "schema": "wolf-sheep-art-resource-manifest/v1",
+  "gameVersion": "v1.2.0-dev",
+  "batchVersion": "v1.2.0-dev-art03-finalqa",
+  "generatedDate": "2026-07-28T16:09:49+08:00",
+  "scan": {
+    "root": "art_source",
+    "formalAreaOnly": true,
+    "excludedPatterns": [
+      "art_source/_archive/**",
+      "art_source/ART_RESOURCE_MANIFEST_*.json"
+    ],
+    "hashPolicy": "SHA-256 recalculated from current on-disk bytes during this scan; no hashes copied from art02 manifest",
+    "relativePathBase": "art_source",
+    "inventorySha256": "065B40CACE299F257B7E30214E9603F4467AB3038EE58E8BC0A408E2782453EA"
+  },
+  "summary": {
+    "formalResourceCount": 108,
+    "pngCount": 106,
+    "fontCount": 1,
+    "licenseTextCount": 1,
+    "spriteSheetCount": 34,
+    "totalDiskBytes": 67116111,
+    "totalDiskMiB": 64.006911,
+    "totalDecodedRgbaBytes": 289614784,
+    "totalDecodedRgbaMiB": 276.198181
+  },
+  "characterSpriteConvention": {
+    "sheetGrid": {
+      "columns": 8,
+      "rows": 4
+    },
+    "frameOrder": [
+      "idle_1",
+      "idle_2",
+      "idle_3",
+      "idle_4",
+      "move_1",
+      "move_2",
+      "move_3",
+      "move_4",
+      "move_5",
+      "move_6",
+      "attack_1",
+      "attack_2",
+      "attack_3",
+      "attack_4",
+      "attack_5",
+      "hit_1",
+      "hit_2",
+      "death_1",
+      "death_2",
+      "death_3",
+      "death_4",
+      "death_5",
+      "death_6"
+    ],
+    "validFrameCount": 23,
+    "transparentCellCount": 9,
+    "anchor": {
+      "imageFootBaselineRatioFromTop": 0.82,
+      "normalizedFootPoint": [
+        0.5,
+        0.82
+      ],
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ]
+    }
+  },
+  "vfxV02Mappings": [
+    {
+      "v02RelativePath": "vfx/breakthrough/base_hit_fx_sheet_v02.png",
+      "v02Sha256": "189EAF0F8BA0EA555CEA2D0CFF126B78B741E3691A5169D9BD654CC93D9DE4CF",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/breakthrough/base_hit_fx_sheet_v01.png",
+      "v01ArchiveSha256": "6B329466E2FB927F60D56459510335F58B405E506A3033E196AF4F292F6930A7",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/breakthrough/breakthrough_fx_sheet_v02.png",
+      "v02Sha256": "E301F97EB1522576063F83552A50C1B3132E089DDE695F87E90000E1BB95B5CC",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/breakthrough/breakthrough_fx_sheet_v01.png",
+      "v01ArchiveSha256": "9B6D2C7DA4A127A7B28C5701223978F56478F3B59E326C0854CF11B9D2050887",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/combat/death/unit_disappear_fx_sheet_v02.png",
+      "v02Sha256": "01632DC84C13331EF5A4843FE08F2681085ADAAEC09FEA114BEF46DF1CDB7A25",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/death/unit_disappear_fx_sheet_v01.png",
+      "v01ArchiveSha256": "37877075258F464F61EC192B1647AFF9CB699691D4DD6384C79DFA86D4B5FB19",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/combat/hit/hit_impact_fx_sheet_v02.png",
+      "v02Sha256": "DA66F9E3335188C841410C9F58C8614499CC7704794B420AFCD8E66E17C9FC6F",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/hit/hit_impact_fx_sheet_v01.png",
+      "v01ArchiveSha256": "2BF74C8B55A7FFA143BBCF0A937441C92640DD73034C8A38BC5A9CC765620BE8",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/combat/sheep_attack/sheep_attack_fx_sheet_v02.png",
+      "v02Sha256": "5BE16E3620159D03027A572220411894AAF19A667D9E9044A3782F209BF5DD38",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/sheep_attack/sheep_attack_fx_sheet_v01.png",
+      "v01ArchiveSha256": "5D5D5908D4B5276287A8F1ECEF26F7DAD3EF2A8A18DF8B70EF1B529AB75081E9",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/combat/wolf_attack/wolf_attack_fx_sheet_v02.png",
+      "v02Sha256": "E037A3C09B51F908E62F6467ED8D75C89FB2E31E6E8362A7C0F023481B66688F",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/wolf_attack/wolf_attack_fx_sheet_v01.png",
+      "v01ArchiveSha256": "8ADB6E684E3D5236C60CD6B1BCCD7AE1B3C92CDE26C53D2ED6B82C8BB2D6C5A3",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/deploy/sheep/sheep_deploy_fx_sheet_v02.png",
+      "v02Sha256": "6E21D6403E28788357CC25F2D2C3EC204DFDD2C8403777EE56E0CE9B8AA1BC7E",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/deploy/sheep/sheep_deploy_fx_sheet_v01.png",
+      "v01ArchiveSha256": "4C13F60F2257B830DD112CDE6FBEBFCB5EA574B2C6780FF904529BEB0D527BBA",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/deploy/wolf/wolf_deploy_fx_sheet_v02.png",
+      "v02Sha256": "608FE7B6948C8530CD2099671208FBAA115F3EE98BFFED0C6E0B81E585C92632",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/deploy/wolf/wolf_deploy_fx_sheet_v01.png",
+      "v01ArchiveSha256": "81F5CAF12CF44CD3537DCCAA03E33661F30DBB94A4BB7C95C6B85196C5512560",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/movement/movement_dust_fx_sheet_v02.png",
+      "v02Sha256": "38BF84A7106D1A2E391BAF6248BBA6BD293102D72A4002B91C0354BE51ADF195",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/movement/movement_dust_fx_sheet_v01.png",
+      "v01ArchiveSha256": "9CD9B28689171AD4C8E88193AC692B1CCCF91BEA85FC3DAD64D4E881BFF8AAE3",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/tactics/heal/tactic_heal_fx_sheet_v02.png",
+      "v02Sha256": "DEA68F4BD2509B2805A38A92CBF03F4BDFA55B73E9A8C7F2FA48A9E150CC7428",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/heal/tactic_heal_fx_sheet_v01.png",
+      "v01ArchiveSha256": "3EA3632A7EA6803116A4D5D9913B3E16354E2D57F0045B34215CB01F42427EE3",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/tactics/shock/tactic_shock_fx_sheet_v02.png",
+      "v02Sha256": "7769013F6E25589C942D033B37A79C8F6C26AFB7C5A3616D4466E7DE079895C0",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/shock/tactic_shock_fx_sheet_v01.png",
+      "v01ArchiveSha256": "11625D7AD0C1A0CC8AD9B152D421F4894A714C922FC3C3BA9F3283B559E2F5FD",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    },
+    {
+      "v02RelativePath": "vfx/tactics/sprint/tactic_sprint_fx_sheet_v02.png",
+      "v02Sha256": "2DD79544B976C8B65508D03DE173BCAC90A7FF3B38308C5D71ED991DADE09EC0",
+      "v01ArchiveRelativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/sprint/tactic_sprint_fx_sheet_v01.png",
+      "v01ArchiveSha256": "0AD520EC5CDCDAC651FCE6BC7D87C93CF3C656B0294CB0044869AA33C6328F65",
+      "sheetGrid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "cellSize": {
+        "width": 256,
+        "height": 256
+      },
+      "frameCount": 8
+    }
+  ],
+  "font": {
+    "relativePath": "ui/fonts/ui_font_cn_subset_v01.ttf",
+    "fontNamesFromActualFile": {
+      "family": "Wolf Sheep Battle UI CN Subset",
+      "subfamily": "Bold",
+      "fullName": "Wolf Sheep Battle UI CN Subset Bold",
+      "postScriptName": "WolfSheepBattleUICNSubset-Bold"
+    },
+    "characterCoverage": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~·×÷—‘’“”…ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹ、。〈〉《》【】一上下不中临为了于从伤位低作使依保修候值入兵内军出击到制前单即双取受口可名后命和四图在地均坐型基复大夺始害家小就局展巨已帧开式形必快忽态恢成战才执择挂指挥排控推操攻放效敌斗新方施无时最有未本术条标正步没法派消源灭点状狼玩生用界留略的破离种秒稍突立端第线给绪羊美群耗能节荡血行补要解计请资赖起超距路轻过运进退选通道释重量锁防需震非面须领！％（）＋，－：；？～￥",
+    "characterCount": 313,
+    "requiredCharacterSet": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~·×÷—‘’“”…ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹ、。〈〉《》【】一上下不中临为了于从伤位低作使依保修候值入兵内军出击到制前单即双取受口可名后命和四图在地均坐型基复大夺始害家小就局展巨已帧开式形必快忽态恢成战才执择挂指挥排控推操攻放效敌斗新方施无时最有未本术条标正步没法派消源灭点状狼玩生用界留略的破离种秒稍突立端第线给绪羊美群耗能节荡血行补要解计请资赖起超距路轻过运进退选通道释重量锁防需震非面须领！％（）＋，－：；？～￥",
+    "requiredCharacterCount": 313,
+    "missingRequiredCharacters": [],
+    "source": {
+      "originalFamily": "Noto Sans SC",
+      "staticWeight": 700,
+      "officialUrl": "https://github.com/google/fonts/tree/main/ofl/notosanssc"
+    },
+    "license": {
+      "name": "SIL Open Font License 1.1",
+      "relativePath": "ui/fonts/ui_font_cn_subset_v01_LICENSE.txt",
+      "sha256": "DFF15DAAEFB211203E732A5AC8781D5D7BC6ED1C4158ACBFCB25DA9E8AA1E796",
+      "diskBytes": 6747,
+      "licenseTextSignaturePresent": true
+    }
+  },
+  "replacementArchiveMappings": [
+    {
+      "currentRelativePath": "bases/ai/ai_base_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/bases_isometric_v01/bases/ai/ai_base_v01.png",
+          "sha256": "0313E8F962C4D1C63E5CF925D3DD6B4F7CE74AF9503D2DBA17C66CD04C1D223D",
+          "diskBytes": 1168105
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "bases/player/player_base_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/bases_isometric_v01/bases/player/player_base_v01.png",
+          "sha256": "7B26DAC93916D6145DBAED5893414C41675C448A8DA7A80EA37229F69C4A70A3",
+          "diskBytes": 1282055
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/sheep/giant/unit_sheep_giant_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_attack_sheet_v01.png",
+          "sha256": "BA33BE20DFF863E80B4192D7274895774DDC7B296B8EFB4EE4411503927BAF62",
+          "diskBytes": 1280299
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_death_sheet_v01.png",
+          "sha256": "BCAC62CB90A6C5F68A251429AACB01932E5EE382A8145FE66DDBB0F6347AB914",
+          "diskBytes": 1069429
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_hit_sheet_v01.png",
+          "sha256": "CD0C2BAFEAF21FA7320135B3A3969BBAC40E16616370F58F59FD89913F759C4C",
+          "diskBytes": 1539803
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_walk_sheet_v01.png",
+          "sha256": "C5161313B21BCAC868D63289CF4ADA0B8E7E2FD8ED3F2F497475EBD1976CF752",
+          "diskBytes": 1489398
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/giant/unit_sheep_giant_sheet.png",
+          "sha256": "E2C441012A2D5DB8B9BDF7073691F4DBC0FDB0E87DA6915449B1831D11EB03A4",
+          "diskBytes": 492575
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/sheep/large/unit_sheep_large_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_attack_sheet_v01.png",
+          "sha256": "9AD137B74CF2D7EF185D17B70880A1A6706663AF645E2DFF60E3A2B53DA6AC7B",
+          "diskBytes": 1402487
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_death_sheet_v01.png",
+          "sha256": "83431C65E7CF484835AFC782BEB5F3126C66B182393937BA8E03DAD047293618",
+          "diskBytes": 1005919
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_hit_sheet_v01.png",
+          "sha256": "6A8476E37F47101D9CAE019642EF91AF9842603DA0BC795A186115923F4C8E20",
+          "diskBytes": 1458618
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_walk_sheet_v01.png",
+          "sha256": "6D07E282D53C0DA3F167D5614D412BBDCFA2FEFEF645FA00CC55462D2125E8C9",
+          "diskBytes": 1675632
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/large/unit_sheep_large_sheet.png",
+          "sha256": "CEB30735B20F245AB1726714E16259059D046DC825AADC55FC8792D0F89A86CD",
+          "diskBytes": 366574
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/sheep/medium/unit_sheep_medium_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_attack_sheet_v01.png",
+          "sha256": "7057FB4D7CAE451153591DC9D779B14DAAD07FBEDC5C2FA8696A7DD3D5DB0819",
+          "diskBytes": 1118917
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_death_sheet_v01.png",
+          "sha256": "4D8E615A9B446C16F69B4FEF93F8F90F789D5062E604CA0A1940DEE43364E1CF",
+          "diskBytes": 1226778
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_hit_sheet_v01.png",
+          "sha256": "95747328FDCF46894DDE5DD7FBE231403A4063ACE91CCE43E365AEB6F1AE89AC",
+          "diskBytes": 1119108
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_walk_sheet_v01.png",
+          "sha256": "6C711DB90D540302A8181B177EC0B6488D4E55C345B5CCA547C205E142765A0E",
+          "diskBytes": 1678291
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/medium/unit_sheep_medium_sheet.png",
+          "sha256": "73456C6E72F3E4DA00436CCC7AECCE0759954EC24EECD50B067853B327565CA5",
+          "diskBytes": 200785
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/sheep/small/unit_sheep_small_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_attack_sheet_v01.png",
+          "sha256": "3F346E719A4DAF33948FBE66375B3A4DB2BAD36831CB97D48C184C80F882893C",
+          "diskBytes": 1237458
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_death_sheet_v01.png",
+          "sha256": "49DCA616789D933203E621C43F4388B4813CD4611C093966FB5AF2FE23DB9C7C",
+          "diskBytes": 789081
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_hit_sheet_v01.png",
+          "sha256": "021E7BB3115079B1E5A11C83D949C9F3B7EBEEEA2774BDB1F1BB1C0419C9493B",
+          "diskBytes": 1166946
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_walk_sheet_v01.png",
+          "sha256": "E466C9100326E67F5992F946EC64B56F42211378FE3C29F77EF54A98B26ED16D",
+          "diskBytes": 869263
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/small/unit_sheep_small_sheet.png",
+          "sha256": "9AE14C044FFA6C5402A1AC2CA9A56B31E9F3EE03F389150F9C4E6614B2B98AB5",
+          "diskBytes": 180956
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/wolf/giant/reference/giant_wolf_model_sheet_v03.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters/wolf/giant/reference/giant_wolf_model_sheet_v02.png",
+          "sha256": "11772F9F4AA7D7E590714C34EF9C4F9E03D78C44CDA6908F092B9147AB5EF39B",
+          "diskBytes": 1006537
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/wolf/giant/unit_wolf_giant_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_attack_sheet_v03.png",
+          "sha256": "FBEB15A92AA73BADEDE2926863EE87D1544FDFE63B165842233062FCDA8FEBB1",
+          "diskBytes": 1285826
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_death_sheet_v03.png",
+          "sha256": "2063CC468AE311CFB6F19A1DB195293B173C6C14845E54F2CA591BF9C9CB2FD5",
+          "diskBytes": 977273
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_hit_sheet_v03.png",
+          "sha256": "D8EBE3C92CA24824F5A8DA27E92C7714C01C1329919290EB1FC4A3F6F2256B6B",
+          "diskBytes": 1293128
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_walk_sheet_v03.png",
+          "sha256": "44035BF3F723ABC43081B69BC76E4F44E6FED605D89EB345DC53624164D81676",
+          "diskBytes": 1315398
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/giant/unit_wolf_giant_sheet.png",
+          "sha256": "656BF3DA35CB151D35D58165D39A643220BE0C838868C8B3CECC8CE08035B8A6",
+          "diskBytes": 483290
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/wolf/large/unit_wolf_large_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_attack_sheet_v01.png",
+          "sha256": "533B163886BD2D917746414B905AA5A73878774C530E9DD547531B52FF6FF3BC",
+          "diskBytes": 900951
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_death_sheet_v01.png",
+          "sha256": "490DFE0637576A828797FA2871D23B39C02773CB5AD3A5E39F8446683FACAA53",
+          "diskBytes": 1021824
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_hit_sheet_v01.png",
+          "sha256": "4BB333D5087D76079BC8025DAFCF5A216949A1177A6D56083FB514877334EA37",
+          "diskBytes": 1418488
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_walk_sheet_v01.png",
+          "sha256": "2F8734DA0A792BD61832B53F2573E1AF9169BBBCB0B5851069B4103943DA0F24",
+          "diskBytes": 1296110
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/large/unit_wolf_large_sheet.png",
+          "sha256": "31E874A1C1A47A1F16F231D3DD89EDFC95A672A7BFA2E1F4DCEBA50380C84DAF",
+          "diskBytes": 334451
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/wolf/medium/unit_wolf_medium_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_attack_sheet_v01.png",
+          "sha256": "D155ED656E9EAB90A687F34AE1F83C973DECA9FBE09FE8A543408F7C45A6058D",
+          "diskBytes": 1009472
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_death_sheet_v01.png",
+          "sha256": "6C8FB4F65BE77656FDF0855A6AF027A4CE96C757D51521AF6A3F379195CC8C56",
+          "diskBytes": 697577
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_hit_sheet_v01.png",
+          "sha256": "0A9A741C0077C3E37357DD55EFAABD1091ECFD0D921FED275E4A7377C465F01F",
+          "diskBytes": 1124770
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_walk_sheet_v01.png",
+          "sha256": "6F020544BEF7D6D4D740DE98E6B04FDE1DA09F9784FE73EA376BF9C73A9576FF",
+          "diskBytes": 1046694
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/medium/unit_wolf_medium_sheet.png",
+          "sha256": "6129CF69CD59CD42E67356016E038F99C079D09879996971480E2FB92E6B021C",
+          "diskBytes": 229480
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "characters/wolf/small/unit_wolf_small_sheet.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_attack_sheet_v01.png",
+          "sha256": "8176AC12C7CCB4BB311BA78B19FB2D2CB33CBC184C7BC24CF850653F367C6643",
+          "diskBytes": 1026429
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_death_sheet_v01.png",
+          "sha256": "A879EC8152569315D2FF1C8C6DAFC5A09995D7E4CDF99E242F8592015501CEAC",
+          "diskBytes": 933896
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_hit_sheet_v01.png",
+          "sha256": "0F1CB736AC90CB6AE4388C3C0F325D489177A10D7C6AC5AF54202D6D27D2C789",
+          "diskBytes": 842096
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_walk_sheet_v01.png",
+          "sha256": "0622EBE20E07BF3B631E1C94F3EBE54CF0EF369EEF7FACA83D1EF086EC9C36D3",
+          "diskBytes": 812607
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/small/unit_wolf_small_sheet.png",
+          "sha256": "C75EC5E4B981D075259B592BEADAE9BB906EF3FBEFCE4B9175B8D11F4AA82067",
+          "diskBytes": 190045
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "ui/unit_cards/giant/unit_card_giant_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/giant/unit_card_giant_v01.png",
+          "sha256": "9E22BF7948E016E57C9B3F28AEAD884672FAC8B2B814A206E6E07F658E04BBB0",
+          "diskBytes": 1339223
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "ui/unit_cards/large/unit_card_large_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/large/unit_card_large_v01.png",
+          "sha256": "BD0BA76907FBE3DADED2B59150D485BF825F2A3DD5650D1C6104BD91B3AC7CE1",
+          "diskBytes": 1272818
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "ui/unit_cards/medium/unit_card_medium_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/medium/unit_card_medium_v01.png",
+          "sha256": "E51175626547915F3FE431013973285F65C412803F7CB993B29F7298F8B6BFE6",
+          "diskBytes": 1229006
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "ui/unit_cards/small/unit_card_small_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/small/unit_card_small_v01.png",
+          "sha256": "E3870176F3A1F78EE56FE61B4270E528A61D3BF0352890F719890AA9EF8DBD94",
+          "diskBytes": 1166929
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/breakthrough/base_hit_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/breakthrough/base_hit_fx_sheet_v01.png",
+          "sha256": "6B329466E2FB927F60D56459510335F58B405E506A3033E196AF4F292F6930A7",
+          "diskBytes": 248470
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/breakthrough/breakthrough_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/breakthrough/breakthrough_fx_sheet_v01.png",
+          "sha256": "9B6D2C7DA4A127A7B28C5701223978F56478F3B59E326C0854CF11B9D2050887",
+          "diskBytes": 710671
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/combat/death/unit_disappear_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/death/unit_disappear_fx_sheet_v01.png",
+          "sha256": "37877075258F464F61EC192B1647AFF9CB699691D4DD6384C79DFA86D4B5FB19",
+          "diskBytes": 568452
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/combat/hit/hit_impact_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/hit/hit_impact_fx_sheet_v01.png",
+          "sha256": "2BF74C8B55A7FFA143BBCF0A937441C92640DD73034C8A38BC5A9CC765620BE8",
+          "diskBytes": 314621
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/combat/sheep_attack/sheep_attack_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/sheep_attack/sheep_attack_fx_sheet_v01.png",
+          "sha256": "5D5D5908D4B5276287A8F1ECEF26F7DAD3EF2A8A18DF8B70EF1B529AB75081E9",
+          "diskBytes": 505473
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/combat/wolf_attack/wolf_attack_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/wolf_attack/wolf_attack_fx_sheet_v01.png",
+          "sha256": "8ADB6E684E3D5236C60CD6B1BCCD7AE1B3C92CDE26C53D2ED6B82C8BB2D6C5A3",
+          "diskBytes": 522493
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/deploy/sheep/sheep_deploy_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/deploy/sheep/sheep_deploy_fx_sheet_v01.png",
+          "sha256": "4C13F60F2257B830DD112CDE6FBEBFCB5EA574B2C6780FF904529BEB0D527BBA",
+          "diskBytes": 611070
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/deploy/wolf/wolf_deploy_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/deploy/wolf/wolf_deploy_fx_sheet_v01.png",
+          "sha256": "81F5CAF12CF44CD3537DCCAA03E33661F30DBB94A4BB7C95C6B85196C5512560",
+          "diskBytes": 734221
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/movement/movement_dust_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/movement/movement_dust_fx_sheet_v01.png",
+          "sha256": "9CD9B28689171AD4C8E88193AC692B1CCCF91BEA85FC3DAD64D4E881BFF8AAE3",
+          "diskBytes": 168543
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/tactics/heal/tactic_heal_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/heal/tactic_heal_fx_sheet_v01.png",
+          "sha256": "3EA3632A7EA6803116A4D5D9913B3E16354E2D57F0045B34215CB01F42427EE3",
+          "diskBytes": 500685
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/tactics/shock/tactic_shock_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/shock/tactic_shock_fx_sheet_v01.png",
+          "sha256": "11625D7AD0C1A0CC8AD9B152D421F4894A714C922FC3C3BA9F3283B559E2F5FD",
+          "diskBytes": 536260
+        }
+      ]
+    },
+    {
+      "currentRelativePath": "vfx/tactics/sprint/tactic_sprint_fx_sheet_v02.png",
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/sprint/tactic_sprint_fx_sheet_v01.png",
+          "sha256": "0AD520EC5CDCDAC651FCE6BC7D87C93CF3C656B0294CB0044869AA33C6328F65",
+          "diskBytes": 384988
+        }
+      ]
+    }
+  ],
+  "archiveCoverage": {
+    "archiveFilesObserved": 59,
+    "archiveFilesMappedAsPredecessors": 59,
+    "unmappedArchiveFiles": []
+  },
+  "resources": [
+    {
+      "relativePath": "backgrounds/battlefield/battle_background_v01.png",
+      "projectRelativePath": "art_source/backgrounds/battlefield/battle_background_v01.png",
+      "purpose": "???????",
+      "fileFormat": "PNG",
+      "width": 1672,
+      "height": 941,
+      "sha256": "EDD5C8E228155E2D1365F24D18FB6CE4BA9FEB8E99876BA5F964D98963B11597",
+      "diskBytes": 1795799,
+      "decodedRgbaBytes": 6293408,
+      "decodedRgbaMiB": 6.001862,
+      "kind": "image",
+      "sourceColorMode": "RGB",
+      "alpha": {
+        "sourceHasAlphaChannel": false,
+        "minimum": 255,
+        "maximum": 255,
+        "containsTransparentPixels": false
+      }
+    },
+    {
+      "relativePath": "bases/ai/ai_base_v02.png",
+      "projectRelativePath": "art_source/bases/ai/ai_base_v02.png",
+      "purpose": "AI????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 384,
+      "sha256": "63562A1B99E9B43D779BD84F3D0C3017306DF195626FCEC7E062A67181847D6B",
+      "diskBytes": 491537,
+      "decodedRgbaBytes": 1572864,
+      "decodedRgbaMiB": 1.5,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/bases_isometric_v01/bases/ai/ai_base_v01.png",
+          "sha256": "0313E8F962C4D1C63E5CF925D3DD6B4F7CE74AF9503D2DBA17C66CD04C1D223D",
+          "diskBytes": 1168105
+        }
+      ]
+    },
+    {
+      "relativePath": "bases/player/player_base_v02.png",
+      "projectRelativePath": "art_source/bases/player/player_base_v02.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 384,
+      "sha256": "C72B06C000858511B3BC5C512BB9894B8A034F2C29679EE74053348803627DC8",
+      "diskBytes": 454588,
+      "decodedRgbaBytes": 1572864,
+      "decodedRgbaMiB": 1.5,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/bases_isometric_v01/bases/player/player_base_v01.png",
+          "sha256": "7B26DAC93916D6145DBAED5893414C41675C448A8DA7A80EA37229F69C4A70A3",
+          "diskBytes": 1282055
+        }
+      ]
+    },
+    {
+      "relativePath": "battlefield/roads/lane_border_v01.png",
+      "projectRelativePath": "art_source/battlefield/roads/lane_border_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "F8B5DA2D8DAC01C79ED055535991AA7A3622841AC948D735A9D0EF3AFE113A97",
+      "diskBytes": 1111939,
+      "decodedRgbaBytes": 6291456,
+      "decodedRgbaMiB": 6.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/roads/lane_floor_v01.png",
+      "projectRelativePath": "art_source/battlefield/roads/lane_floor_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "E2B6F579AB52D7E9984958785D2CC0AC7E67BD6AE51443C36EF732434F7EE0CA",
+      "diskBytes": 639117,
+      "decodedRgbaBytes": 6291456,
+      "decodedRgbaMiB": 6.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/roads/road_lane_01_v02.png",
+      "projectRelativePath": "art_source/battlefield/roads/road_lane_01_v02.png",
+      "purpose": "?????01???",
+      "fileFormat": "PNG",
+      "width": 360,
+      "height": 1030,
+      "sha256": "85B7EEF1E5282ECB0F6F94F7108AA74881C2325A63CE3B6FF6643079282227D1",
+      "diskBytes": 547354,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.41449,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/roads/road_lane_02_v02.png",
+      "projectRelativePath": "art_source/battlefield/roads/road_lane_02_v02.png",
+      "purpose": "?????02???",
+      "fileFormat": "PNG",
+      "width": 360,
+      "height": 1030,
+      "sha256": "E9A89F2201A82447A94D2115999AB4DE93DB4A57283FAE9D08081B508A913980",
+      "diskBytes": 527317,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.41449,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/roads/road_lane_03_v02.png",
+      "projectRelativePath": "art_source/battlefield/roads/road_lane_03_v02.png",
+      "purpose": "?????03???",
+      "fileFormat": "PNG",
+      "width": 360,
+      "height": 1030,
+      "sha256": "81E00DD75AAD4F13CED9C71A3EFA6E0B14DEFE2992DBDCC6CA226045FC013BF3",
+      "diskBytes": 527287,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.41449,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/roads/road_lane_04_v02.png",
+      "projectRelativePath": "art_source/battlefield/roads/road_lane_04_v02.png",
+      "purpose": "?????04???",
+      "fileFormat": "PNG",
+      "width": 360,
+      "height": 1030,
+      "sha256": "22DBB092EAE1CEAC3424AFC79F0D857B17FD584F66167A3EB79EB58E57BDF5DD",
+      "diskBytes": 534570,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.41449,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/spawn/ai/ai_spawn_gate_states_v01.png",
+      "projectRelativePath": "art_source/battlefield/spawn/ai/ai_spawn_gate_states_v01.png",
+      "purpose": "AI?????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "7ACD09842772420EEBB96CF2A4C27A4E5456661BC7C7D9A7C6D2CE48CE0E8CAD",
+      "diskBytes": 430636,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "state_1",
+          "state_2",
+          "state_3",
+          "state_4"
+        ],
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "battlefield/spawn/ai/ai_spawn_gate_v01.png",
+      "projectRelativePath": "art_source/battlefield/spawn/ai/ai_spawn_gate_v01.png",
+      "purpose": "AI???????",
+      "fileFormat": "PNG",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "0A2CB049783873F43896D61ECEE8BCFEA7A5018B4B2972F3CB8EE3EB69145F0A",
+      "diskBytes": 962691,
+      "decodedRgbaBytes": 6291456,
+      "decodedRgbaMiB": 6.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/spawn/player/player_spawn_gate_states_v01.png",
+      "projectRelativePath": "art_source/battlefield/spawn/player/player_spawn_gate_states_v01.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "53D377F082BFFB21C42179E51D5FF2B423AEB10CEC3DB0540F6E0219E9583DA7",
+      "diskBytes": 431659,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "state_1",
+          "state_2",
+          "state_3",
+          "state_4"
+        ],
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "battlefield/spawn/player/player_spawn_gate_v01.png",
+      "projectRelativePath": "art_source/battlefield/spawn/player/player_spawn_gate_v01.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "F9F83A2AEF4AC1EADA173AA29FE1360208C96E88E4533C8DC87CB63B33868972",
+      "diskBytes": 759374,
+      "decodedRgbaBytes": 6291456,
+      "decodedRgbaMiB": 6.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "battlefield/supply_points/supply_point_states_v01.png",
+      "projectRelativePath": "art_source/battlefield/supply_points/supply_point_states_v01.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "3288300FBC6379B9F461108CEBDE9FB09B2182FAACA14198B715519A53170850",
+      "diskBytes": 349313,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "state_1",
+          "state_2",
+          "state_3",
+          "state_4"
+        ],
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "battlefield/supply_points/supply_point_v01.png",
+      "projectRelativePath": "art_source/battlefield/supply_points/supply_point_v01.png",
+      "purpose": "???????",
+      "fileFormat": "PNG",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "5DC9BC9686E723CD546E3090403F40EBE5848B9A6919A389E02ACE3EE06740EA",
+      "diskBytes": 853929,
+      "decodedRgbaBytes": 6291456,
+      "decodedRgbaMiB": 6.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "branding/loading/loading_background_v01.png",
+      "projectRelativePath": "art_source/branding/loading/loading_background_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 2560,
+      "height": 1440,
+      "sha256": "2D92993D7625819D67D8E11EAA310910C2F16AD432840476DC1E756A22215F0E",
+      "diskBytes": 6574786,
+      "decodedRgbaBytes": 14745600,
+      "decodedRgbaMiB": 14.0625,
+      "kind": "image",
+      "sourceColorMode": "RGB",
+      "alpha": {
+        "sourceHasAlphaChannel": false,
+        "minimum": 255,
+        "maximum": 255,
+        "containsTransparentPixels": false
+      }
+    },
+    {
+      "relativePath": "branding/loading/loading_bar_frame_v01.png",
+      "projectRelativePath": "art_source/branding/loading/loading_bar_frame_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 192,
+      "sha256": "2D93C926092967B833FAA4087BAF1B7D737B28FCC9C67733BF6806A6EE2C15E8",
+      "diskBytes": 146147,
+      "decodedRgbaBytes": 786432,
+      "decodedRgbaMiB": 0.75,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "branding/loading/loading_mascot_sheet_v01.png",
+      "projectRelativePath": "art_source/branding/loading/loading_mascot_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 2048,
+      "height": 256,
+      "sha256": "CFAA60BD6D3CD0A4DE36E83E46AE955E7A27B86A725411A8D236EFD6D9F2244B",
+      "diskBytes": 255009,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "loading_1",
+          "loading_2",
+          "loading_3",
+          "loading_4",
+          "loading_5",
+          "loading_6",
+          "loading_7",
+          "loading_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "branding/loading/loading_mascot_sheet_v02.png",
+      "projectRelativePath": "art_source/branding/loading/loading_mascot_sheet_v02.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 2048,
+      "height": 256,
+      "sha256": "91B5FD2FC9BD515319025FDB93A4DBBE16AF2AEC8B473F037CAEB2A55B44265A",
+      "diskBytes": 133398,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "loading_1",
+          "loading_2",
+          "loading_3",
+          "loading_4",
+          "loading_5",
+          "loading_6",
+          "loading_7",
+          "loading_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "replacesRetainedPath": "branding/loading/loading_mascot_sheet_v01.png"
+    },
+    {
+      "relativePath": "branding/logo/game_logo_emblem_v01.png",
+      "projectRelativePath": "art_source/branding/logo/game_logo_emblem_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1536,
+      "height": 1536,
+      "sha256": "E6C4E41BE303FDA113C029A86D1E71EB90BA4925A5C7945476494B01FD275562",
+      "diskBytes": 3727505,
+      "decodedRgbaBytes": 9437184,
+      "decodedRgbaMiB": 9.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "branding/logo/game_logo_wordmark_v01.png",
+      "projectRelativePath": "art_source/branding/logo/game_logo_wordmark_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 2048,
+      "height": 1024,
+      "sha256": "7E469074FA65C6F4C2BC8F3FB5138AB48F7A0A6D38AD843D7BF7E04A287BFB2D",
+      "diskBytes": 2016767,
+      "decodedRgbaBytes": 8388608,
+      "decodedRgbaMiB": 8.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "branding/splash/splash_screen_v01.png",
+      "projectRelativePath": "art_source/branding/splash/splash_screen_v01.png",
+      "purpose": "????",
+      "fileFormat": "PNG",
+      "width": 2560,
+      "height": 1440,
+      "sha256": "7B39C7F20A33BDA226B170378AC3B43F7CA8C585D2BD08A044CA385A8FDF5DB3",
+      "diskBytes": 7095547,
+      "decodedRgbaBytes": 14745600,
+      "decodedRgbaMiB": 14.0625,
+      "kind": "image",
+      "sourceColorMode": "RGB",
+      "alpha": {
+        "sourceHasAlphaChannel": false,
+        "minimum": 255,
+        "maximum": 255,
+        "containsTransparentPixels": false
+      }
+    },
+    {
+      "relativePath": "characters/sheep/giant/animation/giant_sheep_idle_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/giant/animation/giant_sheep_idle_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "5B024D9A7956C5C3D418FC0B1E42657ACE375F9191BD16D5F358B20F19A6F27C",
+      "diskBytes": 282194,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/sheep/giant/reference/giant_sheep_model_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/giant/reference/giant_sheep_model_sheet_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "4E17B07AFA3CF7350A01128FCF1BCCD7A35C60C827B47F6F4A5FE0336360CA2B",
+      "diskBytes": 1270593,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "characters/sheep/giant/unit_sheep_giant_sheet.png",
+      "projectRelativePath": "art_source/characters/sheep/giant/unit_sheep_giant_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1536,
+      "height": 768,
+      "sha256": "5C2B77D9B6BF5871158B167EFD7CAE2E24B4038DC64A566EB9F18DBE3E4BBE60",
+      "diskBytes": 522971,
+      "decodedRgbaBytes": 4718592,
+      "decodedRgbaMiB": 4.5,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 192,
+        "cellHeight": 192,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "up",
+        "cameraView": "3/4 rear",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_attack_sheet_v01.png",
+          "sha256": "BA33BE20DFF863E80B4192D7274895774DDC7B296B8EFB4EE4411503927BAF62",
+          "diskBytes": 1280299
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_death_sheet_v01.png",
+          "sha256": "BCAC62CB90A6C5F68A251429AACB01932E5EE382A8145FE66DDBB0F6347AB914",
+          "diskBytes": 1069429
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_hit_sheet_v01.png",
+          "sha256": "CD0C2BAFEAF21FA7320135B3A3969BBAC40E16616370F58F59FD89913F759C4C",
+          "diskBytes": 1539803
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_walk_sheet_v01.png",
+          "sha256": "C5161313B21BCAC868D63289CF4ADA0B8E7E2FD8ED3F2F497475EBD1976CF752",
+          "diskBytes": 1489398
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/giant/unit_sheep_giant_sheet.png",
+          "sha256": "E2C441012A2D5DB8B9BDF7073691F4DBC0FDB0E87DA6915449B1831D11EB03A4",
+          "diskBytes": 492575
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/sheep/large/animation/large_sheep_idle_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/large/animation/large_sheep_idle_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "5B3E20FCA5DAF33AE5024E3839B93B47672E14341645C4F42BEF5BB431BBC1FE",
+      "diskBytes": 302598,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/sheep/large/reference/large_sheep_model_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/large/reference/large_sheep_model_sheet_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "F0D8D79FA118BC1256F5BC0D6C98B6C33CE5A165E63E57C08FC64C11AC305D49",
+      "diskBytes": 1148002,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "characters/sheep/large/unit_sheep_large_sheet.png",
+      "projectRelativePath": "art_source/characters/sheep/large/unit_sheep_large_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1280,
+      "height": 640,
+      "sha256": "D86CEB80B3C0D92CF0FE81231B4533A97E6C4EE63916D5FA264E880AA594AF47",
+      "diskBytes": 408802,
+      "decodedRgbaBytes": 3276800,
+      "decodedRgbaMiB": 3.125,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 160,
+        "cellHeight": 160,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "up",
+        "cameraView": "3/4 rear",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_attack_sheet_v01.png",
+          "sha256": "9AD137B74CF2D7EF185D17B70880A1A6706663AF645E2DFF60E3A2B53DA6AC7B",
+          "diskBytes": 1402487
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_death_sheet_v01.png",
+          "sha256": "83431C65E7CF484835AFC782BEB5F3126C66B182393937BA8E03DAD047293618",
+          "diskBytes": 1005919
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_hit_sheet_v01.png",
+          "sha256": "6A8476E37F47101D9CAE019642EF91AF9842603DA0BC795A186115923F4C8E20",
+          "diskBytes": 1458618
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_walk_sheet_v01.png",
+          "sha256": "6D07E282D53C0DA3F167D5614D412BBDCFA2FEFEF645FA00CC55462D2125E8C9",
+          "diskBytes": 1675632
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/large/unit_sheep_large_sheet.png",
+          "sha256": "CEB30735B20F245AB1726714E16259059D046DC825AADC55FC8792D0F89A86CD",
+          "diskBytes": 366574
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/sheep/medium/animation/medium_sheep_idle_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/medium/animation/medium_sheep_idle_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "D8D69D398D4BD283F9B2048F39C4E26489E04AC75E30A7D5FE877BEAF82AD81D",
+      "diskBytes": 269313,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/sheep/medium/reference/medium_sheep_model_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/medium/reference/medium_sheep_model_sheet_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "036232C66A941B0CE412D96EEAF9E99574C6AC5448C7DE9AEB86B1CD4BE70B2B",
+      "diskBytes": 955765,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "characters/sheep/medium/unit_sheep_medium_sheet.png",
+      "projectRelativePath": "art_source/characters/sheep/medium/unit_sheep_medium_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "5C07F144D244FB3214271BC1A2F210C467A86E6511679C6634472BC5007EF1C0",
+      "diskBytes": 247680,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 128,
+        "cellHeight": 128,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "up",
+        "cameraView": "3/4 rear",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_attack_sheet_v01.png",
+          "sha256": "7057FB4D7CAE451153591DC9D779B14DAAD07FBEDC5C2FA8696A7DD3D5DB0819",
+          "diskBytes": 1118917
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_death_sheet_v01.png",
+          "sha256": "4D8E615A9B446C16F69B4FEF93F8F90F789D5062E604CA0A1940DEE43364E1CF",
+          "diskBytes": 1226778
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_hit_sheet_v01.png",
+          "sha256": "95747328FDCF46894DDE5DD7FBE231403A4063ACE91CCE43E365AEB6F1AE89AC",
+          "diskBytes": 1119108
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_walk_sheet_v01.png",
+          "sha256": "6C711DB90D540302A8181B177EC0B6488D4E55C345B5CCA547C205E142765A0E",
+          "diskBytes": 1678291
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/medium/unit_sheep_medium_sheet.png",
+          "sha256": "73456C6E72F3E4DA00436CCC7AECCE0759954EC24EECD50B067853B327565CA5",
+          "diskBytes": 200785
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/sheep/small/animation/small_sheep_idle_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/small/animation/small_sheep_idle_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "8AF5C65B09359E31DB6972A17DEEB08AE3A62FB48B617E15D9EAAF88067F1804",
+      "diskBytes": 211204,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/sheep/small/reference/small_sheep_model_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/sheep/small/reference/small_sheep_model_sheet_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "774AAC573FAF7236825856A16AD5AC9EFB1D9479145CA6F209AB4FA937616266",
+      "diskBytes": 1419135,
+      "decodedRgbaBytes": 6290064,
+      "decodedRgbaMiB": 5.998672,
+      "kind": "image",
+      "sourceColorMode": "RGB",
+      "alpha": {
+        "sourceHasAlphaChannel": false,
+        "minimum": 255,
+        "maximum": 255,
+        "containsTransparentPixels": false
+      }
+    },
+    {
+      "relativePath": "characters/sheep/small/unit_sheep_small_sheet.png",
+      "projectRelativePath": "art_source/characters/sheep/small/unit_sheep_small_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "051ADEB4BF333F6F17A666D708215A4C09A0F687E37FB034437AB9EB825ACA64",
+      "diskBytes": 196060,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 128,
+        "cellHeight": 128,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "up",
+        "cameraView": "3/4 rear",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_attack_sheet_v01.png",
+          "sha256": "3F346E719A4DAF33948FBE66375B3A4DB2BAD36831CB97D48C184C80F882893C",
+          "diskBytes": 1237458
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_death_sheet_v01.png",
+          "sha256": "49DCA616789D933203E621C43F4388B4813CD4611C093966FB5AF2FE23DB9C7C",
+          "diskBytes": 789081
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_hit_sheet_v01.png",
+          "sha256": "021E7BB3115079B1E5A11C83D949C9F3B7EBEEEA2774BDB1F1BB1C0419C9493B",
+          "diskBytes": 1166946
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_walk_sheet_v01.png",
+          "sha256": "E466C9100326E67F5992F946EC64B56F42211378FE3C29F77EF54A98B26ED16D",
+          "diskBytes": 869263
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/sheep/small/unit_sheep_small_sheet.png",
+          "sha256": "9AE14C044FFA6C5402A1AC2CA9A56B31E9F3EE03F389150F9C4E6614B2B98AB5",
+          "diskBytes": 180956
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/wolf/giant/animation/giant_wolf_idle_sheet_v03.png",
+      "projectRelativePath": "art_source/characters/wolf/giant/animation/giant_wolf_idle_sheet_v03.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "CB0B8A05D003A69AD19EA0F11EA64695CDB4E9821B1F80C810AEBABE21DDFD4E",
+      "diskBytes": 215647,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/wolf/giant/reference/giant_wolf_model_sheet_v03.png",
+      "projectRelativePath": "art_source/characters/wolf/giant/reference/giant_wolf_model_sheet_v03.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 2048,
+      "height": 2048,
+      "sha256": "1015B8254625467A27E1C2B46FD0FB603410F6F5693015809654FB9AE501DC36",
+      "diskBytes": 2433813,
+      "decodedRgbaBytes": 16777216,
+      "decodedRgbaMiB": 16.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters/wolf/giant/reference/giant_wolf_model_sheet_v02.png",
+          "sha256": "11772F9F4AA7D7E590714C34EF9C4F9E03D78C44CDA6908F092B9147AB5EF39B",
+          "diskBytes": 1006537
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/wolf/giant/unit_wolf_giant_sheet.png",
+      "projectRelativePath": "art_source/characters/wolf/giant/unit_wolf_giant_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1536,
+      "height": 768,
+      "sha256": "75F41BA4CA978BB74903B040EA5A6537C6D521A2541406320C513348B5F409C4",
+      "diskBytes": 484893,
+      "decodedRgbaBytes": 4718592,
+      "decodedRgbaMiB": 4.5,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 192,
+        "cellHeight": 192,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "down",
+        "cameraView": "front-biased 3/4",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_attack_sheet_v03.png",
+          "sha256": "FBEB15A92AA73BADEDE2926863EE87D1544FDFE63B165842233062FCDA8FEBB1",
+          "diskBytes": 1285826
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_death_sheet_v03.png",
+          "sha256": "2063CC468AE311CFB6F19A1DB195293B173C6C14845E54F2CA591BF9C9CB2FD5",
+          "diskBytes": 977273
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_hit_sheet_v03.png",
+          "sha256": "D8EBE3C92CA24824F5A8DA27E92C7714C01C1329919290EB1FC4A3F6F2256B6B",
+          "diskBytes": 1293128
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_walk_sheet_v03.png",
+          "sha256": "44035BF3F723ABC43081B69BC76E4F44E6FED605D89EB345DC53624164D81676",
+          "diskBytes": 1315398
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/giant/unit_wolf_giant_sheet.png",
+          "sha256": "656BF3DA35CB151D35D58165D39A643220BE0C838868C8B3CECC8CE08035B8A6",
+          "diskBytes": 483290
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/wolf/large/animation/large_wolf_idle_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/wolf/large/animation/large_wolf_idle_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "B5F92372988A37E4AB089B43F15D231B91D83D91A22725FCDC9CAE66BA3314AB",
+      "diskBytes": 217692,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/wolf/large/reference/large_wolf_model_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/wolf/large/reference/large_wolf_model_sheet_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "F8C2052914C206F6136659EFDE50BFA5465EBC92BE1CA1BF239746248819E5A6",
+      "diskBytes": 985243,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "characters/wolf/large/unit_wolf_large_sheet.png",
+      "projectRelativePath": "art_source/characters/wolf/large/unit_wolf_large_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1280,
+      "height": 640,
+      "sha256": "7EFF81A911ACC85C640EB311A8E31BB223B21F606A065A7AF6DDBD14BEF59ACF",
+      "diskBytes": 359305,
+      "decodedRgbaBytes": 3276800,
+      "decodedRgbaMiB": 3.125,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 160,
+        "cellHeight": 160,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "down",
+        "cameraView": "front-biased 3/4",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_attack_sheet_v01.png",
+          "sha256": "533B163886BD2D917746414B905AA5A73878774C530E9DD547531B52FF6FF3BC",
+          "diskBytes": 900951
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_death_sheet_v01.png",
+          "sha256": "490DFE0637576A828797FA2871D23B39C02773CB5AD3A5E39F8446683FACAA53",
+          "diskBytes": 1021824
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_hit_sheet_v01.png",
+          "sha256": "4BB333D5087D76079BC8025DAFCF5A216949A1177A6D56083FB514877334EA37",
+          "diskBytes": 1418488
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_walk_sheet_v01.png",
+          "sha256": "2F8734DA0A792BD61832B53F2573E1AF9169BBBCB0B5851069B4103943DA0F24",
+          "diskBytes": 1296110
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/large/unit_wolf_large_sheet.png",
+          "sha256": "31E874A1C1A47A1F16F231D3DD89EDFC95A672A7BFA2E1F4DCEBA50380C84DAF",
+          "diskBytes": 334451
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/wolf/medium/animation/medium_wolf_idle_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/wolf/medium/animation/medium_wolf_idle_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "B80EA74D912E728695C2FA2E38C3D1AD2B709B5625670E28ABE930845BA3A325",
+      "diskBytes": 174283,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/wolf/medium/reference/medium_wolf_model_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/wolf/medium/reference/medium_wolf_model_sheet_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "B46AB7FB69E5C7C34ACB3FC616412C4F465FA4D2693687CCC7CA3C8E6663D2C8",
+      "diskBytes": 892489,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "characters/wolf/medium/unit_wolf_medium_sheet.png",
+      "projectRelativePath": "art_source/characters/wolf/medium/unit_wolf_medium_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "1B8F94F072EE0B2E5AA0DDA283B6B2AC9BCCB0EA5EB8999F78E5A15CEFEB0521",
+      "diskBytes": 257333,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 128,
+        "cellHeight": 128,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "down",
+        "cameraView": "front-biased 3/4",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_attack_sheet_v01.png",
+          "sha256": "D155ED656E9EAB90A687F34AE1F83C973DECA9FBE09FE8A543408F7C45A6058D",
+          "diskBytes": 1009472
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_death_sheet_v01.png",
+          "sha256": "6C8FB4F65BE77656FDF0855A6AF027A4CE96C757D51521AF6A3F379195CC8C56",
+          "diskBytes": 697577
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_hit_sheet_v01.png",
+          "sha256": "0A9A741C0077C3E37357DD55EFAABD1091ECFD0D921FED275E4A7377C465F01F",
+          "diskBytes": 1124770
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_walk_sheet_v01.png",
+          "sha256": "6F020544BEF7D6D4D740DE98E6B04FDE1DA09F9784FE73EA376BF9C73A9576FF",
+          "diskBytes": 1046694
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/medium/unit_wolf_medium_sheet.png",
+          "sha256": "6129CF69CD59CD42E67356016E038F99C079D09879996971480E2FB92E6B021C",
+          "diskBytes": 229480
+        }
+      ]
+    },
+    {
+      "relativePath": "characters/wolf/small/animation/small_wolf_idle_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/wolf/small/animation/small_wolf_idle_sheet_v01.png",
+      "purpose": "????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "6F36C9033A069D8F52FE8CD07C3EFA86EA552D1A9075C9D7AB40845563343DBD",
+      "diskBytes": 157134,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 4,
+        "frameCount": 4,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4"
+        ],
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ]
+        },
+        "detectedNonEmptyFrameCount": 4,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "characters/wolf/small/reference/small_wolf_model_sheet_v01.png",
+      "projectRelativePath": "art_source/characters/wolf/small/reference/small_wolf_model_sheet_v01.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "3F67C5831DFECAE9880761188EA415E39BCB9B6FAF8B3C27A4BEE6E66E438EB1",
+      "diskBytes": 1288524,
+      "decodedRgbaBytes": 6290064,
+      "decodedRgbaMiB": 5.998672,
+      "kind": "image",
+      "sourceColorMode": "RGB",
+      "alpha": {
+        "sourceHasAlphaChannel": false,
+        "minimum": 255,
+        "maximum": 255,
+        "containsTransparentPixels": false
+      }
+    },
+    {
+      "relativePath": "characters/wolf/small/unit_wolf_small_sheet.png",
+      "projectRelativePath": "art_source/characters/wolf/small/unit_wolf_small_sheet.png",
+      "purpose": "??????????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "6C820FAB7CA8F5FA8F1AADF2804B22EF23CF5D6ADE5FCA780508F74D057518FC",
+      "diskBytes": 221483,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 8,
+        "rows": 4,
+        "cellWidth": 128,
+        "cellHeight": 128,
+        "capacity": 32,
+        "frameCount": 23,
+        "frameOrder": [
+          "idle_1",
+          "idle_2",
+          "idle_3",
+          "idle_4",
+          "move_1",
+          "move_2",
+          "move_3",
+          "move_4",
+          "move_5",
+          "move_6",
+          "attack_1",
+          "attack_2",
+          "attack_3",
+          "attack_4",
+          "attack_5",
+          "hit_1",
+          "hit_2",
+          "death_1",
+          "death_2",
+          "death_3",
+          "death_4",
+          "death_5",
+          "death_6"
+        ],
+        "transparentCellCount": 9,
+        "characterAnchor": {
+          "imageFootBaselineRatioFromTop": 0.82,
+          "normalizedFootPoint": [
+            0.5,
+            0.82
+          ],
+          "cocosAnchorForFutureIntegration": [
+            0.5,
+            0.42
+          ],
+          "maximumMeasuredBaselineErrorPx": null
+        },
+        "movementDirection": "down",
+        "cameraView": "front-biased 3/4",
+        "detectedNonEmptyFrameCount": 23,
+        "detectedTransparentCellCount": 9,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_attack_sheet_v01.png",
+          "sha256": "8176AC12C7CCB4BB311BA78B19FB2D2CB33CBC184C7BC24CF850653F367C6643",
+          "diskBytes": 1026429
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_death_sheet_v01.png",
+          "sha256": "A879EC8152569315D2FF1C8C6DAFC5A09995D7E4CDF99E242F8592015501CEAC",
+          "diskBytes": 933896
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_hit_sheet_v01.png",
+          "sha256": "0F1CB736AC90CB6AE4388C3C0F325D489177A10D7C6AC5AF54202D6D27D2C789",
+          "diskBytes": 842096
+        },
+        {
+          "relativePath": "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_walk_sheet_v01.png",
+          "sha256": "0622EBE20E07BF3B631E1C94F3EBE54CF0EF369EEF7FACA83D1EF086EC9C36D3",
+          "diskBytes": 812607
+        },
+        {
+          "relativePath": "art_source/_archive/characters_master_art02_scale_mismatch/characters/wolf/small/unit_wolf_small_sheet.png",
+          "sha256": "C75EC5E4B981D075259B592BEADAE9BB906EF3FBEFCE4B9175B8D11F4AA82067",
+          "diskBytes": 190045
+        }
+      ]
+    },
+    {
+      "relativePath": "ui/common/audio/bgm_next_button_v01.png",
+      "projectRelativePath": "art_source/ui/common/audio/bgm_next_button_v01.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "B282F0ECDC44348A2E2822422788190956DA1BBA33F9C4A3D2F00FAAB26A908B",
+      "diskBytes": 69920,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/audio/bgm_previous_button_v01.png",
+      "projectRelativePath": "art_source/ui/common/audio/bgm_previous_button_v01.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "F2CABF367ED298B994062ECAC746FEBDA2DD70352C9E81C494F4F39A232C92CC",
+      "diskBytes": 70050,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/audio/bgm_selector_panel_v01.png",
+      "projectRelativePath": "art_source/ui/common/audio/bgm_selector_panel_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 320,
+      "sha256": "14FFDE8E6DB5D62FB2D279A1A762169F7881F3A5B222B4FE066E17B12A65DAF3",
+      "diskBytes": 261862,
+      "decodedRgbaBytes": 1310720,
+      "decodedRgbaMiB": 1.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/audio/music_icon_v01.png",
+      "projectRelativePath": "art_source/ui/common/audio/music_icon_v01.png",
+      "purpose": "????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "5A5CFD9F3E84AC24DA76B4628DB8B2A4640C48B66213A88584C94B2ED15544E9",
+      "diskBytes": 50397,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/audio/sfx_icon_v01.png",
+      "projectRelativePath": "art_source/ui/common/audio/sfx_icon_v01.png",
+      "purpose": "????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "8B402327559CEFD2C43BF99D4AEF552A107AEB48A54CF9BAC20858AC81DA9FA6",
+      "diskBytes": 46722,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/audio/volume_slider_knob_v01.png",
+      "projectRelativePath": "art_source/ui/common/audio/volume_slider_knob_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "D3FB7DADF3C283DF2171457F771892C01519C7935D256CB5BDA501E9B896707A",
+      "diskBytes": 63997,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/audio/volume_slider_track_v01.png",
+      "projectRelativePath": "art_source/ui/common/audio/volume_slider_track_v01.png",
+      "purpose": "????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 192,
+      "sha256": "4C95AA55DD3A5E8EC1FF7F5014B756C7C1F2A8AB16FADECC2F568D8C6754FAA5",
+      "diskBytes": 117132,
+      "decodedRgbaBytes": 786432,
+      "decodedRgbaMiB": 0.75,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/buttons/button_close_v01.png",
+      "projectRelativePath": "art_source/ui/common/buttons/button_close_v01.png",
+      "purpose": "????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "D7A78DA7D4C4935C21E74EDF60DF1C73CE007693EFC836CEF8C87BDA4B987C99",
+      "diskBytes": 66831,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/buttons/button_primary_v01.png",
+      "projectRelativePath": "art_source/ui/common/buttons/button_primary_v01.png",
+      "purpose": "?????",
+      "fileFormat": "PNG",
+      "width": 768,
+      "height": 256,
+      "sha256": "CEAA1C688736DC65E46DF37A504955B4BE73473592ABADAAFB701C71842A0168",
+      "diskBytes": 131896,
+      "decodedRgbaBytes": 786432,
+      "decodedRgbaMiB": 0.75,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/buttons/button_secondary_v01.png",
+      "projectRelativePath": "art_source/ui/common/buttons/button_secondary_v01.png",
+      "purpose": "?????",
+      "fileFormat": "PNG",
+      "width": 768,
+      "height": 256,
+      "sha256": "FADDCA7B1129189DC3762E83E93AE9E168E291C61A303D2F3D011D42232DB15A",
+      "diskBytes": 141407,
+      "decodedRgbaBytes": 786432,
+      "decodedRgbaMiB": 0.75,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/buttons/button_warning_v01.png",
+      "projectRelativePath": "art_source/ui/common/buttons/button_warning_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 768,
+      "height": 256,
+      "sha256": "05DC54A2303C0AD1B56736B1B978651A4CAFC2E37FE6552F4FAE4AC119B21E67",
+      "diskBytes": 149418,
+      "decodedRgbaBytes": 786432,
+      "decodedRgbaMiB": 0.75,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/pause/pause_button_v01.png",
+      "projectRelativePath": "art_source/ui/common/pause/pause_button_v01.png",
+      "purpose": "????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "1CD1306F676A20C28F4267AFCD325A4FA935CF9D0C80C7706B52D2C78E09E9D7",
+      "diskBytes": 63328,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/common/pause/pause_panel_v01.png",
+      "projectRelativePath": "art_source/ui/common/pause/pause_panel_v01.png",
+      "purpose": "????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "4BECD60C59C9F53B4D73701493E7D3424E1E00C4DB19559E1E0FBC4C561995B7",
+      "diskBytes": 1119189,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/fonts/ui_font_cn_subset_v01.ttf",
+      "projectRelativePath": "art_source/ui/fonts/ui_font_cn_subset_v01.ttf",
+      "purpose": "??????????",
+      "fileFormat": "TrueType Font",
+      "width": null,
+      "height": null,
+      "sha256": "1AA7525D8F3329CCBC27FB856CB5D81AED9337E5B2063BA694895719E429F307",
+      "diskBytes": 122820,
+      "decodedRgbaBytes": null,
+      "decodedRgbaMiB": null,
+      "kind": "font"
+    },
+    {
+      "relativePath": "ui/fonts/ui_font_cn_subset_v01_LICENSE.txt",
+      "projectRelativePath": "art_source/ui/fonts/ui_font_cn_subset_v01_LICENSE.txt",
+      "purpose": "???????????",
+      "fileFormat": "UTF-8 Text",
+      "width": null,
+      "height": null,
+      "sha256": "DFF15DAAEFB211203E732A5AC8781D5D7BC6ED1C4158ACBFCB25DA9E8AA1E796",
+      "diskBytes": 6747,
+      "decodedRgbaBytes": null,
+      "decodedRgbaMiB": null,
+      "kind": "licenseText"
+    },
+    {
+      "relativePath": "ui/hud/base_health/ai_base_health_frame_v01.png",
+      "projectRelativePath": "art_source/ui/hud/base_health/ai_base_health_frame_v01.png",
+      "purpose": "AI?????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "8F0BE6021F7436138D6D260DF455F4C49997EB558464570662F7416A33717C29",
+      "diskBytes": 258170,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/base_health/base_health_fill_mask_v01.png",
+      "projectRelativePath": "art_source/ui/hud/base_health/base_health_fill_mask_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "DB44B4BC801520352243312C8F69BA1CF8B2941182EB14B661417F1F131EE717",
+      "diskBytes": 1885,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/base_health/player_base_health_frame_v01.png",
+      "projectRelativePath": "art_source/ui/hud/base_health/player_base_health_frame_v01.png",
+      "purpose": "???????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "37537947BDBF18A61A1A22342591850ADD2A4C32B885E1E48CCB0DA0E2B800C3",
+      "diskBytes": 160376,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/level_badge/level_badge_v01.png",
+      "projectRelativePath": "art_source/ui/hud/level_badge/level_badge_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 512,
+      "height": 256,
+      "sha256": "E0F032A7A935D4FBABB007CB51B825C963B325DF90FB7AFCEC6495F5D69ABD72",
+      "diskBytes": 173394,
+      "decodedRgbaBytes": 524288,
+      "decodedRgbaMiB": 0.5,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/notices/notice_banner_v01.png",
+      "projectRelativePath": "art_source/ui/hud/notices/notice_banner_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 256,
+      "sha256": "40DD3BD5453C7286C6AE77C581BBB24E7391E6CE9A51BBC28D5CB059AFC02428",
+      "diskBytes": 271127,
+      "decodedRgbaBytes": 1048576,
+      "decodedRgbaMiB": 1.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/resources/ai_energy_frame_v01.png",
+      "projectRelativePath": "art_source/ui/hud/resources/ai_energy_frame_v01.png",
+      "purpose": "AI?????",
+      "fileFormat": "PNG",
+      "width": 768,
+      "height": 192,
+      "sha256": "C78CB8BC0EF46EEBF975E7DAC203645874E2B47827AF238D30A1E542800EAF14",
+      "diskBytes": 117521,
+      "decodedRgbaBytes": 589824,
+      "decodedRgbaMiB": 0.5625,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/resources/ai_supply_frame_v01.png",
+      "projectRelativePath": "art_source/ui/hud/resources/ai_supply_frame_v01.png",
+      "purpose": "AI?????",
+      "fileFormat": "PNG",
+      "width": 512,
+      "height": 192,
+      "sha256": "775AE5377A00C2230C8EFB11B43D78950C7245D3EA5F8FB7A9C3D342A9E102BC",
+      "diskBytes": 135779,
+      "decodedRgbaBytes": 393216,
+      "decodedRgbaMiB": 0.375,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/resources/icon_energy_v01.png",
+      "projectRelativePath": "art_source/ui/hud/resources/icon_energy_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "3B19670CFF9076A95EF50C83761D023B53978A69FD4C3B5209F67E6C7650374E",
+      "diskBytes": 40298,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/resources/icon_supply_v01.png",
+      "projectRelativePath": "art_source/ui/hud/resources/icon_supply_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "6A946DD69D81A11F141153A83A685741E7C1F8848CEC9B89319D3329702A3E7F",
+      "diskBytes": 86912,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/resources/player_energy_frame_v01.png",
+      "projectRelativePath": "art_source/ui/hud/resources/player_energy_frame_v01.png",
+      "purpose": "???????",
+      "fileFormat": "PNG",
+      "width": 768,
+      "height": 192,
+      "sha256": "1FAEA3E7BE8BC8F70A170A3D43773315B773011561D0B5E96CEBF2F47EEBEA70",
+      "diskBytes": 105582,
+      "decodedRgbaBytes": 589824,
+      "decodedRgbaMiB": 0.5625,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/resources/player_supply_frame_v01.png",
+      "projectRelativePath": "art_source/ui/hud/resources/player_supply_frame_v01.png",
+      "purpose": "???????",
+      "fileFormat": "PNG",
+      "width": 512,
+      "height": 192,
+      "sha256": "B48C52AA518CCED6E1BC8DB18ECD47FFB8E7CCD24CBE32530C2B15C9A6A7AEBB",
+      "diskBytes": 151800,
+      "decodedRgbaBytes": 393216,
+      "decodedRgbaMiB": 0.375,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/tier_badges/tier_badge_giant_v01.png",
+      "projectRelativePath": "art_source/ui/hud/tier_badges/tier_badge_giant_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "9743749580B00461EE99BA36F65BCA99B620C5D85CDCA27B39FE583F5A85732D",
+      "diskBytes": 77610,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/tier_badges/tier_badge_large_v01.png",
+      "projectRelativePath": "art_source/ui/hud/tier_badges/tier_badge_large_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "AE68E65F038B5573C1D9B5540AE5679689CE9568BBF310665F2064564D2363AF",
+      "diskBytes": 97141,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/tier_badges/tier_badge_medium_v01.png",
+      "projectRelativePath": "art_source/ui/hud/tier_badges/tier_badge_medium_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "F540C9FFC975EFD93AAEC5E38926308B34474ABB638A49E99DBA3951CB14ABA4",
+      "diskBytes": 97193,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/tier_badges/tier_badge_small_v01.png",
+      "projectRelativePath": "art_source/ui/hud/tier_badges/tier_badge_small_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 256,
+      "height": 256,
+      "sha256": "DA3BEB140A175C3BD4C079B73885DF06EAD71FED9B80E89BB89C7A72DB397DD9",
+      "diskBytes": 90020,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/unit_health/enemy_unit_health_bar_v01.png",
+      "projectRelativePath": "art_source/ui/hud/unit_health/enemy_unit_health_bar_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 512,
+      "height": 128,
+      "sha256": "DEDB7A751C8331DC4430C49685C73D3A6C66DDDFD7A7A8C184FFABA6DC6F71BF",
+      "diskBytes": 62168,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/unit_health/friendly_unit_health_bar_v01.png",
+      "projectRelativePath": "art_source/ui/hud/unit_health/friendly_unit_health_bar_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 512,
+      "height": 128,
+      "sha256": "9E21AA32FCAF4A9ECB81D4F9A3D61878842D7AEF00618672CE05ADD1C1D3D928",
+      "diskBytes": 44689,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/hud/unit_health/unit_health_fill_mask_v01.png",
+      "projectRelativePath": "art_source/ui/hud/unit_health/unit_health_fill_mask_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 512,
+      "height": 128,
+      "sha256": "DC529AADE5C60C920E1D925B2ADC81AC4EB86C40BA60EFE281F14E5B0FABE74F",
+      "diskBytes": 736,
+      "decodedRgbaBytes": 262144,
+      "decodedRgbaMiB": 0.25,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/modals/result_panel_v01.png",
+      "projectRelativePath": "art_source/ui/modals/result_panel_v01.png",
+      "purpose": "????????",
+      "fileFormat": "PNG",
+      "width": 1280,
+      "height": 960,
+      "sha256": "410845272065991C48E955A518A2C8F061FC649CB9C3615737BED7CD5FB99F98",
+      "diskBytes": 1275601,
+      "decodedRgbaBytes": 4915200,
+      "decodedRgbaMiB": 4.6875,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/tactic_cards/heal/tactic_card_heal_v01.png",
+      "projectRelativePath": "art_source/ui/tactic_cards/heal/tactic_card_heal_v01.png",
+      "purpose": "?????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 416,
+      "sha256": "5433A92765D4FBECAC6EC1D7804CDD7A7BECAFE230C5723029A614F4FD407BB4",
+      "diskBytes": 394555,
+      "decodedRgbaBytes": 1703936,
+      "decodedRgbaMiB": 1.625,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/tactic_cards/shock/tactic_card_shock_v01.png",
+      "projectRelativePath": "art_source/ui/tactic_cards/shock/tactic_card_shock_v01.png",
+      "purpose": "?????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 416,
+      "sha256": "B03D1A2E3CD8BA48C1D2634AC9AA278A8803414BF530F8A758683F87B2C8515F",
+      "diskBytes": 418956,
+      "decodedRgbaBytes": 1703936,
+      "decodedRgbaMiB": 1.625,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/tactic_cards/sprint/tactic_card_sprint_v01.png",
+      "projectRelativePath": "art_source/ui/tactic_cards/sprint/tactic_card_sprint_v01.png",
+      "purpose": "?????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 416,
+      "sha256": "06BF65D0E31595FCCEE4F14603F52C1CBE8505CFDB4412C0027DEEBA6BC231A8",
+      "diskBytes": 392462,
+      "decodedRgbaBytes": 1703936,
+      "decodedRgbaMiB": 1.625,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "ui/unit_cards/giant/unit_card_giant_v02.png",
+      "projectRelativePath": "art_source/ui/unit_cards/giant/unit_card_giant_v02.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 520,
+      "height": 80,
+      "sha256": "37AC80BED021A88406AC0DB8C843711AFA7C4B4685672B48B2A30D89FE3529CA",
+      "diskBytes": 58272,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.158691,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/giant/unit_card_giant_v01.png",
+          "sha256": "9E22BF7948E016E57C9B3F28AEAD884672FAC8B2B814A206E6E07F658E04BBB0",
+          "diskBytes": 1339223
+        }
+      ]
+    },
+    {
+      "relativePath": "ui/unit_cards/large/unit_card_large_v02.png",
+      "projectRelativePath": "art_source/ui/unit_cards/large/unit_card_large_v02.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 520,
+      "height": 80,
+      "sha256": "E5FF4A57DE7D65C457404FE72005394CC40D088269DC39D96F1807E0F31F1A29",
+      "diskBytes": 57919,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.158691,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/large/unit_card_large_v01.png",
+          "sha256": "BD0BA76907FBE3DADED2B59150D485BF825F2A3DD5650D1C6104BD91B3AC7CE1",
+          "diskBytes": 1272818
+        }
+      ]
+    },
+    {
+      "relativePath": "ui/unit_cards/medium/unit_card_medium_v02.png",
+      "projectRelativePath": "art_source/ui/unit_cards/medium/unit_card_medium_v02.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 520,
+      "height": 80,
+      "sha256": "371F740561AFCE07EBC73BBB7093F5889A98D5C3921C1470EE287197C66302E8",
+      "diskBytes": 57790,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.158691,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/medium/unit_card_medium_v01.png",
+          "sha256": "E51175626547915F3FE431013973285F65C412803F7CB993B29F7298F8B6BFE6",
+          "diskBytes": 1229006
+        }
+      ]
+    },
+    {
+      "relativePath": "ui/unit_cards/small/unit_card_small_v02.png",
+      "projectRelativePath": "art_source/ui/unit_cards/small/unit_card_small_v02.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 520,
+      "height": 80,
+      "sha256": "9C2A23C5BB5530E16349709FDC5FA35ABC28976E1659E35AEAD9BC746CB30855",
+      "diskBytes": 57528,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.158691,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/ui_layout_legacy_v01/unit_cards/small/unit_card_small_v01.png",
+          "sha256": "E3870176F3A1F78EE56FE61B4270E528A61D3BF0352890F719890AA9EF8DBD94",
+          "diskBytes": 1166929
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/breakthrough/base_hit_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/breakthrough/base_hit_fx_sheet_v02.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "189EAF0F8BA0EA555CEA2D0CFF126B78B741E3691A5169D9BD654CC93D9DE4CF",
+      "diskBytes": 94130,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/breakthrough/base_hit_fx_sheet_v01.png",
+          "sha256": "6B329466E2FB927F60D56459510335F58B405E506A3033E196AF4F292F6930A7",
+          "diskBytes": 248470
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/breakthrough/breakthrough_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/breakthrough/breakthrough_fx_sheet_v02.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "E301F97EB1522576063F83552A50C1B3132E089DDE695F87E90000E1BB95B5CC",
+      "diskBytes": 225148,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/breakthrough/breakthrough_fx_sheet_v01.png",
+          "sha256": "9B6D2C7DA4A127A7B28C5701223978F56478F3B59E326C0854CF11B9D2050887",
+          "diskBytes": 710671
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/combat/death/unit_disappear_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/combat/death/unit_disappear_fx_sheet_v02.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "01632DC84C13331EF5A4843FE08F2681085ADAAEC09FEA114BEF46DF1CDB7A25",
+      "diskBytes": 186278,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/death/unit_disappear_fx_sheet_v01.png",
+          "sha256": "37877075258F464F61EC192B1647AFF9CB699691D4DD6384C79DFA86D4B5FB19",
+          "diskBytes": 568452
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/combat/hit/hit_impact_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/combat/hit/hit_impact_fx_sheet_v02.png",
+      "purpose": "?????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "DA66F9E3335188C841410C9F58C8614499CC7704794B420AFCD8E66E17C9FC6F",
+      "diskBytes": 105015,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/hit/hit_impact_fx_sheet_v01.png",
+          "sha256": "2BF74C8B55A7FFA143BBCF0A937441C92640DD73034C8A38BC5A9CC765620BE8",
+          "diskBytes": 314621
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/combat/sheep_attack/sheep_attack_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/combat/sheep_attack/sheep_attack_fx_sheet_v02.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "5BE16E3620159D03027A572220411894AAF19A667D9E9044A3782F209BF5DD38",
+      "diskBytes": 165895,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/sheep_attack/sheep_attack_fx_sheet_v01.png",
+          "sha256": "5D5D5908D4B5276287A8F1ECEF26F7DAD3EF2A8A18DF8B70EF1B529AB75081E9",
+          "diskBytes": 505473
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/combat/wolf_attack/wolf_attack_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/combat/wolf_attack/wolf_attack_fx_sheet_v02.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "E037A3C09B51F908E62F6467ED8D75C89FB2E31E6E8362A7C0F023481B66688F",
+      "diskBytes": 168397,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/combat/wolf_attack/wolf_attack_fx_sheet_v01.png",
+          "sha256": "8ADB6E684E3D5236C60CD6B1BCCD7AE1B3C92CDE26C53D2ED6B82C8BB2D6C5A3",
+          "diskBytes": 522493
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/deploy/sheep/sheep_deploy_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/deploy/sheep/sheep_deploy_fx_sheet_v02.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "6E21D6403E28788357CC25F2D2C3EC204DFDD2C8403777EE56E0CE9B8AA1BC7E",
+      "diskBytes": 202653,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/deploy/sheep/sheep_deploy_fx_sheet_v01.png",
+          "sha256": "4C13F60F2257B830DD112CDE6FBEBFCB5EA574B2C6780FF904529BEB0D527BBA",
+          "diskBytes": 611070
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/deploy/wolf/wolf_deploy_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/deploy/wolf/wolf_deploy_fx_sheet_v02.png",
+      "purpose": "??????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "608FE7B6948C8530CD2099671208FBAA115F3EE98BFFED0C6E0B81E585C92632",
+      "diskBytes": 237014,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/deploy/wolf/wolf_deploy_fx_sheet_v01.png",
+          "sha256": "81F5CAF12CF44CD3537DCCAA03E33661F30DBB94A4BB7C95C6B85196C5512560",
+          "diskBytes": 734221
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/movement/movement_dust_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/movement/movement_dust_fx_sheet_v02.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "38BF84A7106D1A2E391BAF6248BBA6BD293102D72A4002B91C0354BE51ADF195",
+      "diskBytes": 57207,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/movement/movement_dust_fx_sheet_v01.png",
+          "sha256": "9CD9B28689171AD4C8E88193AC692B1CCCF91BEA85FC3DAD64D4E881BFF8AAE3",
+          "diskBytes": 168543
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/results/defeat/defeat_emblem_v01.png",
+      "projectRelativePath": "art_source/vfx/results/defeat/defeat_emblem_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "F4877F42568AC462567D66D47BCA0EFCC2853BC2B89A0255B84BB9F440D7A7BA",
+      "diskBytes": 1186458,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "vfx/results/defeat/defeat_emblem_v02.png",
+      "projectRelativePath": "art_source/vfx/results/defeat/defeat_emblem_v02.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "4F10EA9B2F69F546E06ACD786B55F3F19D7A4596459B51371E5272AA9F7198D3",
+      "diskBytes": 852730,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "vfx/results/defeat/defeat_overlay_v01.png",
+      "projectRelativePath": "art_source/vfx/results/defeat/defeat_overlay_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1280,
+      "height": 720,
+      "sha256": "2909DFE28B5B950C73749000BCAB7FBF6565D7014F0799076651349842F4BA52",
+      "diskBytes": 230522,
+      "decodedRgbaBytes": 3686400,
+      "decodedRgbaMiB": 3.515625,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "vfx/results/level_transition/level_transition_background_v01.png",
+      "projectRelativePath": "art_source/vfx/results/level_transition/level_transition_background_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 2560,
+      "height": 1440,
+      "sha256": "E4A7B94DFC5F225F47127231E71DEF0BCD1F33C22D3341F21F39C34973488B59",
+      "diskBytes": 6418261,
+      "decodedRgbaBytes": 14745600,
+      "decodedRgbaMiB": 14.0625,
+      "kind": "image",
+      "sourceColorMode": "RGB",
+      "alpha": {
+        "sourceHasAlphaChannel": false,
+        "minimum": 255,
+        "maximum": 255,
+        "containsTransparentPixels": false
+      }
+    },
+    {
+      "relativePath": "vfx/results/level_transition/level_transition_banner_v01.png",
+      "projectRelativePath": "art_source/vfx/results/level_transition/level_transition_banner_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 384,
+      "sha256": "FD081DB568E89F07DE1527855DA8C5B4E8CCE0C53E1DC5E61A42FCC486B73ED8",
+      "diskBytes": 284581,
+      "decodedRgbaBytes": 1572864,
+      "decodedRgbaMiB": 1.5,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "vfx/results/level_transition/level_transition_wipe_sheet_v01.png",
+      "projectRelativePath": "art_source/vfx/results/level_transition/level_transition_wipe_sheet_v01.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 2048,
+      "height": 1024,
+      "sha256": "F42D1425062EB3F03B1A286727DA3056183F20CFC2A32E230D6DD321C0B67551",
+      "diskBytes": 1222351,
+      "decodedRgbaBytes": 8388608,
+      "decodedRgbaMiB": 8.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 512,
+        "cellHeight": 512,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "wipe_1",
+          "wipe_2",
+          "wipe_3",
+          "wipe_4",
+          "wipe_5",
+          "wipe_6",
+          "wipe_7",
+          "wipe_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      }
+    },
+    {
+      "relativePath": "vfx/results/victory/victory_emblem_v01.png",
+      "projectRelativePath": "art_source/vfx/results/victory/victory_emblem_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "1E7F1CAB3843FB8C3EB7B60230731C956FA4B81EE4FBB4C7C46D3959D5F4A5A6",
+      "diskBytes": 1201109,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "vfx/results/victory/victory_emblem_v02.png",
+      "projectRelativePath": "art_source/vfx/results/victory/victory_emblem_v02.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "F4E09D9764A21984AB88834563257E793BD2B67CD6EED14BCB435FCE057805D4",
+      "diskBytes": 914141,
+      "decodedRgbaBytes": 4194304,
+      "decodedRgbaMiB": 4.0,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "vfx/results/victory/victory_overlay_v01.png",
+      "projectRelativePath": "art_source/vfx/results/victory/victory_overlay_v01.png",
+      "purpose": "??????",
+      "fileFormat": "PNG",
+      "width": 1280,
+      "height": 720,
+      "sha256": "570F8AFC478CB52CADCBB94B0E154D471ACDEC3869AE1EB2DDD25386A86950EC",
+      "diskBytes": 367512,
+      "decodedRgbaBytes": 3686400,
+      "decodedRgbaMiB": 3.515625,
+      "kind": "image",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      }
+    },
+    {
+      "relativePath": "vfx/tactics/heal/tactic_heal_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/tactics/heal/tactic_heal_fx_sheet_v02.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "DEA68F4BD2509B2805A38A92CBF03F4BDFA55B73E9A8C7F2FA48A9E150CC7428",
+      "diskBytes": 162833,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/heal/tactic_heal_fx_sheet_v01.png",
+          "sha256": "3EA3632A7EA6803116A4D5D9913B3E16354E2D57F0045B34215CB01F42427EE3",
+          "diskBytes": 500685
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/tactics/shock/tactic_shock_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/tactics/shock/tactic_shock_fx_sheet_v02.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "7769013F6E25589C942D033B37A79C8F6C26AFB7C5A3616D4466E7DE079895C0",
+      "diskBytes": 252124,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/shock/tactic_shock_fx_sheet_v01.png",
+          "sha256": "11625D7AD0C1A0CC8AD9B152D421F4894A714C922FC3C3BA9F3283B559E2F5FD",
+          "diskBytes": 536260
+        }
+      ]
+    },
+    {
+      "relativePath": "vfx/tactics/sprint/tactic_sprint_fx_sheet_v02.png",
+      "projectRelativePath": "art_source/vfx/tactics/sprint/tactic_sprint_fx_sheet_v02.png",
+      "purpose": "???????????",
+      "fileFormat": "PNG",
+      "width": 1024,
+      "height": 512,
+      "sha256": "2DD79544B976C8B65508D03DE173BCAC90A7FF3B38308C5D71ED991DADE09EC0",
+      "diskBytes": 126127,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "kind": "spriteSheet",
+      "sourceColorMode": "RGBA",
+      "alpha": {
+        "sourceHasAlphaChannel": true,
+        "minimum": 0,
+        "maximum": 255,
+        "containsTransparentPixels": true
+      },
+      "spriteSheet": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 256,
+        "capacity": 8,
+        "frameCount": 8,
+        "frameOrder": [
+          "fx_1",
+          "fx_2",
+          "fx_3",
+          "fx_4",
+          "fx_5",
+          "fx_6",
+          "fx_7",
+          "fx_8"
+        ],
+        "detectedNonEmptyFrameCount": 8,
+        "detectedTransparentCellCount": 0,
+        "cellOccupancy": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gridDimensionPass": true,
+        "declaredFrameCountMatchesDetected": true
+      },
+      "archivedPredecessors": [
+        {
+          "relativePath": "art_source/_archive/vfx_highres_v01/vfx/tactics/sprint/tactic_sprint_fx_sheet_v01.png",
+          "sha256": "0AD520EC5CDCDAC651FCE6BC7D87C93CF3C656B0294CB0044869AA33C6328F65",
+          "diskBytes": 384988
+        }
+      ]
+    }
+  ],
+  "verificationAtGeneration": {
+    "allFormalFilesReadForSha256": true,
+    "imageDecodeFailures": [],
+    "spriteSheetCheckFailures": [],
+    "fontRequiredCoveragePass": true,
+    "fontLicenseSignaturePass": true,
+    "protectedResourcesMatchArt03Precheck": true,
+    "protectedResourceChecks": [
+      {
+        "relativePath": "art_source/bases/player/player_base_v02.png",
+        "exists": true,
+        "actualSha256": "C72B06C000858511B3BC5C512BB9894B8A034F2C29679EE74053348803627DC8",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/bases/ai/ai_base_v02.png",
+        "exists": true,
+        "actualSha256": "63562A1B99E9B43D779BD84F3D0C3017306DF195626FCEC7E062A67181847D6B",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/battlefield/roads/road_lane_01_v02.png",
+        "exists": true,
+        "actualSha256": "85B7EEF1E5282ECB0F6F94F7108AA74881C2325A63CE3B6FF6643079282227D1",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/battlefield/roads/road_lane_02_v02.png",
+        "exists": true,
+        "actualSha256": "E9A89F2201A82447A94D2115999AB4DE93DB4A57283FAE9D08081B508A913980",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/battlefield/roads/road_lane_03_v02.png",
+        "exists": true,
+        "actualSha256": "81E00DD75AAD4F13CED9C71A3EFA6E0B14DEFE2992DBDCC6CA226045FC013BF3",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/battlefield/roads/road_lane_04_v02.png",
+        "exists": true,
+        "actualSha256": "22DBB092EAE1CEAC3424AFC79F0D857B17FD584F66167A3EB79EB58E57BDF5DD",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/ui/unit_cards/small/unit_card_small_v02.png",
+        "exists": true,
+        "actualSha256": "9C2A23C5BB5530E16349709FDC5FA35ABC28976E1659E35AEAD9BC746CB30855",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/ui/unit_cards/medium/unit_card_medium_v02.png",
+        "exists": true,
+        "actualSha256": "371F740561AFCE07EBC73BBB7093F5889A98D5C3921C1470EE287197C66302E8",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/ui/unit_cards/large/unit_card_large_v02.png",
+        "exists": true,
+        "actualSha256": "E5FF4A57DE7D65C457404FE72005394CC40D088269DC39D96F1807E0F31F1A29",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/ui/unit_cards/giant/unit_card_giant_v02.png",
+        "exists": true,
+        "actualSha256": "37AC80BED021A88406AC0DB8C843711AFA7C4B4685672B48B2A30D89FE3529CA",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/vfx/results/victory/victory_emblem_v02.png",
+        "exists": true,
+        "actualSha256": "F4E09D9764A21984AB88834563257E793BD2B67CD6EED14BCB435FCE057805D4",
+        "matchesArt03Precheck": true
+      },
+      {
+        "relativePath": "art_source/vfx/results/defeat/defeat_emblem_v02.png",
+        "exists": true,
+        "actualSha256": "4F10EA9B2F69F546E06ACD786B55F3F19D7A4596459B51371E5272AA9F7198D3",
+        "matchesArt03Precheck": true
+      }
+    ],
+    "archiveMappingMissingCurrentTargets": [],
+    "archiveMappingMissingFiles": []
+  },
+  "forbiddenScope": {
+    "notModifiedByManifestGeneration": [
+      "assets",
+      "build",
+      "library",
+      "temp",
+      "source code",
+      "scenes",
+      "Git",
+      "project version",
+      "existing art files"
+    ],
+    "onlyOutputCreated": "art_source/ART_RESOURCE_MANIFEST_v1.2.0-dev-art03.json"
+  }
+}

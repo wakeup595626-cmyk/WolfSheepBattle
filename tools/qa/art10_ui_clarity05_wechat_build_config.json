@@ -1,0 +1,28 @@
+{
+  "name": "羊狼四线战-art10-ui-clarity05",
+  "platform": "wechatgame",
+  "buildPath": "project://art_source/qa/art10-ui-clarity05/builds",
+  "outputName": "wechatgame",
+  "debug": false,
+  "sourceMaps": false,
+  "md5Cache": false,
+  "mainBundleCompressionType": "merge_dep",
+  "mainBundleIsRemote": false,
+  "startScene": "267677db-a17c-4dde-b71e-4d4929fd7689",
+  "scenes": [
+    {
+      "url": "db://assets/scenes/Battle.scene",
+      "uuid": "267677db-a17c-4dde-b71e-4d4929fd7689"
+    }
+  ],
+  "packages": {
+    "wechatgame": {
+      "orientation": "landscapeRight",
+      "appid": "wx6ac3f5090a6b99c5",
+      "buildOpenDataContextTemplate": "",
+      "separateEngine": false,
+      "highPerformanceMode": false,
+      "__version__": "1.0.4"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "bb679e90-53bc-47d3-a66a-1f686fba80b8",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "art07LocalSubpackage",
+    "bundleName": "art_vfx",
+    "priority": 3,
+    "compressionType": {
+      "default": "subpackage"
+    },
+    "isRemoteBundle": {
+      "default": false
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "羊狼四线战-level05-01",
+  "platform": "wechatgame",
+  "buildPath": "project://art_source/qa/level05-01/builds",
+  "outputName": "wechatgame",
+  "debug": false,
+  "sourceMaps": false,
+  "md5Cache": false,
+  "mainBundleCompressionType": "merge_dep",
+  "mainBundleIsRemote": false,
+  "startScene": "267677db-a17c-4dde-b71e-4d4929fd7689",
+  "scenes": [
+    {
+      "url": "db://assets/scenes/Battle.scene",
+      "uuid": "267677db-a17c-4dde-b71e-4d4929fd7689"
+    }
+  ],
+  "packages": {
+    "wechatgame": {
+      "orientation": "landscapeRight",
+      "appid": "wxfbd176abc5b3911c",
+      "buildOpenDataContextTemplate": "",
+      "separateEngine": false,
+      "highPerformanceMode": false,
+      "__version__": "1.0.4"
+    }
+  }
+}

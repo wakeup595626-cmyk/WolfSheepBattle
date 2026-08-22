@@ -1,0 +1,22 @@
+# 赛博欢乐曲目信息
+
+- 游戏内名称：赛博欢乐
+- 曲目 ID：`cyberwave_upbeat`
+- 作品名称：Fun Game - Upbeat Happy Video Game Music
+- 作者：Cyberwave-Orchestra
+- 作品页：https://pixabay.com/music/upbeat-fun-game-upbeat-happy-video-game-music-249646/
+- 曲目编号：249646
+- 原始下载文件名：`cyberwave-orchestra-fun-game-upbeat-happy-video-game-music-249646.mp3`
+- 原始文件大小：2,004,532 字节
+- 原始文件 SHA-256：`890879DC602A5D120F38B0AA58D97D19D93AB19E7C316CAFD032FB58C7565DBF`
+- 项目归档原文件：`art_source/_archive/audio_bgm_source_v120/bgm_cyberwave_upbeat.mp3`
+- 项目运行时文件：`assets/bundles/audio_bgm/bgm/bgm_cyberwave_upbeat_runtime_v01.mp3`
+- 运行时文件大小：877,757 字节
+- 运行时文件 SHA-256：`C64AD46428183743275CB8F1B941D09E17B942E75154436B5A2B5528A6C0EAA0`
+- 公开页面发布时间：2024-10-14
+- 当前核验日期：2026-07-30
+- Content ID 状态：Content ID Registered
+- 用户下载日期：待用户补充
+- 具体曲目页截图：`pixabay_track_cyberwave_upbeat_2026-07-30.png`
+- 截图文件大小：1,706,559 字节
+- 截图 SHA-256：`E53F8C81807A74C403F71BB2D7FB0EEB8B3119E7B28E015791115B718B8F8C97`

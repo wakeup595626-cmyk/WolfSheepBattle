@@ -1,0 +1,116 @@
+{
+  "sourceSize": [
+    2400,
+    1080
+  ],
+  "runtimeSize": [
+    1680,
+    720
+  ],
+  "laneX": [
+    -495,
+    -225,
+    45,
+    315
+  ],
+  "targetCenters": [
+    457.5,
+    862.5,
+    1267.5,
+    1672.5
+  ],
+  "samples": {
+    "ai": [
+      {
+        "lane": 1,
+        "targetPixelX": 457.5,
+        "detectedPixelX": 462.5,
+        "errorPixels": 5.0,
+        "errorDesignPixels": 3.333
+      },
+      {
+        "lane": 2,
+        "targetPixelX": 862.5,
+        "detectedPixelX": 862.5,
+        "errorPixels": 0.0,
+        "errorDesignPixels": 0.0
+      },
+      {
+        "lane": 3,
+        "targetPixelX": 1267.5,
+        "detectedPixelX": 1268.5,
+        "errorPixels": 1.0,
+        "errorDesignPixels": 0.667
+      },
+      {
+        "lane": 4,
+        "targetPixelX": 1672.5,
+        "detectedPixelX": 1672.5,
+        "errorPixels": 0.0,
+        "errorDesignPixels": 0.0
+      }
+    ],
+    "middle": [
+      {
+        "lane": 1,
+        "targetPixelX": 457.5,
+        "detectedPixelX": 462.0,
+        "errorPixels": 4.5,
+        "errorDesignPixels": 3.0
+      },
+      {
+        "lane": 2,
+        "targetPixelX": 862.5,
+        "detectedPixelX": 861.0,
+        "errorPixels": -1.5,
+        "errorDesignPixels": -1.0
+      },
+      {
+        "lane": 3,
+        "targetPixelX": 1267.5,
+        "detectedPixelX": 1272.5,
+        "errorPixels": 5.0,
+        "errorDesignPixels": 3.333
+      },
+      {
+        "lane": 4,
+        "targetPixelX": 1672.5,
+        "detectedPixelX": 1667.5,
+        "errorPixels": -5.0,
+        "errorDesignPixels": -3.333
+      }
+    ],
+    "player": [
+      {
+        "lane": 1,
+        "targetPixelX": 457.5,
+        "detectedPixelX": 462.0,
+        "errorPixels": 4.5,
+        "errorDesignPixels": 3.0
+      },
+      {
+        "lane": 2,
+        "targetPixelX": 862.5,
+        "detectedPixelX": 866.0,
+        "errorPixels": 3.5,
+        "errorDesignPixels": 2.333
+      },
+      {
+        "lane": 3,
+        "targetPixelX": 1267.5,
+        "detectedPixelX": 1263.0,
+        "errorPixels": -4.5,
+        "errorDesignPixels": -3.0
+      },
+      {
+        "lane": 4,
+        "targetPixelX": 1672.5,
+        "detectedPixelX": 1671.5,
+        "errorPixels": -1.0,
+        "errorDesignPixels": -0.667
+      }
+    ]
+  },
+  "maxAbsoluteErrorDesignPixels": 3.333,
+  "passed": true
+}

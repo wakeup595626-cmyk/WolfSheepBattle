@@ -1,0 +1,20 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "12ffd963-3b9b-4fdf-9f7d-b353ecca8c9c",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "art07LocalSubpackage",
+    "bundleName": "art_battlefield",
+    "priority": 6,
+    "compressionType": {
+      "default": "subpackage"
+    },
+    "isRemoteBundle": {
+      "default": false
+    }
+  }
+}

@@ -1,3 +1,45 @@
 {
-  "__version__": "1.3.9"
+  "__version__": "1.3.9",
+  "bundleConfig": {
+    "custom": {
+      "art07LocalSubpackage": {
+        "displayName": "art07LocalSubpackage",
+        "configs": {
+          "native": {
+            "preferredOptions": {
+              "isRemote": false,
+              "compressionType": "merge_dep"
+            },
+            "fallbackOptions": {
+              "isRemote": false,
+              "compressionType": "merge_dep"
+            },
+            "configMode": "auto"
+          },
+          "web": {
+            "preferredOptions": {
+              "isRemote": false,
+              "compressionType": "merge_dep"
+            },
+            "fallbackOptions": {
+              "isRemote": false,
+              "compressionType": "merge_dep"
+            },
+            "configMode": "auto"
+          },
+          "miniGame": {
+            "preferredOptions": {
+              "isRemote": false,
+              "compressionType": "subpackage"
+            },
+            "fallbackOptions": {
+              "isRemote": false,
+              "compressionType": "merge_dep"
+            },
+            "configMode": "auto"
+          }
+        }
+      }
+    }
+  }
 }

@@ -5,5 +5,18 @@
   /* Add your custom configuration here. */
   "compilerOptions": {
     "strict": false
-  }
+  },
+
+  "include": [
+    "assets/scripts/**/*.ts"
+  ],
+
+  "exclude": [
+    "build",
+    "library",
+    "temp",
+    "tmp",
+    "art_source",
+    "release_evidence"
+  ]
 }

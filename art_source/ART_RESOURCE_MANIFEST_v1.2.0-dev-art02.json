@@ -1,0 +1,962 @@
+{
+  "schema": "wolf-sheep-art-resource-manifest/v1",
+  "batchVersion": "v1.2.0-dev-art02-animation-layout",
+  "gameVersion": "v1.2.0-dev",
+  "generatedDate": "2026-07-28",
+  "formalFileCount": 18,
+  "files": [
+    {
+      "relativePath": "art_source/characters/sheep/small/unit_sheep_small_sheet.png",
+      "purpose": "sheep small consolidated character sprite sheet",
+      "width": 1024,
+      "height": 512,
+      "mode": "RGBA",
+      "sha256": "9AE14C044FFA6C5402A1AC2CA9A56B31E9F3EE03F389150F9C4E6614B2B98AB5",
+      "diskBytes": 180956,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        128,
+        128
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "up",
+      "cameraView": "3/4 rear",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build/unit_sheep_small/unit_sheep_small_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build/unit_sheep_small/unit_sheep_small_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_walk_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_attack_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_hit_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/small/animation/small_sheep_death_sheet_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/characters/sheep/medium/unit_sheep_medium_sheet.png",
+      "purpose": "sheep medium consolidated character sprite sheet",
+      "width": 1024,
+      "height": 512,
+      "mode": "RGBA",
+      "sha256": "73456C6E72F3E4DA00436CCC7AECCE0759954EC24EECD50B067853B327565CA5",
+      "diskBytes": 200785,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        128,
+        128
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "up",
+      "cameraView": "3/4 rear",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build/unit_sheep_medium/unit_sheep_medium_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build/unit_sheep_medium/unit_sheep_medium_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_walk_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_attack_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_hit_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/medium/animation/medium_sheep_death_sheet_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/characters/sheep/large/unit_sheep_large_sheet.png",
+      "purpose": "sheep large consolidated character sprite sheet",
+      "width": 1280,
+      "height": 640,
+      "mode": "RGBA",
+      "sha256": "CEB30735B20F245AB1726714E16259059D046DC825AADC55FC8792D0F89A86CD",
+      "diskBytes": 366574,
+      "decodedRgbaBytes": 3276800,
+      "decodedRgbaMiB": 3.125,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        160,
+        160
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "up",
+      "cameraView": "3/4 rear",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build_rev01/unit_sheep_large/unit_sheep_large_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build_rev01/unit_sheep_large/unit_sheep_large_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_walk_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_attack_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_hit_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/large/animation/large_sheep_death_sheet_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/characters/sheep/giant/unit_sheep_giant_sheet.png",
+      "purpose": "sheep giant consolidated character sprite sheet",
+      "width": 1536,
+      "height": 768,
+      "mode": "RGBA",
+      "sha256": "E2C441012A2D5DB8B9BDF7073691F4DBC0FDB0E87DA6915449B1831D11EB03A4",
+      "diskBytes": 492575,
+      "decodedRgbaBytes": 4718592,
+      "decodedRgbaMiB": 4.5,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        192,
+        192
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "up",
+      "cameraView": "3/4 rear",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build_rev01/unit_sheep_giant/unit_sheep_giant_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build_rev01/unit_sheep_giant/unit_sheep_giant_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_walk_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_attack_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_hit_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/sheep/giant/animation/giant_sheep_death_sheet_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/characters/wolf/small/unit_wolf_small_sheet.png",
+      "purpose": "wolf small consolidated character sprite sheet",
+      "width": 1024,
+      "height": 512,
+      "mode": "RGBA",
+      "sha256": "C75EC5E4B981D075259B592BEADAE9BB906EF3FBEFCE4B9175B8D11F4AA82067",
+      "diskBytes": 190045,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        128,
+        128
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "down",
+      "cameraView": "front-biased 3/4",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build/unit_wolf_small/unit_wolf_small_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build/unit_wolf_small/unit_wolf_small_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_walk_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_attack_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_hit_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/small/animation/small_wolf_death_sheet_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/characters/wolf/medium/unit_wolf_medium_sheet.png",
+      "purpose": "wolf medium consolidated character sprite sheet",
+      "width": 1024,
+      "height": 512,
+      "mode": "RGBA",
+      "sha256": "6129CF69CD59CD42E67356016E038F99C079D09879996971480E2FB92E6B021C",
+      "diskBytes": 229480,
+      "decodedRgbaBytes": 2097152,
+      "decodedRgbaMiB": 2.0,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        128,
+        128
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "down",
+      "cameraView": "front-biased 3/4",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build_rev02/unit_wolf_medium/unit_wolf_medium_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build_rev02/unit_wolf_medium/unit_wolf_medium_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_walk_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_attack_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_hit_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/medium/animation/medium_wolf_death_sheet_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/characters/wolf/large/unit_wolf_large_sheet.png",
+      "purpose": "wolf large consolidated character sprite sheet",
+      "width": 1280,
+      "height": 640,
+      "mode": "RGBA",
+      "sha256": "31E874A1C1A47A1F16F231D3DD89EDFC95A672A7BFA2E1F4DCEBA50380C84DAF",
+      "diskBytes": 334451,
+      "decodedRgbaBytes": 3276800,
+      "decodedRgbaMiB": 3.125,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        160,
+        160
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "down",
+      "cameraView": "front-biased 3/4",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build_rev01/unit_wolf_large/unit_wolf_large_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build_rev01/unit_wolf_large/unit_wolf_large_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_walk_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_attack_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_hit_sheet_v01.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/large/animation/large_wolf_death_sheet_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/characters/wolf/giant/unit_wolf_giant_sheet.png",
+      "purpose": "wolf giant consolidated character sprite sheet",
+      "width": 1536,
+      "height": 768,
+      "mode": "RGBA",
+      "sha256": "656BF3DA35CB151D35D58165D39A643220BE0C838868C8B3CECC8CE08035B8A6",
+      "diskBytes": 483290,
+      "decodedRgbaBytes": 4718592,
+      "decodedRgbaMiB": 4.5,
+      "transparencyCheckPass": true,
+      "kind": "spriteSheet",
+      "sheetGrid": [
+        8,
+        4
+      ],
+      "cellSize": [
+        192,
+        192
+      ],
+      "frameOrder": [
+        "idle_1",
+        "idle_2",
+        "idle_3",
+        "idle_4",
+        "move_1",
+        "move_2",
+        "move_3",
+        "move_4",
+        "move_5",
+        "move_6",
+        "attack_1",
+        "attack_2",
+        "attack_3",
+        "attack_4",
+        "attack_5",
+        "hit_1",
+        "hit_2",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5",
+        "death_6"
+      ],
+      "validFrameCount": 23,
+      "transparentCellCount": 9,
+      "imageFootBaselineRatio": 0.82,
+      "cocosAnchorForFutureIntegration": [
+        0.5,
+        0.42
+      ],
+      "movementDirection": "down",
+      "cameraView": "front-biased 3/4, v03 wolf king",
+      "gridCheckPass": true,
+      "safetyMarginCheckPass": true,
+      "anchorCheckPass": true,
+      "fragmentCheckPass": true,
+      "manualContactSheetReviewPass": true,
+      "manualGifReviewPass": true,
+      "temporaryContactSheet": "tmp/art02/build_rev01/unit_wolf_giant/unit_wolf_giant_contact_23.png",
+      "temporaryGifPreview": "tmp/art02/build_rev01/unit_wolf_giant/unit_wolf_giant_preview_23.gif",
+      "archivedLegacyPaths": [
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_walk_sheet_v03.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_attack_sheet_v03.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_hit_sheet_v03.png",
+        "art_source/_archive/characters_animation_legacy_v01/characters/wolf/giant/animation/giant_wolf_death_sheet_v03.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/ui/unit_cards/small/unit_card_small_v02.png",
+      "purpose": "horizontal small sheep unit card frame",
+      "width": 520,
+      "height": 80,
+      "mode": "RGBA",
+      "sha256": "9C2A23C5BB5530E16349709FDC5FA35ABC28976E1659E35AEAD9BC746CB30855",
+      "diskBytes": 57528,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.159,
+      "transparencyCheckPass": true,
+      "kind": "unitCard",
+      "layoutSize": [
+        520,
+        80
+      ],
+      "avatarRegionInclusive": [
+        8,
+        6,
+        78,
+        74
+      ],
+      "dynamicNameRegionInclusive": [
+        90,
+        0,
+        390,
+        79
+      ],
+      "energyCostRegionInclusive": [
+        390,
+        0,
+        508,
+        79
+      ],
+      "commonFramePixelSha256": "E540CCCF23E6943CD517841BB423A08A806C1F79B9B1432FCD02FD91CCD8B046",
+      "avatarInsideRegionPass": true,
+      "dynamicRegionsCleanPass": true,
+      "layoutCheckPass": true,
+      "manualTextAndUiAbsenceReviewPass": true,
+      "archivedLegacyPaths": [
+        "art_source/_archive/ui_layout_legacy_v01/unit_cards/small/unit_card_small_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/ui/unit_cards/medium/unit_card_medium_v02.png",
+      "purpose": "horizontal medium sheep unit card frame",
+      "width": 520,
+      "height": 80,
+      "mode": "RGBA",
+      "sha256": "371F740561AFCE07EBC73BBB7093F5889A98D5C3921C1470EE287197C66302E8",
+      "diskBytes": 57790,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.159,
+      "transparencyCheckPass": true,
+      "kind": "unitCard",
+      "layoutSize": [
+        520,
+        80
+      ],
+      "avatarRegionInclusive": [
+        8,
+        6,
+        78,
+        74
+      ],
+      "dynamicNameRegionInclusive": [
+        90,
+        0,
+        390,
+        79
+      ],
+      "energyCostRegionInclusive": [
+        390,
+        0,
+        508,
+        79
+      ],
+      "commonFramePixelSha256": "E540CCCF23E6943CD517841BB423A08A806C1F79B9B1432FCD02FD91CCD8B046",
+      "avatarInsideRegionPass": true,
+      "dynamicRegionsCleanPass": true,
+      "layoutCheckPass": true,
+      "manualTextAndUiAbsenceReviewPass": true,
+      "archivedLegacyPaths": [
+        "art_source/_archive/ui_layout_legacy_v01/unit_cards/medium/unit_card_medium_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/ui/unit_cards/large/unit_card_large_v02.png",
+      "purpose": "horizontal large sheep unit card frame",
+      "width": 520,
+      "height": 80,
+      "mode": "RGBA",
+      "sha256": "E5FF4A57DE7D65C457404FE72005394CC40D088269DC39D96F1807E0F31F1A29",
+      "diskBytes": 57919,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.159,
+      "transparencyCheckPass": true,
+      "kind": "unitCard",
+      "layoutSize": [
+        520,
+        80
+      ],
+      "avatarRegionInclusive": [
+        8,
+        6,
+        78,
+        74
+      ],
+      "dynamicNameRegionInclusive": [
+        90,
+        0,
+        390,
+        79
+      ],
+      "energyCostRegionInclusive": [
+        390,
+        0,
+        508,
+        79
+      ],
+      "commonFramePixelSha256": "E540CCCF23E6943CD517841BB423A08A806C1F79B9B1432FCD02FD91CCD8B046",
+      "avatarInsideRegionPass": true,
+      "dynamicRegionsCleanPass": true,
+      "layoutCheckPass": true,
+      "manualTextAndUiAbsenceReviewPass": true,
+      "archivedLegacyPaths": [
+        "art_source/_archive/ui_layout_legacy_v01/unit_cards/large/unit_card_large_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/ui/unit_cards/giant/unit_card_giant_v02.png",
+      "purpose": "horizontal giant sheep unit card frame",
+      "width": 520,
+      "height": 80,
+      "mode": "RGBA",
+      "sha256": "37AC80BED021A88406AC0DB8C843711AFA7C4B4685672B48B2A30D89FE3529CA",
+      "diskBytes": 58272,
+      "decodedRgbaBytes": 166400,
+      "decodedRgbaMiB": 0.159,
+      "transparencyCheckPass": true,
+      "kind": "unitCard",
+      "layoutSize": [
+        520,
+        80
+      ],
+      "avatarRegionInclusive": [
+        8,
+        6,
+        78,
+        74
+      ],
+      "dynamicNameRegionInclusive": [
+        90,
+        0,
+        390,
+        79
+      ],
+      "energyCostRegionInclusive": [
+        390,
+        0,
+        508,
+        79
+      ],
+      "commonFramePixelSha256": "E540CCCF23E6943CD517841BB423A08A806C1F79B9B1432FCD02FD91CCD8B046",
+      "avatarInsideRegionPass": true,
+      "dynamicRegionsCleanPass": true,
+      "layoutCheckPass": true,
+      "manualTextAndUiAbsenceReviewPass": true,
+      "archivedLegacyPaths": [
+        "art_source/_archive/ui_layout_legacy_v01/unit_cards/giant/unit_card_giant_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/bases/player/player_base_v02.png",
+      "purpose": "player horizontal battle base",
+      "width": 1024,
+      "height": 384,
+      "mode": "RGBA",
+      "sha256": "C72B06C000858511B3BC5C512BB9894B8A034F2C29679EE74053348803627DC8",
+      "diskBytes": 454588,
+      "decodedRgbaBytes": 1572864,
+      "decodedRgbaMiB": 1.5,
+      "transparencyCheckPass": true,
+      "kind": "base",
+      "layoutSize": [
+        1024,
+        384
+      ],
+      "baselineY": 374,
+      "roadEntranceDirection": "up",
+      "perspectiveMatchPass": true,
+      "bloodBarAndTextAbsentPass": true,
+      "layoutCheckPass": true,
+      "archivedLegacyPaths": [
+        "art_source/_archive/bases_isometric_v01/bases/player/player_base_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/bases/ai/ai_base_v02.png",
+      "purpose": "ai horizontal battle base",
+      "width": 1024,
+      "height": 384,
+      "mode": "RGBA",
+      "sha256": "63562A1B99E9B43D779BD84F3D0C3017306DF195626FCEC7E062A67181847D6B",
+      "diskBytes": 491537,
+      "decodedRgbaBytes": 1572864,
+      "decodedRgbaMiB": 1.5,
+      "transparencyCheckPass": true,
+      "kind": "base",
+      "layoutSize": [
+        1024,
+        384
+      ],
+      "baselineY": 374,
+      "roadEntranceDirection": "down",
+      "perspectiveMatchPass": true,
+      "bloodBarAndTextAbsentPass": true,
+      "layoutCheckPass": true,
+      "archivedLegacyPaths": [
+        "art_source/_archive/bases_isometric_v01/bases/ai/ai_base_v01.png"
+      ]
+    },
+    {
+      "relativePath": "art_source/battlefield/roads/road_lane_01_v02.png",
+      "purpose": "vertical battlefield road lane 01",
+      "width": 360,
+      "height": 1030,
+      "mode": "RGBA",
+      "sha256": "85B7EEF1E5282ECB0F6F94F7108AA74881C2325A63CE3B6FF6643079282227D1",
+      "diskBytes": 547354,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.414,
+      "transparencyCheckPass": true,
+      "kind": "road",
+      "layoutSize": [
+        360,
+        1030
+      ],
+      "commonContentBox": [
+        20,
+        0,
+        340,
+        1030
+      ],
+      "commonAlphaMaskSha256": "9AF7873D0D7243BB7260DE6F6F82BEC019FC62DC5B0C86BCF1E7F1D12527BE72",
+      "cleanConnectorBands": {
+        "top": [
+          0,
+          40
+        ],
+        "bottom": [
+          990,
+          1030
+        ]
+      },
+      "commonWidthAndEntryCheckPass": true,
+      "roadNumberAndUiAbsentPass": true,
+      "layoutCheckPass": true,
+      "archivedLegacyPaths": []
+    },
+    {
+      "relativePath": "art_source/battlefield/roads/road_lane_02_v02.png",
+      "purpose": "vertical battlefield road lane 02",
+      "width": 360,
+      "height": 1030,
+      "mode": "RGBA",
+      "sha256": "E9A89F2201A82447A94D2115999AB4DE93DB4A57283FAE9D08081B508A913980",
+      "diskBytes": 527317,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.414,
+      "transparencyCheckPass": true,
+      "kind": "road",
+      "layoutSize": [
+        360,
+        1030
+      ],
+      "commonContentBox": [
+        20,
+        0,
+        340,
+        1030
+      ],
+      "commonAlphaMaskSha256": "9AF7873D0D7243BB7260DE6F6F82BEC019FC62DC5B0C86BCF1E7F1D12527BE72",
+      "cleanConnectorBands": {
+        "top": [
+          0,
+          40
+        ],
+        "bottom": [
+          990,
+          1030
+        ]
+      },
+      "commonWidthAndEntryCheckPass": true,
+      "roadNumberAndUiAbsentPass": true,
+      "layoutCheckPass": true,
+      "archivedLegacyPaths": []
+    },
+    {
+      "relativePath": "art_source/battlefield/roads/road_lane_03_v02.png",
+      "purpose": "vertical battlefield road lane 03",
+      "width": 360,
+      "height": 1030,
+      "mode": "RGBA",
+      "sha256": "81E00DD75AAD4F13CED9C71A3EFA6E0B14DEFE2992DBDCC6CA226045FC013BF3",
+      "diskBytes": 527287,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.414,
+      "transparencyCheckPass": true,
+      "kind": "road",
+      "layoutSize": [
+        360,
+        1030
+      ],
+      "commonContentBox": [
+        20,
+        0,
+        340,
+        1030
+      ],
+      "commonAlphaMaskSha256": "9AF7873D0D7243BB7260DE6F6F82BEC019FC62DC5B0C86BCF1E7F1D12527BE72",
+      "cleanConnectorBands": {
+        "top": [
+          0,
+          40
+        ],
+        "bottom": [
+          990,
+          1030
+        ]
+      },
+      "commonWidthAndEntryCheckPass": true,
+      "roadNumberAndUiAbsentPass": true,
+      "layoutCheckPass": true,
+      "archivedLegacyPaths": []
+    },
+    {
+      "relativePath": "art_source/battlefield/roads/road_lane_04_v02.png",
+      "purpose": "vertical battlefield road lane 04",
+      "width": 360,
+      "height": 1030,
+      "mode": "RGBA",
+      "sha256": "22DBB092EAE1CEAC3424AFC79F0D857B17FD584F66167A3EB79EB58E57BDF5DD",
+      "diskBytes": 534570,
+      "decodedRgbaBytes": 1483200,
+      "decodedRgbaMiB": 1.414,
+      "transparencyCheckPass": true,
+      "kind": "road",
+      "layoutSize": [
+        360,
+        1030
+      ],
+      "commonContentBox": [
+        20,
+        0,
+        340,
+        1030
+      ],
+      "commonAlphaMaskSha256": "9AF7873D0D7243BB7260DE6F6F82BEC019FC62DC5B0C86BCF1E7F1D12527BE72",
+      "cleanConnectorBands": {
+        "top": [
+          0,
+          40
+        ],
+        "bottom": [
+          990,
+          1030
+        ]
+      },
+      "commonWidthAndEntryCheckPass": true,
+      "roadNumberAndUiAbsentPass": true,
+      "layoutCheckPass": true,
+      "archivedLegacyPaths": []
+    }
+  ],
+  "archive": {
+    "movedFileCount": 38,
+    "animationFileCount": 32,
+    "unitCardFileCount": 4,
+    "baseFileCount": 2,
+    "allMoveHashesPreserved": true,
+    "resultsEvidence": "tmp/art02/archive_results.json"
+  },
+  "totals": {
+    "newResourceDiskBytes": 5792318,
+    "newResourceDiskMiB": 5.524,
+    "estimatedDecodedRgbaBytes": 34123520,
+    "estimatedDecodedRgbaMiB": 32.543
+  },
+  "acceptance": {
+    "allFormalFilesPresent": true,
+    "allFormalFilesRgba": true,
+    "allTransparencyChecksPass": true,
+    "allSpriteChecksPass": true,
+    "allLayoutChecksPass": true,
+    "manualVisualReviewPass": true
+  },
+  "forbiddenScope": {
+    "cocosImportExecuted": false,
+    "gitCommitOrTagCreated": false,
+    "assetsBuildLibraryTempSceneSourceOrVersionModified": false
+  }
+}

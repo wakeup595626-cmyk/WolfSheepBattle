@@ -1,0 +1,21 @@
+# 轻松欢快曲目信息
+
+- 游戏内名称：轻松欢快
+- 曲目 ID：`cheerful_lighthearted`
+- 具体作品名称：未确认
+- 作者：未确认
+- 文件名线索：`cheerful and lighthearted_耳聆网.mp3`
+- 用户提供的聚合搜索入口：https://www.tosound.com/search/word-%E6%AC%A2%E5%BF%AB
+- 具体作品页：未找到
+- 原始来源作品页：未找到
+- 原始文件大小：2,143,295 字节
+- 原始文件 SHA-256：`6147CCEB95E78CE2AFCACCCD4CBAA020CB8A0809B981A606A7F5078E7B443994`
+- 项目归档原文件：`art_source/_archive/audio_bgm_source_v120/bgm_cheerful_lighthearted.mp3`
+- 项目运行时文件：`assets/bundles/audio_bgm/bgm/bgm_cheerful_lighthearted_runtime_v01.mp3`
+- 运行时文件大小：1,876,157 字节
+- 运行时文件 SHA-256：`8257EA78ADBF13A13E79F7A6FF1853FB721F35B0A90AC8BD08666F9080072500`
+- 平台许可类别截图：`tosound_license_categories_2026-07-30.png`
+- 截图文件大小：338,705 字节
+- 截图 SHA-256：`F971E97CBD345C4CDD3779E0F52672985CEA823E7D35ADFA3DADBCBEE259733F`
+- 核验日期：2026-07-30
+- RELEASE STATUS：`BLOCKED`

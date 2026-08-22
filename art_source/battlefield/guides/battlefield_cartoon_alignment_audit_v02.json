@@ -1,0 +1,139 @@
+{
+  "sourceSize": [
+    2400,
+    1080
+  ],
+  "runtimeSize": [
+    1600,
+    720
+  ],
+  "laneX": [
+    -495,
+    -225,
+    45,
+    315
+  ],
+  "samples": {
+    "ai": [
+      {
+        "lane": 1,
+        "targetPixelX": 457.5,
+        "detectedPixelX": 458.0,
+        "errorDesignPixels": 0.333,
+        "roadWidthDesignPixels": 143.333,
+        "grassGapToNextDesignPixels": 126.667
+      },
+      {
+        "lane": 2,
+        "targetPixelX": 862.5,
+        "detectedPixelX": 862.0,
+        "errorDesignPixels": -0.333,
+        "roadWidthDesignPixels": 143.333,
+        "grassGapToNextDesignPixels": 126.667
+      },
+      {
+        "lane": 3,
+        "targetPixelX": 1267.5,
+        "detectedPixelX": 1268.0,
+        "errorDesignPixels": 0.333,
+        "roadWidthDesignPixels": 143.333,
+        "grassGapToNextDesignPixels": 126.667
+      },
+      {
+        "lane": 4,
+        "targetPixelX": 1672.5,
+        "detectedPixelX": 1672.0,
+        "errorDesignPixels": -0.333,
+        "roadWidthDesignPixels": 143.333,
+        "grassGapToNextDesignPixels": null
+      }
+    ],
+    "middle": [
+      {
+        "lane": 1,
+        "targetPixelX": 457.5,
+        "detectedPixelX": 458.0,
+        "errorDesignPixels": 0.333,
+        "roadWidthDesignPixels": 142.0,
+        "grassGapToNextDesignPixels": 128.0
+      },
+      {
+        "lane": 2,
+        "targetPixelX": 862.5,
+        "detectedPixelX": 862.0,
+        "errorDesignPixels": -0.333,
+        "roadWidthDesignPixels": 142.0,
+        "grassGapToNextDesignPixels": 128.0
+      },
+      {
+        "lane": 3,
+        "targetPixelX": 1267.5,
+        "detectedPixelX": 1268.0,
+        "errorDesignPixels": 0.333,
+        "roadWidthDesignPixels": 142.0,
+        "grassGapToNextDesignPixels": 128.0
+      },
+      {
+        "lane": 4,
+        "targetPixelX": 1672.5,
+        "detectedPixelX": 1672.0,
+        "errorDesignPixels": -0.333,
+        "roadWidthDesignPixels": 142.0,
+        "grassGapToNextDesignPixels": null
+      }
+    ],
+    "player": [
+      {
+        "lane": 1,
+        "targetPixelX": 457.5,
+        "detectedPixelX": 458.0,
+        "errorDesignPixels": 0.333,
+        "roadWidthDesignPixels": 140.667,
+        "grassGapToNextDesignPixels": 129.333
+      },
+      {
+        "lane": 2,
+        "targetPixelX": 862.5,
+        "detectedPixelX": 862.0,
+        "errorDesignPixels": -0.333,
+        "roadWidthDesignPixels": 140.667,
+        "grassGapToNextDesignPixels": 129.333
+      },
+      {
+        "lane": 3,
+        "targetPixelX": 1267.5,
+        "detectedPixelX": 1268.0,
+        "errorDesignPixels": 0.333,
+        "roadWidthDesignPixels": 140.667,
+        "grassGapToNextDesignPixels": 129.333
+      },
+      {
+        "lane": 4,
+        "targetPixelX": 1672.5,
+        "detectedPixelX": 1672.0,
+        "errorDesignPixels": -0.333,
+        "roadWidthDesignPixels": 140.667,
+        "grassGapToNextDesignPixels": null
+      }
+    ]
+  },
+  "maxAbsoluteCenterErrorDesignPixels": 0.333,
+  "roadWidthRangeDesignPixels": [
+    140.667,
+    143.333
+  ],
+  "maxRoadWidthDeltaDesignPixels": 2.667,
+  "minimumGrassGapDesignPixels": 126.667,
+  "tacticsRegion": {
+    "centralSaturation": 0.7408,
+    "tacticsSaturation": 0.5512,
+    "tacticsSaturationReductionPercent": 25.58,
+    "centralBrightness": 0.7674,
+    "tacticsBrightness": 0.6752,
+    "tacticsBrightnessReductionPercent": 12.01,
+    "centralDetailScore": 1.1304,
+    "tacticsDetailScore": 0.6701,
+    "tacticsDetailReductionPercent": 40.72
+  },
+  "passed": true
+}

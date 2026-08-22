@@ -1,0 +1,23 @@
+{
+  "extends": "../../temp/tsconfig.cocos.json",
+  "compilerOptions": {
+    "strict": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": [
+      "../../temp/declarations/cc.custom-macro",
+      "../../temp/declarations/cc",
+      "../../temp/declarations/jsb",
+      "../../temp/declarations/cc.env"
+    ]
+  },
+  "include": [
+    "../../assets/scripts/**/*.ts"
+  ],
+  "exclude": [
+    "../../build",
+    "../../library",
+    "../../temp",
+    "../../tmp"
+  ]
+}
