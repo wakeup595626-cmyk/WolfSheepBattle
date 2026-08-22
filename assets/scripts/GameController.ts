@@ -61,7 +61,9 @@ const GAME_VERSION = 'v1.3.0-dev-tutorial05-ui09';
 const DEVELOPMENT_BATCH = 'v1.3.0-dev-tutorial05-ui09';
 const REQUESTED_TASK_ID = 'v1.3.0-dev-tutorial05-ui09';
 const BATTLEFIELD_CENTER_X = -90;
-const LANE_SPACING = 270;
+// Keep the four-lane battlefield centered while tightening the unused gaps just
+// enough for a readable compact unit-card rail at the 1280 x 720 baseline.
+const LANE_SPACING = 234;
 const LANE_X = [
     BATTLEFIELD_CENTER_X - LANE_SPACING * 1.5,
     BATTLEFIELD_CENTER_X - LANE_SPACING * 0.5,
@@ -524,9 +526,9 @@ const AI_GATE_ALPHA_BODY_OFFSET_X = -0.375 * SPAWN_GATE_VISUAL_SIZE / 128;
 const PLAYER_GATE_ALPHA_BODY_OFFSET_X = 0;
 const AI_GATE_VISUAL_OFFSET_X = -AI_GATE_ALPHA_BODY_OFFSET_X;
 const PLAYER_GATE_VISUAL_OFFSET_X = -PLAYER_GATE_ALPHA_BODY_OFFSET_X;
-const UNIT_CARD_WIDTH = 48;
-const UNIT_CARD_HEIGHT = 70;
-const UNIT_CARD_GAP = 4;
+const UNIT_CARD_WIDTH = 96;
+const UNIT_CARD_HEIGHT = 40;
+const UNIT_CARD_GAP = 10;
 const UNIT_CARD_SIDEBAR_PADDING = 0;
 const UNIT_CARD_SIDEBAR_WIDTH = UNIT_CARD_WIDTH + UNIT_CARD_SIDEBAR_PADDING * 2;
 const UNIT_CARD_SIDEBAR_HEIGHT = UNIT_CARD_HEIGHT * 4 + UNIT_CARD_GAP * 3
@@ -537,16 +539,16 @@ const PLAYER_HUD_VISIBLE_HALF_HEIGHT = Math.max(
     ENERGY_BAR_HEIGHT,
 ) / 2;
 const DEBUG_BOTTOM_HUD_ASSERT = false;
-const UNIT_CARD_TIER_CENTER_X = 0;
-const UNIT_CARD_TIER_CENTER_Y = 21;
-const UNIT_CARD_MAIN_CENTER_X = 0;
-const UNIT_CARD_MAIN_CENTER_Y = -1;
-const UNIT_CARD_MAIN_AREA_WIDTH = 42;
-const UNIT_CARD_MAIN_AREA_HEIGHT = 30;
-const UNIT_CARD_STATUS_CENTER_X = 0;
-const UNIT_CARD_STATUS_CENTER_Y = -25;
-const UNIT_CARD_STATUS_BOX_WIDTH = 42;
-const UNIT_CARD_STATUS_BOX_HEIGHT = 16;
+const UNIT_CARD_TIER_CENTER_X = -34;
+const UNIT_CARD_TIER_CENTER_Y = 0;
+const UNIT_CARD_MAIN_CENTER_X = -2.5;
+const UNIT_CARD_MAIN_CENTER_Y = 0;
+const UNIT_CARD_MAIN_AREA_WIDTH = 37;
+const UNIT_CARD_MAIN_AREA_HEIGHT = 34;
+const UNIT_CARD_STATUS_CENTER_X = 31;
+const UNIT_CARD_STATUS_CENTER_Y = 0;
+const UNIT_CARD_STATUS_BOX_WIDTH = 28;
+const UNIT_CARD_STATUS_BOX_HEIGHT = 30;
 const UNIT_CARD_TIER_AREA_WIDTH = 24;
 const UNIT_CARD_STATUS_AREA_WIDTH = UNIT_CARD_STATUS_BOX_WIDTH;
 // Development-only lane diagnostics. Keep this false for normal Creator and
@@ -5581,33 +5583,16 @@ export class GameController extends Component {
             0,
             this.hudLayer,
         );
-        const sidebarGraphics = this.unitCardSidebar.getComponent(Graphics)!;
-        sidebarGraphics.fillColor = new Color(47, 81, 48, 218);
-        sidebarGraphics.roundRect(
-            -UNIT_CARD_SIDEBAR_WIDTH / 2,
-            -UNIT_CARD_SIDEBAR_HEIGHT / 2,
-            UNIT_CARD_SIDEBAR_WIDTH,
-            UNIT_CARD_SIDEBAR_HEIGHT,
-            12,
-        );
-        sidebarGraphics.fill();
-        sidebarGraphics.lineWidth = 2;
-        sidebarGraphics.strokeColor = new Color(113, 83, 43, 235);
-        sidebarGraphics.roundRect(
-            -UNIT_CARD_SIDEBAR_WIDTH / 2 + 1,
-            -UNIT_CARD_SIDEBAR_HEIGHT / 2 + 1,
-            UNIT_CARD_SIDEBAR_WIDTH - 2,
-            UNIT_CARD_SIDEBAR_HEIGHT - 2,
-            11,
-        );
-        sidebarGraphics.stroke();
+        // The sidebar is layout-only. Each card owns its visible frame so the
+        // 10 px gaps remain genuinely clear instead of being joined by a shared
+        // background or border.
         const firstCardY = (UNIT_ORDER.length - 1) * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP) / 2;
         for (let index = 0; index < UNIT_ORDER.length; index += 1) {
             const type = UNIT_ORDER[index];
             const cardY = firstCardY - index * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP);
             const button = this.createButton(this.unitCardSidebar, `TypeButton${type}`, '', 0, cardY,
                 UNIT_CARD_WIDTH, UNIT_CARD_HEIGHT, 15, () => {
-                if (this.isPaused || !this.isLevelOneTutorialUnitSelectionAllowed(type)) {
+                if (!this.canHandleUnitCardTouch(type)) {
                     return;
                 }
                 if (!this.isUnitTypeUnlocked(type)) {
@@ -5631,7 +5616,7 @@ export class GameController extends Component {
                 UNIT_CARD_MAIN_AREA_WIDTH,
                 UNIT_CARD_MAIN_AREA_HEIGHT,
             );
-            button.label.fontSize = 13;
+            button.label.fontSize = 12;
             button.label.lineHeight = 14;
             button.label.overflow = Label.Overflow.SHRINK;
             button.label.enableWrapText = false;
@@ -5649,9 +5634,12 @@ export class GameController extends Component {
             const stateLabel = this.createLabel(button.node, 'UnitCardState', '',
                 UNIT_CARD_STATUS_CENTER_X, UNIT_CARD_STATUS_CENTER_Y,
                 UNIT_CARD_STATUS_BOX_WIDTH - 2, UNIT_CARD_STATUS_BOX_HEIGHT - 2,
-                11, UI_TEXT_SECONDARY);
-            stateLabel.lineHeight = 13;
-            this.configureSingleLineLabel(stateLabel, UI_TEXT_SECONDARY);
+                10, UI_TEXT_SECONDARY);
+            stateLabel.lineHeight = 11;
+            stateLabel.overflow = Label.Overflow.SHRINK;
+            stateLabel.enableWrapText = false;
+            stateLabel.horizontalAlign = HorizontalTextAlignment.CENTER;
+            stateLabel.verticalAlign = VerticalTextAlignment.CENTER;
             const unitButton: UnitTypeButtonView = {
                 ...button,
                 tierBadgeNode,
@@ -5666,8 +5654,8 @@ export class GameController extends Component {
             };
             this.orderUnitCardChildren(unitButton);
             button.node.on(NodeEventType.TOUCH_START, () => {
-                if (this.isPaused || !this.isUnitTypeUnlocked(type) || this.selectedSheepType === type
-                    || !this.isLevelOneTutorialUnitSelectionAllowed(type)) return;
+                if (!this.canHandleUnitCardTouch(type) || !this.isUnitTypeUnlocked(type)
+                    || this.selectedSheepType === type) return;
                 unitButton.pressed = true;
                 this.refreshUnitTypeButtons();
             }, this);
@@ -5681,6 +5669,16 @@ export class GameController extends Component {
             this.drawTierBadge(unitButton.tierBadgeGraphics, unitButton.tierBadgeLabel, type, 22);
             this.typeButtons.set(type, unitButton);
         }
+    }
+
+    private canHandleUnitCardTouch(type: SheepType): boolean {
+        const tutorialAllowsCardInput = this.tutorialFlowActive
+            && this.tutorialProgress === 'deploy-four-sheep'
+            && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'deploy-four-sheep'
+            && this.isLevelOneTutorialUnitSelectionAllowed(type);
+        return this.isStarted && !this.isFinished && !this.isPaused
+            && !this.levelTransitionActive
+            && (tutorialAllowsCardInput || !this.isBlockingModalVisible());
     }
 
     private selectUnitType(type: SheepType): void {
@@ -9532,11 +9530,11 @@ export class GameController extends Component {
         graphics.clear();
         for (const rect of rects) {
             const radius = Math.min(20, Math.min(rect.width, rect.height) / 4);
-            graphics.fillColor = new Color(255, 221, 108, 42);
+            graphics.fillColor = new Color(91, 224, 255, 42);
             graphics.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
             graphics.fill();
             graphics.lineWidth = 3.5;
-            graphics.strokeColor = new Color(244, 200, 67, 255);
+            graphics.strokeColor = new Color(67, 214, 244, 255);
             graphics.roundRect(rect.x + 1.75, rect.y + 1.75, rect.width - 3.5, rect.height - 3.5,
                 Math.max(2, radius - 1.75));
             graphics.stroke();
@@ -14459,7 +14457,7 @@ export class GameController extends Component {
             button.stateLabel.string = isTutorialCardTarget ? '\u6559\u7A0B'
                 : statusState === 'locked' ? '\u9501\u5B9A'
                 : statusState === 'insufficient' ? '\u7F3A\u80FD'
-                    : statusState === 'selected-insufficient' ? '\u9009\u4E2D\u7F3A\u80FD'
+                    : statusState === 'selected-insufficient' ? '\u5DF2\u9009\n\u7F3A\u80FD'
                         : statusState === 'selected' ? '\u5DF2\u9009' : '\u53EF\u7528';
             this.drawUnitCardStatus(button, statusState);
             button.tierBadgeNode.getComponent(UIOpacity)!.opacity = isUnlocked ? 255 : 185;
