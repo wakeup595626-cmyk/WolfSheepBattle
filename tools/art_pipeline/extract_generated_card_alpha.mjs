@@ -156,7 +156,25 @@ const sourceImage = sharp(pixels, { raw: { width, height, channels } }).extract(
     height: cropHeight,
 });
 
-await sourceImage.clone().png({ compressionLevel: 9, adaptiveFiltering: true }).toFile(sourceOutputPath);
+const sourceOutputImage = runtimeHeight === undefined
+    ? sourceImage.clone()
+    : (() => {
+        const sourceCanvasWidth = runtimeWidth * 2;
+        const sourceCanvasHeight = runtimeHeight * 2;
+        if (cropWidth > sourceCanvasWidth || cropHeight > sourceCanvasHeight) {
+            throw new Error(`Foreground ${cropWidth}x${cropHeight} exceeds source canvas ${sourceCanvasWidth}x${sourceCanvasHeight}.`);
+        }
+        const horizontalPadding = sourceCanvasWidth - cropWidth;
+        const verticalPadding = sourceCanvasHeight - cropHeight;
+        return sourceImage.clone().extend({
+            left: Math.floor(horizontalPadding / 2),
+            right: Math.ceil(horizontalPadding / 2),
+            top: Math.floor(verticalPadding / 2),
+            bottom: Math.ceil(verticalPadding / 2),
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+        });
+    })();
+await sourceOutputImage.png({ compressionLevel: 9, adaptiveFiltering: true }).toFile(sourceOutputPath);
 const resizeOptions = runtimeHeight === undefined
     ? {
         width: runtimeWidth,
