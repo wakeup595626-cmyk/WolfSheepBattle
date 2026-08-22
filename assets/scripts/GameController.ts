@@ -494,11 +494,8 @@ const BASE_MAX_HEALTH = 100;
 const ENERGY_MAX = 100;
 const ENERGY_START = 60;
 const ENERGY_RECOVERY_PER_SECOND = 4;
-const PLAYER_SPAWN_COOLDOWN = 0.8;
 const AI_INITIAL_DECISION_DELAY = 1.8;
 const AI_IDLE_DECISION_INTERVAL = 1.1;
-const PLAYER_MAX_ACTIVE_UNITS = 8;
-const TEAM_MAX_UNITS_PER_LANE = 3;
 const UNIT_QUEUE_GAP = 10;
 const UNIT_ENEMY_CONTACT_GAP = 3;
 const LANE_CONTACT_EPSILON = 0.01;
@@ -509,7 +506,7 @@ const MAX_LOGIC_DELTA_TIME = 0.1;
 // Root positions stay inside these bounds. The margin also reserves room for
 // the health bar and keeps units away from the surrounding HUD/base visuals.
 const UNIT_ROAD_SAFETY_MARGIN = 22;
-const QUEUE_FULL_MARKER_SECONDS = 0.55;
+const LOAD_PROTECTION_MARKER_SECONDS = 0.55;
 const SPAWN_BUTTON_WIDTH = LANE_WIDTH - 16;
 const SPAWN_BUTTON_HEIGHT = 52;
 const SPAWN_BUTTON_Y = LANE_BOTTOM_Y + 29;
@@ -598,8 +595,11 @@ const ENERGY_SURGE_RECOVERY_MULTIPLIER = 2;
 const LEVEL_FIVE_PLAYER_ENERGY_RECOVERY_MULTIPLIER = 2.5;
 const LEVEL_FIVE_AI_ENERGY_RECOVERY_MULTIPLIER = 2.5;
 const LEVEL_FIVE_AI_MIN_DECISION_INTERVAL = 1.25;
-const LEVEL_FIVE_LANE_ACTIVE_UNIT_SOFT_BUDGET = 20;
-const LEVEL_FIVE_PENDING_SPAWNS_PER_FRAME = 2;
+// Counts active, dying and already accepted pending units. This is an emergency
+// technical guard, not a gameplay cap; the final value is validated by the
+// battleflow stress ladder before release identity is advanced.
+const EMERGENCY_ACTIVE_UNIT_LIMIT = 128;
+const PENDING_DEPLOYMENTS_PER_FRAME = 2;
 const LEVEL_FIVE_SMALL_UNIT_POOL_LIMIT = 48;
 const LEVEL_FIVE_SECONDARY_VFX_UNIT_THRESHOLD = 64;
 const LEVEL_FIVE_RUSH_WINDOW_SECONDS = 4;
@@ -748,6 +748,25 @@ interface UnitDefinition {
     readonly battlePower: number;
     readonly radius: number;
     readonly color: readonly [number, number, number];
+}
+
+interface DeploymentRequest {
+    readonly id: number;
+    readonly team: Team;
+    readonly lane: number;
+    readonly type: SheepType;
+    readonly cost: number;
+    readonly tutorialDeploymentIndex?: number;
+}
+
+type DeploymentRejectReason = 'energy' | 'emergency-load';
+
+interface DeploymentIssueResult {
+    readonly accepted: boolean;
+    readonly spawned: boolean;
+    readonly pendingCount: number;
+    readonly requestId?: number;
+    readonly rejectedReason?: DeploymentRejectReason;
 }
 
 interface UnitTierVisualConfig {
@@ -1177,7 +1196,6 @@ interface LevelConfig {
     readonly aiIdleDecisionInterval: number;
     readonly aiDeployCooldownMultiplier: number;
     readonly aiAllowedUnitTypes: readonly SheepType[];
-    readonly aiMaxActiveUnits: number;
     readonly allowAITactics: boolean;
     readonly aiSprintPowerRatio: number;
     readonly aiSprintAdvanceY: number;
@@ -1193,7 +1211,6 @@ interface LevelConfig {
     readonly aiMudAvoidancePenalty?: number;
     readonly playerEnergyRecoveryMultiplier?: number;
     readonly aiEnergyRecoveryMultiplier?: number;
-    readonly continuousSmallUnitDeployment?: boolean;
     readonly aiMinimumDeployCooldown?: number;
 }
 
@@ -1209,7 +1226,6 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         aiIdleDecisionInterval: 2.75,
         aiDeployCooldownMultiplier: 2.5,
         aiAllowedUnitTypes: [SheepType.Small],
-        aiMaxActiveUnits: 2,
         allowAITactics: false,
         aiSprintPowerRatio: 1.65,
         aiSprintAdvanceY: 65,
@@ -1230,7 +1246,6 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         aiIdleDecisionInterval: 1.9,
         aiDeployCooldownMultiplier: 1.65,
         aiAllowedUnitTypes: [SheepType.Small, SheepType.Medium],
-        aiMaxActiveUnits: 3,
         allowAITactics: false,
         aiSprintPowerRatio: 1.25,
         aiSprintAdvanceY: 140,
@@ -1251,7 +1266,6 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         aiIdleDecisionInterval: 1.1,
         aiDeployCooldownMultiplier: 1,
         aiAllowedUnitTypes: [SheepType.Small, SheepType.Medium, SheepType.Large, SheepType.Giant],
-        aiMaxActiveUnits: 5,
         allowAITactics: true,
         aiSprintPowerRatio: 1.25,
         aiSprintAdvanceY: 140,
@@ -1273,7 +1287,6 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         aiIdleDecisionInterval: 1.1,
         aiDeployCooldownMultiplier: 1,
         aiAllowedUnitTypes: [SheepType.Small, SheepType.Medium, SheepType.Large, SheepType.Giant],
-        aiMaxActiveUnits: 5,
         allowAITactics: true,
         aiSprintPowerRatio: 1.25,
         aiSprintAdvanceY: 140,
@@ -1300,7 +1313,6 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         aiIdleDecisionInterval: LEVEL_FIVE_AI_MIN_DECISION_INTERVAL,
         aiDeployCooldownMultiplier: 0.6,
         aiAllowedUnitTypes: [SheepType.Small, SheepType.Medium, SheepType.Large, SheepType.Giant],
-        aiMaxActiveUnits: 5,
         allowAITactics: true,
         aiSprintPowerRatio: 1.25,
         aiSprintAdvanceY: 140,
@@ -1311,7 +1323,6 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         laneTypes: ['normal', 'normal', 'normal', 'normal'],
         playerEnergyRecoveryMultiplier: LEVEL_FIVE_PLAYER_ENERGY_RECOVERY_MULTIPLIER,
         aiEnergyRecoveryMultiplier: LEVEL_FIVE_AI_ENERGY_RECOVERY_MULTIPLIER,
-        continuousSmallUnitDeployment: true,
     },
     {
         id: 6,
@@ -1325,7 +1336,6 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         aiIdleDecisionInterval: AI_IDLE_DECISION_INTERVAL,
         aiDeployCooldownMultiplier: LEVEL_SIX_AI_DEPLOY_COOLDOWN_MULTIPLIER,
         aiAllowedUnitTypes: [SheepType.Small, SheepType.Medium, SheepType.Large, SheepType.Giant],
-        aiMaxActiveUnits: 5,
         allowAITactics: true,
         aiSprintPowerRatio: 1.25,
         aiSprintAdvanceY: 140,
@@ -1501,11 +1511,17 @@ export class GameController extends Component {
     private readonly playerDefinitionScratch: UnitDefinition[] = [];
     private readonly aiDefinitionScratch: UnitDefinition[] = [];
     private readonly roadBoundsCache = new Map<number, RoadBounds>();
-    private readonly pendingSmallDeployments: number[][] = [
-        LANE_X.map(() => 0),
-        LANE_X.map(() => 0),
+    private readonly pendingDeployments: DeploymentRequest[][][] = [
+        LANE_X.map(() => [] as DeploymentRequest[]),
+        LANE_X.map(() => [] as DeploymentRequest[]),
     ];
-    private pendingSmallDeploymentLaneCursor = 0;
+    private pendingDeploymentSlotCursor = 0;
+    private nextDeploymentRequestId = 1;
+    private deploymentAcceptedCount = 0;
+    private deploymentMaterializedCount = 0;
+    private deploymentRejectedByLoadCount = 0;
+    private playerDeploymentEnergySpent = 0;
+    private aiDeploymentEnergySpent = 0;
     private readonly laneRuntimeStates: LaneRuntimeState[] = LANE_X.map(() => ({
         previousPlayerFrontY: undefined,
         previousAIFrontY: undefined,
@@ -1542,7 +1558,6 @@ export class GameController extends Component {
     private battleElapsedSeconds = 0;
     private selectedSheepType: SheepType | undefined;
     private nextUnitId = 1;
-    private playerSpawnCooldown = 0;
     private aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
     private hudRefreshCooldown = 0;
     private statusToastRemaining = 0;
@@ -1881,7 +1896,6 @@ export class GameController extends Component {
             return;
         }
 
-        this.playerSpawnCooldown = Math.max(0, this.playerSpawnCooldown - deltaTime);
         this.statusToastRemaining = Math.max(0, this.statusToastRemaining - deltaTime);
         this.aiDeployNoticeCooldown = Math.max(0, this.aiDeployNoticeCooldown - deltaTime);
         if (this.statusToastRemaining <= 0 && this.statusToast?.active) {
@@ -1922,7 +1936,7 @@ export class GameController extends Component {
 
         this.updateEnergyBars(deltaTime);
         this.updateUnits(deltaTime);
-        this.processPendingSmallDeployments();
+        this.processPendingDeployments();
         this.updateLevelFiveEnergyFeedback(deltaTime, previousPlayerEnergy, previousAiEnergy);
         this.updateLaneSpawnMarkers(deltaTime);
         this.updateUnitVisuals(deltaTime);
@@ -5466,12 +5480,12 @@ export class GameController extends Component {
         return true;
     }
 
-    private showLaneQueueFull(lane: number): void {
+    private showDeploymentLoadProtection(lane: number): void {
         const marker = this.laneSpawnMarkers[lane];
         if (!marker) {
             return;
         }
-        marker.fullRemaining = QUEUE_FULL_MARKER_SECONDS;
+        marker.fullRemaining = LOAD_PROTECTION_MARKER_SECONDS;
         this.refreshLaneSpawnMarker(lane, marker);
     }
 
@@ -5504,27 +5518,20 @@ export class GameController extends Component {
     }
 
     private refreshLaneSpawnMarker(lane: number, marker: LaneSpawnMarkerView): void {
-        const unitCount = this.getLaneUnitCount(Team.Player, lane);
         const selectedDefinition = this.selectedSheepType ? UNIT_DEFINITIONS[this.selectedSheepType] : undefined;
-        const continuousSmall = !!selectedDefinition && this.isLevelFiveContinuousSmallDefinition(selectedDefinition);
-        const isAtCapacity = !continuousSmall && unitCount >= TEAM_MAX_UNITS_PER_LANE;
-        const isSpawnBlocked = !!selectedDefinition && !continuousSmall && !isAtCapacity
-            && !this.canSpawnUnitInLane(Team.Player, lane, selectedDefinition);
         const isEnergyInsufficient = !!selectedDefinition && this.playerEnergy < selectedDefinition.cost;
         const isPaused = this.isPaused || !this.isStarted;
-        const pendingSmallCount = this.getPendingSmallDeploymentCount(Team.Player, lane);
+        const pendingCount = this.getPendingDeploymentCount(Team.Player, lane);
         const queueText = isPaused ? '\u5DF2\u6682\u505C'
-            : continuousSmall && pendingSmallCount > 0 ? `待部署 ${pendingSmallCount}`
-            : isAtCapacity
-            ? `\u7B2C ${lane + 1} \u7EBF ${unitCount} / ${TEAM_MAX_UNITS_PER_LANE}`
-            : isSpawnBlocked ? `\u7B2C ${lane + 1} \u7EBF\u62E5\u6324`
-                : isEnergyInsufficient ? '\u80FD\u91CF\u4E0D\u8DB3' : '';
+            : marker.fullRemaining > 0 ? '战场繁忙'
+                : pendingCount > 0 ? `待部署 ${pendingCount}`
+                    : isEnergyInsufficient ? '\u80FD\u91CF\u4E0D\u8DB3' : '';
         if (queueText !== marker.lastQueueText) {
             marker.lastQueueText = queueText;
             marker.queueLabel.string = queueText;
         }
         const visualState: SpawnMarkerState = isPaused ? 'paused'
-            : isAtCapacity || isSpawnBlocked || marker.fullRemaining > 0 ? 'full'
+            : marker.fullRemaining > 0 ? 'full'
                 : isEnergyInsufficient ? 'energy' : marker.pressed ? 'selected' : 'ready';
         if (visualState !== marker.visualState) {
             marker.visualState = visualState;
@@ -5562,17 +5569,11 @@ export class GameController extends Component {
             sprite.node.setScale(1, 1, 1);
             this.aiSpawnGateSelectedRemaining[lane] = Math.max(0,
                 this.aiSpawnGateSelectedRemaining[lane] - Math.max(0, deltaTime));
-            const aiCount = this.getLaneUnitCount(Team.AI, lane);
-            const hasSpawnSpace = level.aiAllowedUnitTypes.some((type) => this.canSpawnUnitInLane(
-                Team.AI, lane, UNIT_DEFINITIONS[type],
-            ));
             const hasAffordableType = level.aiAllowedUnitTypes.some((type) => UNIT_DEFINITIONS[type].cost <= this.aiEnergy);
-            const levelFiveContinuous = level.continuousSmallUnitDeployment === true;
-            const isFull = !levelFiveContinuous && (aiCount >= TEAM_MAX_UNITS_PER_LANE || !hasSpawnSpace);
             const isDisabled = !this.isStarted || this.isPaused || this.isFinished
                 || this.tutorialFlowActive || !hasAffordableType;
             const frameIndex = this.aiSpawnGateSelectedRemaining[lane] > 0 && !isDisabled
-                ? 1 : isFull ? 3 : isDisabled ? 2 : 0;
+                ? 1 : isDisabled ? 2 : 0;
             const frame = this.artResourceManager.getFrame(ArtPilotResourceKey.AISpawnGate, frameIndex);
             if (!frame) {
                 sprite.node.active = false;
@@ -11618,69 +11619,177 @@ export class GameController extends Component {
         this.refreshHud(openingHint);
     }
 
-    private isLevelFiveContinuousSmallDefinition(definition: UnitDefinition): boolean {
-        return this.getCurrentLevelConfig().continuousSmallUnitDeployment === true
-            && definition.type === SheepType.Small;
+    private getPendingDeploymentQueue(team: Team, lane: number): DeploymentRequest[] {
+        return this.pendingDeployments[team][lane];
     }
 
-    private getPendingSmallDeploymentCount(team: Team, lane: number): number {
-        return this.pendingSmallDeployments[team]?.[lane] ?? 0;
+    private getPendingDeploymentCount(team: Team, lane: number): number {
+        return this.getPendingDeploymentQueue(team, lane).length;
     }
 
-    private getLaneCombinedActiveUnitCount(lane: number): number {
-        return this.getLaneFormation(Team.Player, lane).length
-            + this.getLaneFormation(Team.AI, lane).length;
+    private getTotalPendingDeploymentCount(): number {
+        let count = 0;
+        for (const teamQueues of this.pendingDeployments) {
+            for (const queue of teamQueues) count += queue.length;
+        }
+        return count;
     }
 
-    private enqueueSmallDeployment(team: Team, lane: number): void {
-        this.pendingSmallDeployments[team][lane] += 1;
+    private getCommittedBattleUnitLoad(): number {
+        return this.units.length + this.dyingUnits.length + this.getTotalPendingDeploymentCount();
     }
 
-    private clearPendingSmallDeployments(): void {
-        for (const teamQueues of this.pendingSmallDeployments) teamQueues.fill(0);
-        this.pendingSmallDeploymentLaneCursor = 0;
+    private hasEmergencyDeploymentCapacity(): boolean {
+        return this.getCommittedBattleUnitLoad() < EMERGENCY_ACTIVE_UNIT_LIMIT;
     }
 
-    private processPendingSmallDeployments(): void {
-        if (this.currentLevel !== 5 || this.isPaused || this.isFinished || !this.isStarted) return;
+    private clearPendingDeployments(): void {
+        for (const teamQueues of this.pendingDeployments) {
+            for (const queue of teamQueues) queue.length = 0;
+        }
+        this.pendingDeploymentSlotCursor = 0;
+    }
+
+    private resetDeploymentDiagnostics(): void {
+        this.nextDeploymentRequestId = 1;
+        this.deploymentAcceptedCount = 0;
+        this.deploymentMaterializedCount = 0;
+        this.deploymentRejectedByLoadCount = 0;
+        this.playerDeploymentEnergySpent = 0;
+        this.aiDeploymentEnergySpent = 0;
+    }
+
+    public getBattleFlowDiagnostics(): object {
+        const pendingByLane = LANE_X.map((_, lane) => ({
+            lane: lane + 1,
+            player: this.getPendingDeploymentCount(Team.Player, lane),
+            ai: this.getPendingDeploymentCount(Team.AI, lane),
+        }));
+        return {
+            emergencyActiveUnitLimit: EMERGENCY_ACTIVE_UNIT_LIMIT,
+            committedLoad: this.getCommittedBattleUnitLoad(),
+            active: {
+                player: this.getActiveUnitCount(Team.Player),
+                ai: this.getActiveUnitCount(Team.AI),
+                total: this.units.length,
+            },
+            dying: this.dyingUnits.length,
+            pending: {
+                total: this.getTotalPendingDeploymentCount(),
+                byLane: pendingByLane,
+            },
+            accepted: this.deploymentAcceptedCount,
+            materialized: this.deploymentMaterializedCount,
+            rejectedByEmergencyLoad: this.deploymentRejectedByLoadCount,
+            energySpent: {
+                player: this.playerDeploymentEnergySpent,
+                ai: this.aiDeploymentEnergySpent,
+            },
+        };
+    }
+
+    private processPendingDeployments(): void {
+        if (this.isPaused || this.isFinished || !this.isStarted) return;
         let spawned = 0;
         const slots = LANE_X.length * 2;
-        for (let offset = 0; offset < slots && spawned < LEVEL_FIVE_PENDING_SPAWNS_PER_FRAME; offset += 1) {
-            const slot = (this.pendingSmallDeploymentLaneCursor + offset) % slots;
+        for (let offset = 0; offset < slots && spawned < PENDING_DEPLOYMENTS_PER_FRAME; offset += 1) {
+            const slot = (this.pendingDeploymentSlotCursor + offset) % slots;
             const team = slot < LANE_X.length ? Team.Player : Team.AI;
             const lane = slot % LANE_X.length;
-            if (this.getPendingSmallDeploymentCount(team, lane) <= 0) continue;
-            const definition = UNIT_DEFINITIONS[SheepType.Small];
-            if (!this.canSpawnUnitInLane(team, lane, definition)) continue;
+            const queue = this.getPendingDeploymentQueue(team, lane);
+            const request = queue[0];
+            if (!request) continue;
+            const definition = UNIT_DEFINITIONS[request.type];
             if (!this.spawnUnit(team, lane, definition)) continue;
-            this.pendingSmallDeployments[team][lane] -= 1;
+            queue.shift();
+            this.deploymentMaterializedCount += 1;
+            this.handleDeploymentMaterialized(request);
             spawned += 1;
         }
-        this.pendingSmallDeploymentLaneCursor = (this.pendingSmallDeploymentLaneCursor + 1) % slots;
+        this.pendingDeploymentSlotCursor = (this.pendingDeploymentSlotCursor + 1) % slots;
     }
 
-    private issueLevelFiveSmallDeployment(team: Team, lane: number): boolean {
-        const definition = UNIT_DEFINITIONS[SheepType.Small];
-        const currentEnergy = team === Team.Player ? this.playerEnergy : this.aiEnergy;
-        if (currentEnergy < definition.cost) return false;
-        if (team === Team.Player) this.playerEnergy -= definition.cost;
-        else this.aiEnergy -= definition.cost;
-        const spawnedImmediately = this.spawnUnit(team, lane, definition);
-        if (!spawnedImmediately) this.enqueueSmallDeployment(team, lane);
-        if (team === Team.Player) {
-            this.audioManager.playSfx('deploy');
-            this.recordLevelFivePlayerDeployment(lane);
-            const pending = this.getPendingSmallDeploymentCount(team, lane);
-            this.refreshHud(pending > 0
-                ? `第${lane + 1}线已接收小羊命令 · 待部署${pending}`
-                : `第${lane + 1}线派出小羊 · 消耗${definition.cost}能量`);
-        } else {
-            if (ART_PILOT_ENABLED && (ART_FULL_ENABLED || lane === ART_PILOT_LANE_INDEX)) {
-                this.aiSpawnGateSelectedRemaining[lane] = 0.18;
-            }
-            this.showAIDeployNotice(lane, SheepType.Small);
+    private issueDeploymentRequest(
+        team: Team,
+        lane: number,
+        definition: UnitDefinition,
+        tutorialDeploymentIndex?: number,
+    ): DeploymentIssueResult {
+        if (!this.hasEmergencyDeploymentCapacity()) {
+            this.deploymentRejectedByLoadCount += 1;
+            return { accepted: false, spawned: false, pendingCount: 0, rejectedReason: 'emergency-load' };
         }
-        return true;
+        const currentEnergy = team === Team.Player ? this.playerEnergy : this.aiEnergy;
+        if (currentEnergy < definition.cost) {
+            return { accepted: false, spawned: false, pendingCount: 0, rejectedReason: 'energy' };
+        }
+        const request: DeploymentRequest = {
+            id: this.nextDeploymentRequestId,
+            team,
+            lane,
+            type: definition.type,
+            cost: definition.cost,
+            tutorialDeploymentIndex,
+        };
+        this.nextDeploymentRequestId += 1;
+        if (team === Team.Player) {
+            this.playerEnergy -= definition.cost;
+            this.playerDeploymentEnergySpent += definition.cost;
+        } else {
+            this.aiEnergy -= definition.cost;
+            this.aiDeploymentEnergySpent += definition.cost;
+        }
+        this.deploymentAcceptedCount += 1;
+        const queue = this.getPendingDeploymentQueue(team, lane);
+        const spawnedImmediately = queue.length === 0 && this.spawnUnit(team, lane, definition);
+        if (spawnedImmediately) {
+            this.deploymentMaterializedCount += 1;
+            this.handleDeploymentMaterialized(request);
+        } else {
+            queue.push(request);
+        }
+        return {
+            accepted: true,
+            spawned: spawnedImmediately,
+            pendingCount: queue.length,
+            requestId: request.id,
+        };
+    }
+
+    private hasPendingTutorialDeployment(tutorialDeploymentIndex: number): boolean {
+        for (const teamQueues of this.pendingDeployments) {
+            for (const queue of teamQueues) {
+                if (queue.some((request) => request.tutorialDeploymentIndex === tutorialDeploymentIndex)) return true;
+            }
+        }
+        return false;
+    }
+
+    private handleDeploymentMaterialized(request: DeploymentRequest): void {
+        if (request.team !== Team.Player || request.tutorialDeploymentIndex === undefined
+            || !this.tutorialFlowActive || this.tutorialProgress !== 'deploy-four-sheep') return;
+        const expected = LEVEL_ONE_TUTORIAL_DEPLOYMENTS[request.tutorialDeploymentIndex];
+        if (!expected || expected.type !== request.type || expected.lane !== request.lane) return;
+        const spawnedUnitId = this.nextUnitId - 1;
+        this.tutorialCompletedDeploymentTypes.add(request.type);
+        this.tutorialCompletedDeploymentLanes.add(request.lane);
+        this.tutorialDeploymentUnitIds.set(request.type, spawnedUnitId);
+        if (request.type === SheepType.Small && request.lane === 0) {
+            this.tutorialDeploymentLane = request.lane;
+            this.tutorialDeployedUnitId = spawnedUnitId;
+        }
+        this.tutorialDeploymentIndex = Math.max(this.tutorialDeploymentIndex,
+            request.tutorialDeploymentIndex + 1);
+        this.lastUnitButtonState = '';
+        if (this.tutorialDeploymentIndex >= LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length
+            && this.tutorialCompletedDeploymentTypes.size === LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length
+            && this.tutorialCompletedDeploymentLanes.size === LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length) {
+            this.tutorialProgress = 'deploy-four-sheep-complete';
+            this.refreshHud('四种羊已分别真实派往四条道路，请点击“下一步”。');
+        }
+        this.refreshUnitTypeButtons();
+        this.refreshLaneSpawnMarkers();
+        this.refreshLevelOneTutorialPresentation();
     }
 
     private tryDeploySelectedUnit(lane: number): boolean {
@@ -11709,38 +11818,14 @@ export class GameController extends Component {
             this.showStatusToast(`${this.getUnitDisplayName(selectedType, Team.Player)}尚未解锁。`);
             return false;
         }
-        if (this.isLevelFiveContinuousSmallDefinition(definition)) {
-            if (this.playerEnergy < definition.cost) {
-                this.triggerDeployFailureFeedback(lane);
-                const missing = Math.max(1, Math.ceil(definition.cost - this.playerEnergy));
-                this.refreshHud(`能量不足，还差${missing}点`);
-                return false;
-            }
-            const deployed = this.issueLevelFiveSmallDeployment(Team.Player, lane);
-            this.refreshLaneSpawnMarkers();
-            return deployed;
-        }
-        if (this.getLaneUnitCount(Team.Player, lane) >= TEAM_MAX_UNITS_PER_LANE) {
-            this.showLaneQueueFull(lane);
-            this.triggerDeployFailureFeedback(lane);
-            this.refreshHud(`第${lane + 1}线已满`);
+        if (this.tutorialFlowActive && this.hasPendingTutorialDeployment(this.tutorialDeploymentIndex)) {
+            this.refreshHud('上一条教学出兵命令仍在等待门口放行。');
             return false;
         }
-        if (!this.canSpawnUnitInLane(Team.Player, lane, definition)) {
-            this.showLaneQueueFull(lane);
+        if (!this.hasEmergencyDeploymentCapacity()) {
+            this.showDeploymentLoadProtection(lane);
             this.triggerDeployFailureFeedback(lane);
-            this.refreshHud(`第${lane + 1}线已满`);
-            return false;
-        }
-        if (this.getActiveUnitCount(Team.Player) >= PLAYER_MAX_ACTIVE_UNITS) {
-            this.triggerDeployFailureFeedback(lane);
-            this.refreshHud('\u5DF1\u65B9\u5DF2\u8FBE\u5230 8 \u4E2A\u5B58\u6D3B\u5355\u4F4D\u4E0A\u9650\u3002');
-            return false;
-        }
-
-        if (this.playerSpawnCooldown > 0) {
-            this.triggerDeployFailureFeedback(lane);
-            this.refreshHud('出兵操作过快，请稍候。');
+            this.refreshHud('战场单位较多，请稍候。');
             return false;
         }
         const tutorialEnergySubsidy = this.tutorialFlowActive
@@ -11751,44 +11836,38 @@ export class GameController extends Component {
             this.refreshHud(`能量不足，还差${missing}点`);
             return false;
         }
-
-        if (!this.spawnUnit(Team.Player, lane, definition)) {
-            this.showLaneQueueFull(lane);
+        const issueResult = this.issueDeploymentRequest(
+            Team.Player,
+            lane,
+            definition,
+            this.tutorialFlowActive ? this.tutorialDeploymentIndex : undefined,
+        );
+        if (!issueResult.accepted) {
             this.triggerDeployFailureFeedback(lane);
-            this.refreshHud(`\u7B2C ${lane + 1} \u7EBF\u961F\u5217\u5DF2\u6EE1\uFF0C\u672C\u6B21\u51FA\u5175\u672A\u6263\u9664\u80FD\u91CF\u3002`);
+            if (issueResult.rejectedReason === 'emergency-load') {
+                this.showDeploymentLoadProtection(lane);
+                this.refreshHud('战场单位较多，请稍候；本次未扣除能量。');
+            } else {
+                const missing = Math.max(1, Math.ceil(definition.cost - this.playerEnergy));
+                this.refreshHud(`能量不足，还差${missing}点`);
+            }
             return false;
         }
-        this.playerEnergy -= definition.cost;
-        this.playerSpawnCooldown = PLAYER_SPAWN_COOLDOWN;
         if (this.tutorialFlowActive) {
             this.tutorialEnergySubsidiesRemaining.set(selectedType, 0);
         }
         this.audioManager.playSfx('deploy');
+        if (this.currentLevel === 5 && definition.type === SheepType.Small) {
+            this.recordLevelFivePlayerDeployment(lane);
+        }
         this.refreshLaneSpawnMarkers();
-        this.refreshHud(tutorialEnergySubsidy > 0
-            ? `教学临时补足${tutorialEnergySubsidy}点能量；第${lane + 1}线真实出兵并扣除${definition.cost}点。`
-            : `第${lane + 1}线派出${this.getUnitDisplayName(definition.type, Team.Player)} · 消耗${definition.cost}能量`);
-        if (this.tutorialFlowActive && this.tutorialProgress === 'deploy-four-sheep') {
-            const spawnedUnitId = this.nextUnitId - 1;
-            this.tutorialCompletedDeploymentTypes.add(selectedType);
-            this.tutorialCompletedDeploymentLanes.add(lane);
-            this.tutorialDeploymentUnitIds.set(selectedType, spawnedUnitId);
-            if (selectedType === SheepType.Small && lane === 0) {
-                this.tutorialDeploymentLane = lane;
-                this.tutorialDeployedUnitId = spawnedUnitId;
-            }
-            this.tutorialDeploymentIndex += 1;
-            this.playerSpawnCooldown = 0;
-            this.lastUnitButtonState = '';
-            if (this.tutorialDeploymentIndex >= LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length
-                && this.tutorialCompletedDeploymentTypes.size === LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length
-                && this.tutorialCompletedDeploymentLanes.size === LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length) {
-                this.tutorialProgress = 'deploy-four-sheep-complete';
-                this.refreshHud('四种羊已分别真实派往四条道路，请点击“下一步”。');
-            }
-            this.refreshUnitTypeButtons();
-            this.refreshLaneSpawnMarkers();
-            this.refreshLevelOneTutorialPresentation();
+        if (!(this.tutorialFlowActive && this.tutorialProgress === 'deploy-four-sheep-complete')) {
+            const deploymentText = issueResult.pendingCount > 0
+                ? `第${lane + 1}线已接收${this.getUnitDisplayName(definition.type, Team.Player)}命令 · 待部署${issueResult.pendingCount}`
+                : `第${lane + 1}线派出${this.getUnitDisplayName(definition.type, Team.Player)} · 消耗${definition.cost}能量`;
+            this.refreshHud(tutorialEnergySubsidy > 0
+                ? `教学临时补足${tutorialEnergySubsidy}点能量；${deploymentText}`
+                : deploymentText);
         }
         return true;
     }
@@ -11798,10 +11877,10 @@ export class GameController extends Component {
         if (this.isPaused) {
             return levelConfig.aiIdleDecisionInterval;
         }
-        if (levelConfig.id === 5 && levelConfig.continuousSmallUnitDeployment) {
+        if (levelConfig.id === 5) {
             return this.trySpawnLevelFiveAIUnit(levelConfig);
         }
-        if (this.getActiveUnitCount(Team.AI) >= levelConfig.aiMaxActiveUnits) {
+        if (!this.hasEmergencyDeploymentCapacity()) {
             return levelConfig.aiIdleDecisionInterval;
         }
 
@@ -11816,16 +11895,15 @@ export class GameController extends Component {
             return levelConfig.aiIdleDecisionInterval;
         }
         const lanePressure = this.getLanePressure(lane);
-        const spawnableTypes = affordableTypes.filter((type) => this.canSpawnUnitInLane(Team.AI, lane, UNIT_DEFINITIONS[type]));
-        const type = this.chooseAIUnitType(spawnableTypes, lanePressure, lane);
+        const type = this.chooseAIUnitType(affordableTypes, lanePressure, lane);
         if (type === undefined) {
             return levelConfig.aiIdleDecisionInterval;
         }
         const definition = UNIT_DEFINITIONS[type];
-        if (!this.spawnUnit(Team.AI, lane, definition)) {
+        const issueResult = this.issueDeploymentRequest(Team.AI, lane, definition);
+        if (!issueResult.accepted) {
             return levelConfig.aiIdleDecisionInterval;
         }
-        this.aiEnergy -= definition.cost;
         if (ART_PILOT_ENABLED && (ART_FULL_ENABLED || lane === ART_PILOT_LANE_INDEX)) {
             this.aiSpawnGateSelectedRemaining[lane] = 0.18;
             this.updatePilotAIGate(0);
@@ -11838,19 +11916,13 @@ export class GameController extends Component {
         const allowed = this.getCurrentAIAllowedUnitTypes(levelConfig)
             .filter((type) => UNIT_DEFINITIONS[type].cost <= this.aiEnergy);
         if (allowed.length === 0) return LEVEL_FIVE_AI_MIN_DECISION_INTERVAL;
-        let nonSmallActive = 0;
-        for (const unit of this.units) {
-            if (unit.team === Team.AI && unit.definition.type !== SheepType.Small
-                && this.isActiveBattleUnit(unit)) nonSmallActive += 1;
-        }
         const weightedTypes: readonly [SheepType, number][] = [
             [SheepType.Small, 55],
             [SheepType.Medium, 25],
             [SheepType.Large, 15],
             [SheepType.Giant, 5],
         ];
-        const eligible = weightedTypes.filter(([type]) => allowed.indexOf(type) >= 0
-            && (type === SheepType.Small || nonSmallActive < levelConfig.aiMaxActiveUnits));
+        const eligible = weightedTypes.filter(([type]) => allowed.indexOf(type) >= 0);
         let roll = Math.random() * eligible.reduce((sum, [, weight]) => sum + weight, 0);
         let selectedType = eligible[0]?.[0] ?? SheepType.Small;
         for (const [type, weight] of eligible) {
@@ -11860,30 +11932,13 @@ export class GameController extends Component {
                 break;
             }
         }
-        if (selectedType === SheepType.Small) {
-            const lane = this.chooseLevelFiveAILane();
-            if (this.issueLevelFiveSmallDeployment(Team.AI, lane)) {
-                return Math.max(LEVEL_FIVE_AI_MIN_DECISION_INTERVAL,
-                    this.getAIDeployCooldown(UNIT_DEFINITIONS[SheepType.Small]));
-            }
-            return LEVEL_FIVE_AI_MIN_DECISION_INTERVAL;
-        }
-        const lane = this.chooseAILane([selectedType]);
-        if (lane !== undefined) {
-            const definition = UNIT_DEFINITIONS[selectedType];
-            if (this.spawnUnit(Team.AI, lane, definition)) {
-                this.aiEnergy -= definition.cost;
-                this.aiSpawnGateSelectedRemaining[lane] = 0.18;
-                this.showAIDeployNotice(lane, selectedType);
-                return Math.max(LEVEL_FIVE_AI_MIN_DECISION_INTERVAL, this.getAIDeployCooldown(definition));
-            }
-        }
-        if (allowed.indexOf(SheepType.Small) >= 0) {
-            const fallbackLane = this.chooseLevelFiveAILane();
-            if (this.issueLevelFiveSmallDeployment(Team.AI, fallbackLane)) {
-                return Math.max(LEVEL_FIVE_AI_MIN_DECISION_INTERVAL,
-                    this.getAIDeployCooldown(UNIT_DEFINITIONS[SheepType.Small]));
-            }
+        const lane = this.chooseLevelFiveAILane();
+        const definition = UNIT_DEFINITIONS[selectedType];
+        const issueResult = this.issueDeploymentRequest(Team.AI, lane, definition);
+        if (issueResult.accepted) {
+            this.aiSpawnGateSelectedRemaining[lane] = 0.18;
+            this.showAIDeployNotice(lane, selectedType);
+            return Math.max(LEVEL_FIVE_AI_MIN_DECISION_INTERVAL, this.getAIDeployCooldown(definition));
         }
         return LEVEL_FIVE_AI_MIN_DECISION_INTERVAL;
     }
@@ -11892,7 +11947,7 @@ export class GameController extends Component {
         const candidates = LANE_X.map((_, lane) => ({
             lane,
             score: this.getAILanePriority(lane)
-                - this.getPendingSmallDeploymentCount(Team.AI, lane) * 7
+                - this.getPendingDeploymentCount(Team.AI, lane) * 7
                 - this.getLaneUnitCount(Team.AI, lane) * 2,
         }));
         const highest = Math.max(...candidates.map((candidate) => candidate.score));
@@ -11915,13 +11970,14 @@ export class GameController extends Component {
     }
 
     private chooseAILane(affordableTypes: readonly SheepType[]): number | undefined {
+        if (affordableTypes.length === 0) return undefined;
         const levelConfig = this.getCurrentLevelConfig();
         let laneStates = LANE_X.map((_, lane) => ({
             lane,
             priority: this.getAILanePriority(lane) + this.getAILaneTerrainBias(levelConfig, lane),
-            aiCount: this.getLaneUnitCount(Team.AI, lane),
-        })).filter((state) => state.aiCount < TEAM_MAX_UNITS_PER_LANE
-            && affordableTypes.some((type) => this.canSpawnUnitInLane(Team.AI, state.lane, UNIT_DEFINITIONS[type])));
+            aiCount: this.getLaneUnitCount(Team.AI, lane)
+                + this.getPendingDeploymentCount(Team.AI, lane),
+        }));
 
         if (laneStates.length === 0) {
             return undefined;
@@ -13193,11 +13249,7 @@ export class GameController extends Component {
     }
 
     private canSpawnUnitInLane(team: Team, lane: number, definition: UnitDefinition): boolean {
-        const withinCapacity = this.isLevelFiveContinuousSmallDefinition(definition)
-            ? this.getLaneCombinedActiveUnitCount(lane) < LEVEL_FIVE_LANE_ACTIVE_UNIT_SOFT_BUDGET
-            : this.getLaneUnitCount(team, lane) < TEAM_MAX_UNITS_PER_LANE;
-        return withinCapacity
-            && this.getUnitSpawnY(team, lane, definition) !== undefined
+        return this.getUnitSpawnY(team, lane, definition) !== undefined
             && this.canFitProjectedLaneFormation(team, lane, definition);
     }
 
@@ -13933,6 +13985,7 @@ export class GameController extends Component {
 
     onDestroy(): void {
         this.cleanupLevelOneTutorial(false);
+        this.clearPendingDeployments();
         game.off(Game.EVENT_HIDE, this.handleLevelOneTutorialGameHide, this);
         game.off(Game.EVENT_SHOW, this.handleLevelOneTutorialGameShow, this);
         this.audioManager?.offBgmPlaybackStarted(this.handleBgmPlaybackStarted);
@@ -13995,6 +14048,7 @@ export class GameController extends Component {
             return;
         }
         this.cleanupLevelOneTutorial(false);
+        this.clearPendingDeployments();
         this.selectedSheepType = undefined;
         this.lastUnitButtonState = '';
         this.isFinished = true;
@@ -14193,6 +14247,7 @@ export class GameController extends Component {
         this.resetResultPresentation();
         this.setBattleTweensPaused(false);
         this.clearBattleUnits();
+        this.resetDeploymentDiagnostics();
         this.playerBaseHealth = BASE_MAX_HEALTH;
         this.aiBaseHealth = BASE_MAX_HEALTH;
         this.playerBaseFlashRemaining = 0;
@@ -14204,7 +14259,6 @@ export class GameController extends Component {
         this.playerSupply = 0;
         this.aiSupply = 0;
         this.selectedSheepType = undefined;
-        this.playerSpawnCooldown = 0;
         this.aiDeployNoticeCooldown = 0;
         this.playerShockUnlocked = false;
         this.aiShockUnlocked = false;
@@ -14321,7 +14375,7 @@ export class GameController extends Component {
         this.laneFormationCacheDirty = true;
         this.laneDebugSignatures.clear();
         for (const teamShifts of this.pendingLaneShifts) teamShifts.fill(0);
-        this.clearPendingSmallDeployments();
+        this.clearPendingDeployments();
         if (this.currentLevel !== 5) {
             for (const pooledUnit of this.levelFiveSmallUnitPool) {
                 if (pooledUnit.node.isValid) pooledUnit.node.destroy();
