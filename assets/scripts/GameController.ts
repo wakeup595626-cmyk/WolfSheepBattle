@@ -229,6 +229,10 @@ const LEVEL_SELECT_PANEL_HEIGHT = 700;
 const LEVEL_SELECT_CARD_WIDTH = 650;
 const LEVEL_SELECT_CARD_HEIGHT = 112;
 const LEVEL_SELECT_CARD_GAP = 12;
+const LEVEL_SELECT_CARD_TEXT_CONTENT_WIDTH = 400;
+const LEVEL_SELECT_CARD_TEXT_CONTENT_HEIGHT = 82;
+const LEVEL_SELECT_CARD_TEXT_CONTENT_X = -38;
+const LEVEL_SELECT_CARD_TEXT_HORIZONTAL_PADDING = 10;
 const LEVEL_SELECT_ITEMS_PER_PAGE = 3;
 const LEVEL_SELECT_CARD_Y = [152, 28, -96] as const;
 const LEVEL_SELECT_PROGRESS_WIDTH = 650;
@@ -7923,30 +7927,35 @@ export class GameController extends Component {
         );
         this.configureSingleLineLabel(numberLabel, new Color(74, 56, 39, 255));
 
-        const textArea = new Node('TextArea');
-        textArea.setParent(root);
-        textArea.setPosition(-30, 0, 0);
-        textArea.addComponent(UITransform).setContentSize(410, 100);
+        const textContentRoot = new Node('TextContentRoot');
+        textContentRoot.setParent(root);
+        textContentRoot.setPosition(LEVEL_SELECT_CARD_TEXT_CONTENT_X, 0, 0);
+        textContentRoot.addComponent(UITransform).setContentSize(
+            LEVEL_SELECT_CARD_TEXT_CONTENT_WIDTH,
+            LEVEL_SELECT_CARD_TEXT_CONTENT_HEIGHT,
+        );
+        const textContentWidth = LEVEL_SELECT_CARD_TEXT_CONTENT_WIDTH
+            - LEVEL_SELECT_CARD_TEXT_HORIZONTAL_PADDING * 2;
         const titleLabel = this.createLabel(
-            textArea,
+            textContentRoot,
             'LevelTitleLabel',
             `\u7B2C${config.id}\u5173\u00B7${config.title}`,
             0,
-            27,
-            410,
+            22,
+            textContentWidth,
             28,
             LEVEL_SELECT_CARD_TITLE_FONT_SIZE,
             new Color(74, 56, 39, 255),
         );
         this.applyTargetTypography(titleLabel, 'LevelCardTitle');
         const descriptionLabel = this.createLabel(
-            textArea,
+            textContentRoot,
             'DescriptionLabel',
             this.getLevelSelectDescription(config.id),
             0,
-            -19,
-            410,
-            50,
+            -17,
+            textContentWidth,
+            40,
             LEVEL_SELECT_CARD_DESCRIPTION_FONT_SIZE,
             new Color(118, 91, 60, 255),
         );
