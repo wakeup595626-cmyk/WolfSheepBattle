@@ -154,21 +154,22 @@ const PAUSE_CONTENT_ROOT_WIDTH = 430;
 const PAUSE_CONTENT_ROOT_HEIGHT = 620;
 const PAUSE_ACTION_BUTTON_WIDTH = 196;
 const PAUSE_ACTION_BUTTON_HEIGHT = 96;
-const PAUSE_ACTION_COLUMN_X = 108;
+const PAUSE_ACTION_COLUMN_X = 110;
 const PAUSE_TITLE_Y = 252;
 const PAUSE_HINT_Y = 204;
-const PAUSE_ACTION_FIRST_ROW_Y = 131;
-const PAUSE_ACTION_SECOND_ROW_Y = 21;
-const PAUSE_BGM_CENTER_Y = -123;
-const PAUSE_VOLUME_CENTER_Y = -253;
+const PAUSE_ACTION_FIRST_ROW_Y = 129;
+const PAUSE_ACTION_SECOND_ROW_Y = 17;
+const PAUSE_BGM_CENTER_Y = -130;
+const PAUSE_VOLUME_CENTER_Y = -252;
 const PAUSE_SETTINGS_ROW_WIDTH = 430;
-const PAUSE_BGM_ROW_HEIGHT = 176;
+const PAUSE_BGM_ROW_HEIGHT = 166;
 const PAUSE_BGM_CARD_WIDTH = 400;
-const PAUSE_BGM_CARD_HEIGHT = 60;
-const PAUSE_BGM_FIRST_CARD_Y = 14;
-const PAUSE_BGM_SECOND_CARD_Y = -60;
-const PAUSE_VOLUME_ROW_WIDTH = 211;
+const PAUSE_BGM_CARD_HEIGHT = 56;
+const PAUSE_BGM_FIRST_CARD_Y = 9;
+const PAUSE_BGM_SECOND_CARD_Y = -55;
+const PAUSE_VOLUME_ROW_WIDTH = 208;
 const PAUSE_VOLUME_ROW_HEIGHT = 56;
+const PAUSE_VOLUME_COLUMN_X = 110;
 const TACTIC_HEADER_Y = PAUSE_BUTTON_Y - PAUSE_BUTTON_HEIGHT / 2
     - PAUSE_TACTIC_VERTICAL_GAP - TACTIC_HEADER_HEIGHT / 2;
 const TACTIC_CARD_HEIGHT = 116;
@@ -10929,7 +10930,7 @@ export class GameController extends Component {
             'MusicVolume',
             'music',
             '\u97F3\u4E50',
-            -109,
+            -PAUSE_VOLUME_COLUMN_X,
             PAUSE_VOLUME_CENTER_Y,
             new Color(111, 148, 213, 255),
         );
@@ -10938,7 +10939,7 @@ export class GameController extends Component {
             'SfxVolume',
             'sfx',
             '\u97F3\u6548',
-            109,
+            PAUSE_VOLUME_COLUMN_X,
             PAUSE_VOLUME_CENTER_Y,
             new Color(77, 174, 144, 255),
         );
@@ -11195,7 +11196,7 @@ export class GameController extends Component {
                 const art = this.applyTacticRegionSprite(
                     node,
                     'ButtonArt',
-                    ArtPilotResourceKey.ButtonSecondary,
+                    ArtPilotResourceKey.PauseActionButtonCompact,
                     size.width,
                     size.height,
                     true,
@@ -11250,10 +11251,10 @@ export class GameController extends Component {
         graphics.roundRect(-PAUSE_SETTINGS_ROW_WIDTH / 2 + 0.75, -PAUSE_BGM_ROW_HEIGHT / 2 + 0.75,
             PAUSE_SETTINGS_ROW_WIDTH - 1.5, PAUSE_BGM_ROW_HEIGHT - 1.5, 15);
         graphics.stroke();
-        const title = this.createLabel(selector, 'BgmTrackTitle', '背景音乐风格', -111, 70, 176, 30, 22,
+        const title = this.createLabel(selector, 'BgmTrackTitle', '背景音乐风格', -111, 65, 176, 30, 22,
             new Color(74, 56, 39, 255));
         this.applyTargetTypography(title, 'BgmSectionTitle');
-        const hint = this.createLabel(selector, 'BgmTrackHint', '点击卡片立即试听并保存', 95, 70, 208, 24, 14,
+        const hint = this.createLabel(selector, 'BgmTrackHint', '点击卡片立即试听并保存', 95, 65, 208, 24, 14,
             new Color(116, 100, 82, 255));
         this.applyTargetTypography(hint, 'BgmSectionHint');
 
@@ -11433,7 +11434,7 @@ export class GameController extends Component {
     ): VolumeControlView {
         const root = this.createGraphicsNode(name, PAUSE_VOLUME_ROW_WIDTH, PAUSE_VOLUME_ROW_HEIGHT, x, y, parent);
         const background = root.getComponent(Graphics)!;
-        background.fillColor = new Color(250, 239, 207, 174);
+        background.fillColor = new Color(250, 239, 207, 255);
         background.roundRect(-PAUSE_VOLUME_ROW_WIDTH / 2, -PAUSE_VOLUME_ROW_HEIGHT / 2,
             PAUSE_VOLUME_ROW_WIDTH, PAUSE_VOLUME_ROW_HEIGHT, 13);
         background.fill();

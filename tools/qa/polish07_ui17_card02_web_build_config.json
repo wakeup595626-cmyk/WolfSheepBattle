@@ -1,0 +1,26 @@
+{
+  "name": "WolfSheepBattle-v1.3.0-dev-polish07-ui17-card02-web",
+  "platform": "web-mobile",
+  "buildPath": "project://build",
+  "outputName": "web-mobile-polish07-ui17-card02",
+  "debug": false,
+  "sourceMaps": false,
+  "md5Cache": false,
+  "mainBundleCompressionType": "merge_dep",
+  "mainBundleIsRemote": false,
+  "engineModulesConfigKey": "defaultConfig",
+  "startScene": "267677db-a17c-4dde-b71e-4d4929fd7689",
+  "scenes": [
+    {
+      "url": "db://assets/scenes/Battle.scene",
+      "uuid": "267677db-a17c-4dde-b71e-4d4929fd7689"
+    }
+  ],
+  "packages": {
+    "web-mobile": {
+      "orientation": "landscape",
+      "embedWebDebugger": false,
+      "__version__": "1.0.1"
+    }
+  }
+}
