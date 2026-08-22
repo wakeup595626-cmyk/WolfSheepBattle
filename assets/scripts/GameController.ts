@@ -154,6 +154,7 @@ const TACTIC_HEADER_Y = PAUSE_BUTTON_Y - PAUSE_BUTTON_HEIGHT / 2
     - PAUSE_TACTIC_VERTICAL_GAP - TACTIC_HEADER_HEIGHT / 2;
 const TACTIC_CARD_HEIGHT = 124;
 const TACTIC_CARD_GAP = 9;
+const TACTIC_HEADER_CARD_GAP = 12;
 const TACTIC_CARD_TOP_HEIGHT = 88;
 const TACTIC_CARD_BOTTOM_HEIGHT = 36;
 const TACTIC_CARD_DIVIDER_Y = -TACTIC_CARD_HEIGHT / 2 + TACTIC_CARD_BOTTOM_HEIGHT;
@@ -174,7 +175,8 @@ const TACTIC_STATE_CELL_X = TACTIC_BOTTOM_INNER_LEFT + TACTIC_COST_CELL_WIDTH
     + TACTIC_STATE_CELL_WIDTH / 2;
 const TACTIC_DYNAMIC_REFRESH_INTERVAL = 0.1;
 const TACTIC_CARD_PRESS_DEBOUNCE_MS = 250;
-const TACTIC_FIRST_CARD_Y = TACTIC_HEADER_Y - TACTIC_HEADER_HEIGHT / 2 - 8 - TACTIC_CARD_HEIGHT / 2;
+const TACTIC_FIRST_CARD_Y = TACTIC_HEADER_Y - TACTIC_HEADER_HEIGHT / 2
+    - TACTIC_HEADER_CARD_GAP - TACTIC_CARD_HEIGHT / 2;
 const GLOBAL_MOVE_SPEED_MULTIPLIER = 0.8;
 const START_READABILITY_PANEL_WIDTH = 720;
 const START_READABILITY_PANEL_HEIGHT = 500;
@@ -528,31 +530,17 @@ const AI_GATE_ALPHA_BODY_OFFSET_X = -0.375 * SPAWN_GATE_VISUAL_SIZE / 128;
 const PLAYER_GATE_ALPHA_BODY_OFFSET_X = 0;
 const AI_GATE_VISUAL_OFFSET_X = -AI_GATE_ALPHA_BODY_OFFSET_X;
 const PLAYER_GATE_VISUAL_OFFSET_X = -PLAYER_GATE_ALPHA_BODY_OFFSET_X;
-const UNIT_CARD_WIDTH = 96;
-const UNIT_CARD_HEIGHT = 40;
+const UNIT_CARD_MIN_WIDTH = 88;
+const UNIT_CARD_MAX_WIDTH = 240;
+const UNIT_CARD_GRASS_USAGE_RATIO = 0.9;
+const UNIT_CARD_HEIGHT = 52;
 const UNIT_CARD_GAP = 10;
-const UNIT_CARD_SIDEBAR_PADDING = 0;
-const UNIT_CARD_SIDEBAR_WIDTH = UNIT_CARD_WIDTH + UNIT_CARD_SIDEBAR_PADDING * 2;
-const UNIT_CARD_SIDEBAR_HEIGHT = UNIT_CARD_HEIGHT * 4 + UNIT_CARD_GAP * 3
-    + UNIT_CARD_SIDEBAR_PADDING * 2;
 const PLAYER_HUD_VISIBLE_HALF_HEIGHT = Math.max(
     BASE_BAR_HEIGHT,
     PLAYER_RESOURCE_BADGE_HEIGHT,
     ENERGY_BAR_HEIGHT,
 ) / 2;
 const DEBUG_BOTTOM_HUD_ASSERT = false;
-const UNIT_CARD_TIER_CENTER_X = -34;
-const UNIT_CARD_TIER_CENTER_Y = 0;
-const UNIT_CARD_MAIN_CENTER_X = -2.5;
-const UNIT_CARD_MAIN_CENTER_Y = 0;
-const UNIT_CARD_MAIN_AREA_WIDTH = 37;
-const UNIT_CARD_MAIN_AREA_HEIGHT = 34;
-const UNIT_CARD_STATUS_CENTER_X = 31;
-const UNIT_CARD_STATUS_CENTER_Y = 0;
-const UNIT_CARD_STATUS_BOX_WIDTH = 28;
-const UNIT_CARD_STATUS_BOX_HEIGHT = 30;
-const UNIT_CARD_TIER_AREA_WIDTH = 24;
-const UNIT_CARD_STATUS_AREA_WIDTH = UNIT_CARD_STATUS_BOX_WIDTH;
 // Development-only lane diagnostics. Keep this false for normal Creator and
 // WeChat builds: warnings are emitted only when an invariant is actually broken.
 const DEBUG_LANE_ASSERT = false;
@@ -2121,7 +2109,7 @@ export class GameController extends Component {
         const tacticHeaderY = pauseY - PAUSE_BUTTON_HEIGHT / 2
             - PAUSE_TACTIC_VERTICAL_GAP - TACTIC_HEADER_HEIGHT / 2;
         const tacticFirstCardY = tacticHeaderY - TACTIC_HEADER_HEIGHT / 2
-            - 8 - TACTIC_CARD_HEIGHT / 2;
+            - TACTIC_HEADER_CARD_GAP - TACTIC_CARD_HEIGHT / 2;
 
         this.pauseButton?.node.setPosition(PAUSE_BUTTON_X, pauseY, 0);
         this.rightControlBar?.getChildByName('TacticSidebarHeader')?.setPosition(
@@ -2135,15 +2123,7 @@ export class GameController extends Component {
             metrics.safeBottom + HUD_SAFE_MARGIN + PLAYER_HUD_VISIBLE_HALF_HEIGHT,
         );
         this.applyBattleHudColumnLayout();
-        if (this.unitCardSidebar?.isValid) {
-            const sidebarX = metrics.safeLeft + HUD_SAFE_MARGIN + UNIT_CARD_SIDEBAR_WIDTH / 2;
-            const sidebarBottom = this.playerHudY + PLAYER_HUD_VISIBLE_HALF_HEIGHT + HUD_SAFE_MARGIN;
-            this.unitCardSidebar.setPosition(
-                sidebarX,
-                sidebarBottom + UNIT_CARD_SIDEBAR_HEIGHT / 2,
-                0,
-            );
-        }
+        this.applyResponsiveUnitCardLayout(metrics);
         this.auditBottomHudClearance(metrics);
 
         this.updateCapsuleExclusion(metrics);
@@ -3194,10 +3174,9 @@ export class GameController extends Component {
             },
         });
         console.info('[VisualPolish04][UnitCardLayout]', {
-            card: { width: UNIT_CARD_WIDTH, height: UNIT_CARD_HEIGHT },
-            tier: { width: UNIT_CARD_TIER_AREA_WIDTH, centerX: UNIT_CARD_TIER_CENTER_X },
-            main: { width: UNIT_CARD_MAIN_AREA_WIDTH, centerX: UNIT_CARD_MAIN_CENTER_X },
-            status: { width: UNIT_CARD_STATUS_AREA_WIDTH, centerX: UNIT_CARD_STATUS_CENTER_X },
+            card: this.unitCardSidebar?.getComponent(UITransform)?.contentSize,
+            gap: UNIT_CARD_GAP,
+            grassUsageRatio: UNIT_CARD_GRASS_USAGE_RATIO,
         });
         console.info('[VisualPolish04][LaneCenters]', LANE_X.map((laneX, lane) => {
             const aiGateRootX = this.aiSpawnGateSlots[lane]?.position.x ?? laneX;
@@ -4836,8 +4815,9 @@ export class GameController extends Component {
             const height = node.getComponent(UITransform)?.height ?? 0;
             return node.position.y + height * Math.abs(node.scale.y) / 2;
         }));
-        const sidebarBottom = this.unitCardSidebar.position.y - UNIT_CARD_SIDEBAR_HEIGHT / 2;
-        const sidebarRight = this.unitCardSidebar.position.x + UNIT_CARD_WIDTH / 2;
+        const sidebarSize = this.unitCardSidebar.getComponent(UITransform)?.contentSize;
+        const sidebarBottom = this.unitCardSidebar.position.y - (sidebarSize?.height ?? 0) / 2;
+        const sidebarRight = this.unitCardSidebar.position.x + (sidebarSize?.width ?? 0) / 2;
         const firstLaneTouchLeft = this.getLaneCenterX(0) - LANE_HIT_AREA_WIDTH / 2;
         const hudSafeBottomClearance = hudBottom - metrics.safeBottom;
         const sidebarHudClearance = sidebarBottom - hudTop;
@@ -5581,11 +5561,81 @@ export class GameController extends Component {
         }
     }
 
+    private getResponsiveUnitCardLayout(metrics: LandscapeLayoutMetrics): {
+        readonly width: number;
+        readonly height: number;
+        readonly centerX: number;
+    } {
+        const grassLeft = metrics.safeLeft + HUD_SAFE_MARGIN;
+        const firstLaneTouchLeft = this.getLaneCenterX(0) - LANE_HIT_AREA_WIDTH / 2;
+        const usableGrassWidth = Math.max(UNIT_CARD_MIN_WIDTH, firstLaneTouchLeft - grassLeft);
+        const width = Math.max(
+            UNIT_CARD_MIN_WIDTH,
+            Math.min(UNIT_CARD_MAX_WIDTH, Math.floor(usableGrassWidth * UNIT_CARD_GRASS_USAGE_RATIO)),
+        );
+        return {
+            width,
+            height: UNIT_CARD_HEIGHT * UNIT_ORDER.length + UNIT_CARD_GAP * (UNIT_ORDER.length - 1),
+            centerX: (grassLeft + firstLaneTouchLeft) / 2,
+        };
+    }
+
+    private applyResponsiveUnitCardLayout(metrics: LandscapeLayoutMetrics): void {
+        if (!this.unitCardSidebar?.isValid) return;
+        const layout = this.getResponsiveUnitCardLayout(metrics);
+        this.unitCardSidebar.getComponent(UITransform)?.setContentSize(layout.width, layout.height);
+        const sidebarBottom = this.playerHudY + PLAYER_HUD_VISIBLE_HALF_HEIGHT + HUD_SAFE_MARGIN;
+        this.unitCardSidebar.setPosition(layout.centerX, sidebarBottom + layout.height / 2, 0);
+        const firstCardY = (UNIT_ORDER.length - 1) * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP) / 2;
+        for (let index = 0; index < UNIT_ORDER.length; index += 1) {
+            const button = this.typeButtons.get(UNIT_ORDER[index]);
+            if (!button) continue;
+            button.node.getComponent(UITransform)?.setContentSize(layout.width, UNIT_CARD_HEIGHT);
+            button.node.setPosition(0, firstCardY - index * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP), 0);
+            button.artSprite?.node.getComponent(UITransform)?.setContentSize(layout.width, UNIT_CARD_HEIGHT);
+            button.artSelectionGraphics?.node.getComponent(UITransform)?.setContentSize(layout.width, UNIT_CARD_HEIGHT);
+            this.applyUnitCardContentLayout(button, layout.width, UNIT_ORDER[index]);
+        }
+        this.lastUnitButtonState = '';
+        this.refreshUnitTypeButtons();
+    }
+
+    private applyUnitCardContentLayout(button: UnitTypeButtonView, cardWidth: number, type: SheepType): void {
+        const innerMargin = 6;
+        const tierSize = Math.max(28, Math.min(34, UNIT_CARD_HEIGHT - 14));
+        const statusWidth = Math.max(34, Math.min(54, Math.round(cardWidth * 0.25)));
+        const statusHeight = UNIT_CARD_HEIGHT - 10;
+        const tierCenterX = -cardWidth / 2 + innerMargin + tierSize / 2;
+        const statusCenterX = cardWidth / 2 - innerMargin - statusWidth / 2;
+        const mainLeft = tierCenterX + tierSize / 2 + 4;
+        const mainRight = statusCenterX - statusWidth / 2 - 4;
+        const mainWidth = Math.max(24, mainRight - mainLeft);
+        const mainCenterX = (mainLeft + mainRight) / 2;
+
+        button.tierBadgeNode.setPosition(tierCenterX, 0, 0);
+        button.tierBadgeNode.getComponent(UITransform)?.setContentSize(tierSize, tierSize);
+        this.resizeAndPositionLabel(button.tierBadgeLabel, 0, 0, tierSize - 2, tierSize - 2);
+        button.tierBadgeLabel.fontSize = cardWidth >= 130 ? 16 : 14;
+        button.tierBadgeLabel.lineHeight = button.tierBadgeLabel.fontSize + 2;
+        this.drawTierBadge(button.tierBadgeGraphics, button.tierBadgeLabel, type, tierSize - 2);
+
+        this.resizeAndPositionLabel(button.label, mainCenterX, 0, mainWidth, UNIT_CARD_HEIGHT - 10);
+        button.label.fontSize = cardWidth >= 130 ? 14 : 12;
+        button.label.lineHeight = button.label.fontSize + 3;
+
+        button.statusBackgroundNode.setPosition(statusCenterX, 0, 0);
+        button.statusBackgroundNode.getComponent(UITransform)?.setContentSize(statusWidth, statusHeight);
+        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, statusWidth - 4, statusHeight - 4);
+        button.stateLabel.fontSize = cardWidth >= 130 ? 11 : 10;
+        button.stateLabel.lineHeight = button.stateLabel.fontSize + 2;
+    }
+
     private createUnitTypeButtons(): void {
+        const layout = this.getResponsiveUnitCardLayout(this.screenMetrics);
         this.unitCardSidebar = this.createGraphicsNode(
             'UnitCardSidebar',
-            UNIT_CARD_SIDEBAR_WIDTH,
-            UNIT_CARD_SIDEBAR_HEIGHT,
+            layout.width,
+            layout.height,
             0,
             0,
             this.hudLayer,
@@ -5598,7 +5648,7 @@ export class GameController extends Component {
             const type = UNIT_ORDER[index];
             const cardY = firstCardY - index * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP);
             const button = this.createButton(this.unitCardSidebar, `TypeButton${type}`, '', 0, cardY,
-                UNIT_CARD_WIDTH, UNIT_CARD_HEIGHT, 15, () => {
+                layout.width, UNIT_CARD_HEIGHT, 15, () => {
                 if (!this.canHandleUnitCardTouch(type)) {
                     return;
                 }
@@ -5611,38 +5661,34 @@ export class GameController extends Component {
             let artSelectionGraphics: Graphics | undefined;
             if (ART_PILOT_ENABLED) {
                 const selectionNode = this.createGraphicsNode('UnitCardSelection',
-                    UNIT_CARD_WIDTH, UNIT_CARD_HEIGHT, 0, 0, button.node);
+                    layout.width, UNIT_CARD_HEIGHT, 0, 0, button.node);
                 selectionNode.setSiblingIndex(0);
                 artSelectionGraphics = selectionNode.getComponent(Graphics)!;
                 selectionNode.active = false;
             }
             this.resizeAndPositionLabel(
                 button.label,
-                UNIT_CARD_MAIN_CENTER_X,
-                UNIT_CARD_MAIN_CENTER_Y,
-                UNIT_CARD_MAIN_AREA_WIDTH,
-                UNIT_CARD_MAIN_AREA_HEIGHT,
+                0,
+                0,
+                40,
+                UNIT_CARD_HEIGHT - 10,
             );
-            button.label.fontSize = 12;
-            button.label.lineHeight = 14;
+            button.label.fontSize = 14;
+            button.label.lineHeight = 17;
             button.label.overflow = Label.Overflow.SHRINK;
             button.label.enableWrapText = false;
             button.label.horizontalAlign = HorizontalTextAlignment.CENTER;
             button.label.verticalAlign = VerticalTextAlignment.CENTER;
             button.label.color = UI_TEXT_PRIMARY;
-            const tierBadgeNode = this.createGraphicsNode('TierBadge', 24, 24,
-                UNIT_CARD_TIER_CENTER_X, UNIT_CARD_TIER_CENTER_Y, button.node);
+            const tierBadgeNode = this.createGraphicsNode('TierBadge', 32, 32, 0, 0, button.node);
             tierBadgeNode.addComponent(UIOpacity);
-            const tierBadgeLabel = this.createLabel(tierBadgeNode, 'TierLabel', '', 0, 0, 22, 22, 13, Color.WHITE);
+            const tierBadgeLabel = this.createLabel(tierBadgeNode, 'TierLabel', '', 0, 0, 30, 30, 15, Color.WHITE);
             const statusBackgroundNode = this.createGraphicsNode('StatusBackground',
-                UNIT_CARD_STATUS_BOX_WIDTH, UNIT_CARD_STATUS_BOX_HEIGHT,
-                UNIT_CARD_STATUS_CENTER_X, UNIT_CARD_STATUS_CENTER_Y, button.node);
+                48, UNIT_CARD_HEIGHT - 10, 0, 0, button.node);
             const statusBackgroundGraphics = statusBackgroundNode.getComponent(Graphics)!;
             const stateLabel = this.createLabel(button.node, 'UnitCardState', '',
-                UNIT_CARD_STATUS_CENTER_X, UNIT_CARD_STATUS_CENTER_Y,
-                UNIT_CARD_STATUS_BOX_WIDTH - 2, UNIT_CARD_STATUS_BOX_HEIGHT - 2,
-                10, UI_TEXT_SECONDARY);
-            stateLabel.lineHeight = 11;
+                0, 0, 46, UNIT_CARD_HEIGHT - 12, 11, UI_TEXT_SECONDARY);
+            stateLabel.lineHeight = 13;
             stateLabel.overflow = Label.Overflow.SHRINK;
             stateLabel.enableWrapText = false;
             stateLabel.horizontalAlign = HorizontalTextAlignment.CENTER;
@@ -5659,6 +5705,7 @@ export class GameController extends Component {
                 pressed: false,
                 visualState: 'available',
             };
+            this.applyUnitCardContentLayout(unitButton, layout.width, type);
             this.orderUnitCardChildren(unitButton);
             button.node.on(NodeEventType.TOUCH_START, () => {
                 if (!this.canHandleUnitCardTouch(type) || !this.isUnitTypeUnlocked(type)
@@ -5673,7 +5720,6 @@ export class GameController extends Component {
             };
             button.node.on(NodeEventType.TOUCH_END, releasePress, this);
             button.node.on(NodeEventType.TOUCH_CANCEL, releasePress, this);
-            this.drawTierBadge(unitButton.tierBadgeGraphics, unitButton.tierBadgeLabel, type, 22);
             this.typeButtons.set(type, unitButton);
         }
     }
@@ -14492,22 +14538,25 @@ export class GameController extends Component {
                     selectionNode.active = isSelected;
                     button.artSelectionGraphics.clear();
                     if (isSelected) {
+                        const cardSize = button.node.getComponent(UITransform)?.contentSize;
+                        const cardWidth = cardSize?.width ?? UNIT_CARD_MIN_WIDTH;
+                        const cardHeight = cardSize?.height ?? UNIT_CARD_HEIGHT;
                         button.artSelectionGraphics.fillColor = new Color(255, 223, 115, 92);
                         button.artSelectionGraphics.roundRect(
-                            -UNIT_CARD_WIDTH / 2 + 1,
-                            -UNIT_CARD_HEIGHT / 2 + 1,
-                            UNIT_CARD_WIDTH - 2,
-                            UNIT_CARD_HEIGHT - 2,
+                            -cardWidth / 2 + 1,
+                            -cardHeight / 2 + 1,
+                            cardWidth - 2,
+                            cardHeight - 2,
                             11,
                         );
                         button.artSelectionGraphics.fill();
                         button.artSelectionGraphics.lineWidth = 4;
                         button.artSelectionGraphics.strokeColor = new Color(245, 190, 47, 255);
                         button.artSelectionGraphics.roundRect(
-                            -UNIT_CARD_WIDTH / 2 + 1.5,
-                            -UNIT_CARD_HEIGHT / 2 + 1.5,
-                            UNIT_CARD_WIDTH - 3,
-                            UNIT_CARD_HEIGHT - 3,
+                            -cardWidth / 2 + 1.5,
+                            -cardHeight / 2 + 1.5,
+                            cardWidth - 3,
+                            cardHeight - 3,
                             10,
                         );
                         button.artSelectionGraphics.stroke();
@@ -14541,6 +14590,9 @@ export class GameController extends Component {
 
     private drawUnitCardStatus(button: UnitTypeButtonView, state: UnitCardVisualState): void {
         const graphics = button.statusBackgroundGraphics;
+        const statusSize = button.statusBackgroundNode.getComponent(UITransform)?.contentSize;
+        const statusWidth = statusSize?.width ?? 34;
+        const statusHeight = statusSize?.height ?? UNIT_CARD_HEIGHT - 10;
         const palette = state === 'insufficient'
                 ? { fill: new Color(255, 222, 199, 255), border: new Color(205, 111, 78, 255), text: new Color(174, 67, 43, 255) }
                 : state === 'selected-insufficient'
@@ -14553,20 +14605,20 @@ export class GameController extends Component {
         graphics.clear();
         graphics.fillColor = palette.fill;
         graphics.roundRect(
-            -UNIT_CARD_STATUS_BOX_WIDTH / 2,
-            -UNIT_CARD_STATUS_BOX_HEIGHT / 2,
-            UNIT_CARD_STATUS_BOX_WIDTH,
-            UNIT_CARD_STATUS_BOX_HEIGHT,
+            -statusWidth / 2,
+            -statusHeight / 2,
+            statusWidth,
+            statusHeight,
             5,
         );
         graphics.fill();
         graphics.lineWidth = 2;
         graphics.strokeColor = palette.border;
         graphics.roundRect(
-            -UNIT_CARD_STATUS_BOX_WIDTH / 2 + 1,
-            -UNIT_CARD_STATUS_BOX_HEIGHT / 2 + 1,
-            UNIT_CARD_STATUS_BOX_WIDTH - 2,
-            UNIT_CARD_STATUS_BOX_HEIGHT - 2,
+            -statusWidth / 2 + 1,
+            -statusHeight / 2 + 1,
+            statusWidth - 2,
+            statusHeight - 2,
             4,
         );
         graphics.stroke();
