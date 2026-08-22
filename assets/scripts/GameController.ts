@@ -151,7 +151,7 @@ const PAUSE_PANEL_ART_WIDTH = 740;
 const PAUSE_CONTENT_ROOT_WIDTH = 430;
 const PAUSE_CONTENT_ROOT_HEIGHT = 548;
 const PAUSE_ACTION_BUTTON_WIDTH = 184;
-const PAUSE_ACTION_BUTTON_HEIGHT = 58;
+const PAUSE_ACTION_BUTTON_HEIGHT = 76;
 const PAUSE_ACTION_COLUMN_X = 100;
 const PAUSE_SETTINGS_ROW_WIDTH = 430;
 const PAUSE_BGM_ROW_HEIGHT = 200;
@@ -10896,24 +10896,24 @@ export class GameController extends Component {
         this.pauseContentRoot.addComponent(UITransform).setContentSize(PAUSE_CONTENT_ROOT_WIDTH, PAUSE_CONTENT_ROOT_HEIGHT);
         this.pauseContentRoot.setPosition(0, 0, 0);
 
-        this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 264, 410, 46, 34, UI_TEXT_PRIMARY);
-        this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 228, 410, 24, 16, UI_TEXT_SECONDARY);
-        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, 179,
+        this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 291, 410, 46, 34, UI_TEXT_PRIMARY);
+        this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 251, 410, 24, 16, UI_TEXT_SECONDARY);
+        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, 195,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.resumeGame());
-        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, 179,
+        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, 195,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.restartGame());
-        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, 105,
+        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, 103,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.openHelpPanel());
-        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, 105,
+        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, 103,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.returnToTitle());
-        this.createBgmTrackSelector(this.pauseContentRoot, -28);
+        this.createBgmTrackSelector(this.pauseContentRoot, -46);
         this.musicVolumeControl = this.createVolumeControl(
             this.pauseContentRoot,
             'MusicVolume',
             'music',
             '\u97F3\u4E50',
             -109,
-            -158,
+            -186,
             new Color(111, 148, 213, 255),
         );
         this.sfxVolumeControl = this.createVolumeControl(
@@ -10922,7 +10922,7 @@ export class GameController extends Component {
             'sfx',
             '\u97F3\u6548',
             109,
-            -158,
+            -186,
             new Color(77, 174, 144, 255),
         );
         this.refreshAudioVolumeControls();
@@ -11175,12 +11175,20 @@ export class GameController extends Component {
             const label = node?.getChildByName('Text')?.getComponent(Label);
             if (node && graphics) {
                 const size = node.getComponent(UITransform)!.contentSize;
-                const art = this.applyChildSprite(node, 'ButtonArt', ArtPilotResourceKey.ButtonSecondary, size.width, size.height);
+                const art = this.applyTacticRegionSprite(
+                    node,
+                    'ButtonArt',
+                    ArtPilotResourceKey.ButtonSecondary,
+                    size.width,
+                    size.height,
+                    true,
+                    16,
+                );
                 if (art) graphics.enabled = false;
             }
             if (label && node) {
-                label.fontSize = 20;
-                label.lineHeight = 25;
+                label.fontSize = 22;
+                label.lineHeight = 28;
                 this.resizeAndPositionLabel(label, 0, 0,
                     node.getComponent(UITransform)!.contentSize.width - 16,
                     node.getComponent(UITransform)!.contentSize.height - 8);
