@@ -527,7 +527,7 @@ const PLAYER_GATE_VISUAL_OFFSET_X = -PLAYER_GATE_ALPHA_BODY_OFFSET_X;
 const UNIT_CARD_WIDTH = 48;
 const UNIT_CARD_HEIGHT = 70;
 const UNIT_CARD_GAP = 4;
-const UNIT_CARD_SIDEBAR_PADDING = 4;
+const UNIT_CARD_SIDEBAR_PADDING = 0;
 const UNIT_CARD_SIDEBAR_WIDTH = UNIT_CARD_WIDTH + UNIT_CARD_SIDEBAR_PADDING * 2;
 const UNIT_CARD_SIDEBAR_HEIGHT = UNIT_CARD_HEIGHT * 4 + UNIT_CARD_GAP * 3
     + UNIT_CARD_SIDEBAR_PADDING * 2;
@@ -2116,9 +2116,7 @@ export class GameController extends Component {
         );
         this.applyBattleHudColumnLayout();
         if (this.unitCardSidebar?.isValid) {
-            // Keep the actual 48 px touch rectangles inside the safe area while the
-            // decorative 4 px sidebar shell may use the remaining non-interactive gutter.
-            const sidebarX = metrics.safeLeft + HUD_SAFE_MARGIN - 2 + UNIT_CARD_SIDEBAR_WIDTH / 2;
+            const sidebarX = metrics.safeLeft + HUD_SAFE_MARGIN + UNIT_CARD_SIDEBAR_WIDTH / 2;
             const sidebarBottom = this.playerHudY + PLAYER_HUD_VISIBLE_HALF_HEIGHT + HUD_SAFE_MARGIN;
             this.unitCardSidebar.setPosition(
                 sidebarX,
