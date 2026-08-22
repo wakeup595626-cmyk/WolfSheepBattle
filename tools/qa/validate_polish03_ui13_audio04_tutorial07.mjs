@@ -160,6 +160,11 @@ const audioScenarios = [
         sfxVolume: 0.65, musicMuted: false, sfxMuted: false, lastNonZeroMusicVolume: 0.35, lastNonZeroSfxVolume: 0.65,
         userAdjustedMusicVolume: true, userAdjustedSfxVolume: true, userSelectedBgm: true,
         legacyZeroMigrationApplied: false }, expect: { music: 0.35, sfx: 0.65, migrated: false, bgm: 'cyberwave_upbeat' } },
+    { name: 'schema2-player-adjusted-80', seed: { schemaVersion: 2, selectedBgmId: 'cheerful_lighthearted',
+        musicVolume: 0.8, sfxVolume: 0.8, musicMuted: false, sfxMuted: false,
+        lastNonZeroMusicVolume: 0.8, lastNonZeroSfxVolume: 0.8, userAdjustedMusicVolume: true,
+        userAdjustedSfxVolume: true, userSelectedBgm: false, legacyZeroMigrationApplied: false },
+        expect: { music: 0.8, sfx: 0.8, migrated: false } },
     { name: 'schema2-muted', seed: { schemaVersion: 2, selectedBgmId: 'cheerful_lighthearted', musicVolume: 0,
         sfxVolume: 0, musicMuted: true, sfxMuted: true, lastNonZeroMusicVolume: 0.4, lastNonZeroSfxVolume: 0.6,
         userAdjustedMusicVolume: true, userAdjustedSfxVolume: true, userSelectedBgm: false,
@@ -171,6 +176,9 @@ const audioScenarios = [
         sfxVolume: 0, musicMuted: false, sfxMuted: false, lastNonZeroMusicVolume: 0.8, lastNonZeroSfxVolume: 0.8,
         userAdjustedMusicVolume: false, userAdjustedSfxVolume: false, userSelectedBgm: false,
         legacyZeroMigrationApplied: false }, expect: { music: 1, sfx: 1, zeroMigrated: true } },
+    { name: 'invalid-and-missing-fields', seed: { schemaVersion: 2, selectedBgmId: 'missing-track',
+        musicVolume: null, sfxVolume: 'invalid', musicMuted: false, lastNonZeroMusicVolume: -1,
+        lastNonZeroSfxVolume: 2 }, expect: { music: 1, sfx: 1, bgm: 'cheerful_lighthearted' } },
 ];
 
 for (const scenario of audioScenarios) {
@@ -189,6 +197,34 @@ for (const scenario of audioScenarios) {
         && (expected.migrated === undefined || state.stored.legacyDefaultVolumeMigrationApplied === expected.migrated)
         && (expected.zeroMigrated === undefined || state.stored.legacyZeroMigrationApplied === expected.zeroMigrated),
         `audio/${scenario.name}`, state);
+    if (scenario.name === 'schema2-custom') {
+        const lifecycle = await inController(sample.page, `(c) => {
+            const snapshot = () => ({ music: c.audioManager.getMusicVolume(), sfx: c.audioManager.getSfxVolume(),
+                bgm: c.audioManager.getSelectedBgmId(), stored: JSON.parse(localStorage.getItem('${AUDIO_KEY}')) });
+            c.currentLevel = 2;
+            c.restartGame();
+            c.startPanel.active = false;
+            c.activateBattle();
+            const battle = snapshot();
+            c.pauseGame();
+            const paused = snapshot();
+            c.resumeGame();
+            const resumed = snapshot();
+            c.restartGame();
+            const restarted = snapshot();
+            c.returnToTitle();
+            const title = snapshot();
+            c.currentLevel = 3;
+            c.restartGame();
+            const switchedLevel = snapshot();
+            return { battle, paused, resumed, restarted, title, switchedLevel };
+        }`);
+        const states = Object.values(lifecycle);
+        check(states.every((item) => Math.abs(item.music - 0.35) < 0.0001
+            && Math.abs(item.sfx - 0.65) < 0.0001 && item.bgm === 'cyberwave_upbeat'
+            && item.stored.musicVolume === 0.35 && item.stored.sfxVolume === 0.65),
+            'audio/preferences-survive-pause-resume-restart-title-and-level-switch', lifecycle);
+    }
     await sample.context.close();
 }
 
