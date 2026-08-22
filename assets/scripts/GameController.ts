@@ -71,15 +71,18 @@ const LANE_X = [
     BATTLEFIELD_CENTER_X + LANE_SPACING * 1.5,
 ];
 const LANE_WIDTH = 180;
-const LANE_BOTTOM_Y = -245;
+const LANE_BOTTOM_Y = -270;
 const LANE_TOP_Y = 270;
 const LANE_LENGTH = LANE_TOP_Y - LANE_BOTTOM_Y;
+const LANE_MID_Y = (LANE_BOTTOM_Y + LANE_TOP_Y) * 0.5;
 const PLAYER_BASE_Y = -270;
 const AI_BASE_Y = 288;
 const HUD_SAFE_MARGIN = 12;
 const TOP_HUD_Y = 308;
 const AI_HUD_Y = TOP_HUD_Y;
-const PLAYER_HUD_Y = -284;
+// Responsive layout applies its existing -16 px lower-HUD offset, yielding
+// -313 at the 1280 x 720 baseline. This leaves 12 px below the lowered gates.
+const PLAYER_HUD_Y = -297;
 const BASE_BAR_HEIGHT = 48;
 const HUD_BASE_BAR_WIDTH = 400;
 const PLAYER_RESOURCE_BADGE_WIDTH = 170;
@@ -509,8 +512,8 @@ const UNIT_ROAD_SAFETY_MARGIN = 22;
 const QUEUE_FULL_MARKER_SECONDS = 0.55;
 const SPAWN_BUTTON_WIDTH = LANE_WIDTH - 16;
 const SPAWN_BUTTON_HEIGHT = 52;
-const SPAWN_BUTTON_Y = -216;
-const LANE_HIT_AREA_CENTER_Y = (LANE_BOTTOM_Y + LANE_TOP_Y) * 0.5;
+const SPAWN_BUTTON_Y = LANE_BOTTOM_Y + 29;
+const LANE_HIT_AREA_CENTER_Y = LANE_MID_Y;
 const CARTOON_ROAD_VISUAL_WIDTH = 143;
 const LANE_HIT_AREA_WIDTH = BATTLEFIELD_VISUAL_MODE === 'cartoon_20x9_v02'
     ? CARTOON_ROAD_VISUAL_WIDTH + 22 : LANE_WIDTH;
@@ -4021,14 +4024,13 @@ export class GameController extends Component {
     }
 
     private createLaneEffectVisuals(): void {
-        const centerY = (LANE_BOTTOM_Y + LANE_TOP_Y) * 0.5;
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
             const root = this.createGraphicsNode(
                 `LaneEffectVisual${lane + 1}`,
                 LANE_WIDTH - 12,
                 LANE_LENGTH - 18,
                 this.getLaneCenterX(lane),
-                centerY,
+                LANE_MID_Y,
                 this.laneVisualsLayer,
             );
             root.active = false;
@@ -4046,38 +4048,41 @@ export class GameController extends Component {
             for (const child of [...root.children]) child.destroy();
             const graphics = root.getComponent(Graphics)!;
             graphics.clear();
+            const laneEffectHalfHeight = (LANE_LENGTH - 21) / 2;
+            const laneEffectScaleY = laneEffectHalfHeight / 247;
             if (laneType === 'mud') {
                 // Layered low-alpha shapes keep the mud readable without turning the
                 // whole lane into a dark sticker on the bright grass battlefield.
                 graphics.fillColor = new Color(124, 83, 47, 54);
-                graphics.roundRect(-76, -247, 152, 494, 22);
+                graphics.roundRect(-76, -laneEffectHalfHeight, 152, laneEffectHalfHeight * 2, 22);
                 graphics.fill();
                 graphics.fillColor = new Color(185, 142, 89, 74);
                 for (const [x, y, width, height] of [
                     [-32, 156, 34, 10], [31, 96, 46, 12], [-18, 22, 32, 9],
                     [28, -54, 44, 11], [-35, -132, 38, 10], [16, -204, 28, 8],
                 ] as const) {
-                    graphics.ellipse(x, y, width, height);
+                    graphics.ellipse(x, y * laneEffectScaleY, width, height);
                     graphics.fill();
                 }
                 graphics.fillColor = new Color(239, 218, 178, 42);
                 for (const [x, y, width] of [[-33, 158, 20], [29, 98, 27], [28, -52, 26], [-35, -130, 22]] as const) {
-                    graphics.ellipse(x, y, width, 3.5);
+                    graphics.ellipse(x, y * laneEffectScaleY, width, 3.5);
                     graphics.fill();
                 }
                 graphics.fillColor = new Color(105, 66, 40, 58);
                 for (const [x, y] of [[-12, 128], [15, 66], [-28, -16], [9, -95], [-16, -178]] as const) {
-                    graphics.circle(x, y, 2.2);
-                    graphics.circle(x + 6, y - 6, 1.5);
+                    graphics.circle(x, y * laneEffectScaleY, 2.2);
+                    graphics.circle(x + 6, (y - 6) * laneEffectScaleY, 1.5);
                     graphics.fill();
                 }
                 graphics.lineWidth = 1.25;
                 graphics.strokeColor = new Color(250, 229, 185, 46);
-                graphics.roundRect(-74, -245, 148, 490, 20);
+                graphics.roundRect(-74, -laneEffectHalfHeight + 2, 148,
+                    laneEffectHalfHeight * 2 - 4, 20);
                 graphics.stroke();
             } else {
                 graphics.fillColor = new Color(255, 231, 238, 24);
-                graphics.roundRect(-74, -247, 148, 494, 20);
+                graphics.roundRect(-74, -laneEffectHalfHeight, 148, laneEffectHalfHeight * 2, 20);
                 graphics.fill();
                 const flowerColors = [
                     new Color(255, 248, 226, 205),
@@ -4087,7 +4092,7 @@ export class GameController extends Component {
                 for (let index = 0; index < 9; index += 1) {
                     graphics.fillColor = flowerColors[index % flowerColors.length];
                     const x = index % 2 === 0 ? -62 : 62;
-                    const y = -212 + index * 53;
+                    const y = (-212 + index * 53) * laneEffectScaleY;
                     graphics.circle(x, y, 3.2);
                     graphics.fill();
                 }
@@ -4098,7 +4103,7 @@ export class GameController extends Component {
                 'LaneEffectLabel',
                 labelText,
                 0,
-                154,
+                154 * laneEffectScaleY,
                 128,
                 42,
                 14,
@@ -4246,7 +4251,14 @@ export class GameController extends Component {
 
     private createSupplyPoints(): void {
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
-            const node = this.createGraphicsNode(`SupplyPoint${lane}`, 76, 74, this.getLaneCenterX(lane), 0, this.laneVisualsLayer);
+            const node = this.createGraphicsNode(
+                `SupplyPoint${lane}`,
+                76,
+                74,
+                this.getLaneCenterX(lane),
+                this.getLaneSupplyPointY(lane),
+                this.laneVisualsLayer,
+            );
             const label = this.createLabel(node, 'Label', '', 4, -8, 92, 22, 10, Color.WHITE);
             const contactShadow = this.createSoftGroundShadow(node, 56, 14, -18);
             const factionSilhouetteNode = this.createGraphicsNode('FactionSilhouette', 64, 64, 0, 0, node);
@@ -4660,8 +4672,10 @@ export class GameController extends Component {
     }
 
     private countUnitsInSupplyRange(lane: number, team: Team): number {
+        const centerY = this.supplyPoints[lane]?.node.position.y ?? this.getLaneSupplyPointY(lane);
         return this.units.filter((unit) => unit.team === team && unit.lane === lane
-            && unit.health > 0 && unit.node.isValid && Math.abs(unit.node.position.y) <= SUPPLY_CAPTURE_RADIUS).length;
+            && unit.health > 0 && unit.node.isValid
+            && Math.abs(unit.node.position.y - centerY) <= SUPPLY_CAPTURE_RADIUS).length;
     }
 
     private getSupplyIncome(team: Team): number {
@@ -11979,7 +11993,7 @@ export class GameController extends Component {
         for (const unit of playerUnits) {
             playerPower += unit.definition.battlePower * unit.health / unit.definition.maxHealth;
             forwardMostPosition = Math.max(forwardMostPosition, unit.node.position.y);
-            hasEnteredAiTerritory ||= unit.node.position.y > 0;
+            hasEnteredAiTerritory ||= unit.node.position.y > LANE_MID_Y;
         }
         const aiPower = this.getLanePower(Team.AI, lane);
         const playerAdvantage = Math.max(0, playerPower - aiPower) * 1.6;
@@ -13188,10 +13202,9 @@ export class GameController extends Component {
     }
 
     private getUnitSpawnY(team: Team, lane: number, definition: UnitDefinition): number | undefined {
-        const bounds = this.getRoadBoundsForRadius(definition.radius);
         // A unit always enters at its own base-side road endpoint. Queue state
         // may reject this spawn, but must never move it forward into the lane.
-        const fixedSpawnY = team === Team.Player ? bounds.minY : bounds.maxY;
+        const fixedSpawnY = this.getFixedUnitSpawnY(team, definition);
         const formation = this.getLaneFormation(team, lane);
         const rearUnit = formation[formation.length - 1];
         if (!rearUnit) {
@@ -13201,6 +13214,21 @@ export class GameController extends Component {
         const requiredSpacing = rearUnit.definition.radius + definition.radius + UNIT_QUEUE_GAP;
         const availableSpacing = direction * (rearUnit.node.position.y - fixedSpawnY);
         return availableSpacing >= requiredSpacing - 0.001 ? fixedSpawnY : undefined;
+    }
+
+    private getFixedUnitSpawnY(team: Team, definition: UnitDefinition): number {
+        const bounds = this.getRoadBoundsForRadius(definition.radius);
+        return team === Team.Player ? bounds.minY : bounds.maxY;
+    }
+
+    private getLaneSupplyPointY(_lane: number): number {
+        // Both factions use the same radius for a matching unit tier, so the
+        // radius cancels. Keeping the computation on the real spawn helper makes
+        // the visual and capture center follow future endpoint changes together.
+        const referenceDefinition = UNIT_DEFINITIONS[SheepType.Small];
+        const playerSpawnY = this.getFixedUnitSpawnY(Team.Player, referenceDefinition);
+        const aiSpawnY = this.getFixedUnitSpawnY(Team.AI, referenceDefinition);
+        return (playerSpawnY + aiSpawnY) * 0.5;
     }
 
     private canFitProjectedLaneFormation(team: Team, lane: number, definition: UnitDefinition): boolean {
@@ -14731,12 +14759,16 @@ export class GameController extends Component {
             if (unit.team === owner || unit.health <= 0 || !unit.node.isValid) {
                 return false;
             }
-            return owner === Team.Player ? unit.node.position.y <= 0 : unit.node.position.y >= 0;
+            return owner === Team.Player
+                ? unit.node.position.y <= LANE_MID_Y
+                : unit.node.position.y >= LANE_MID_Y;
         });
     }
 
     private createShockEffect(owner: Team): void {
-        const effect = this.createGraphicsNode('ShockWave', 1120, 330, 0, owner === Team.Player ? -150 : 150, this.unitsAndVfxLayer);
+        const territoryEffectY = owner === Team.Player ? LANE_MID_Y - 150 : LANE_MID_Y + 150;
+        const effect = this.createGraphicsNode('ShockWave', 1120, 330, 0,
+            territoryEffectY, this.unitsAndVfxLayer);
         const graphics = effect.getComponent(Graphics)!;
         const fillColor = owner === Team.Player ? new Color(90, 194, 255, 72) : new Color(255, 111, 91, 72);
         const strokeColor = owner === Team.Player ? new Color(170, 234, 255, 240) : new Color(255, 191, 177, 240);
@@ -14775,7 +14807,7 @@ export class GameController extends Component {
         void this.artResourceManager.preloadGroups(['tactics']).then(() => {
             if (!this.node.isValid || this.isFinished) return;
             if (laneWide) {
-                const y = team === Team.Player ? -150 : 150;
+                const y = team === Team.Player ? LANE_MID_Y - 150 : LANE_MID_Y + 150;
                 for (const laneX of LANE_X) {
                     this.playPilotVfx(key, laneX, y, 118, 12);
                 }
