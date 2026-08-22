@@ -5854,8 +5854,9 @@ export class GameController extends Component {
         const portraitSprite = button.portraitSprite;
         const sourceSize = button.portraitFrame?.originalSize;
         if (!portraitSprite || !sourceSize || sourceSize.width <= 0 || sourceSize.height <= 0) return;
+        const cardWidth = button.node.getComponent(UITransform)?.contentSize.width ?? UNIT_CARD_MIN_WIDTH;
         const availableWidth = Math.max(1, regionWidth - 8);
-        const availableHeight = UNIT_CARD_HEIGHT - 12;
+        const availableHeight = UNIT_CARD_HEIGHT - (cardWidth >= 170 ? 16 : 12);
         const uniformScale = Math.min(availableWidth / sourceSize.width, availableHeight / sourceSize.height);
         button.portraitUniformScale = uniformScale;
         portraitSprite.node.setPosition(centerX, 0, 0);

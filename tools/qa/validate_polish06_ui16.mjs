@@ -138,6 +138,8 @@ for (const viewport of viewports) {
         `cards/${viewport.name}/single-shell-single-badge`, battle.cards);
     check(battle.cards.every((card) => card.portrait.left >= card.card.left && card.portrait.right <= card.card.right
         && card.text.left >= card.portrait.right && card.state.left >= card.text.right
+        && Math.abs((card.portrait.bottom - card.card.bottom) - (card.state.bottom - card.card.bottom)) < 0.1
+        && Math.abs((card.card.top - card.portrait.top) - (card.card.top - card.state.top)) < 0.1
         && Math.abs(card.sourceAspect - card.displayAspect) < 0.0001 && card.portraitScale > 0
         && card.fontSize === 16 && card.lineHeight === 21),
         `cards/${viewport.name}/contained-proportional-three-zone-layout`, battle.cards);
