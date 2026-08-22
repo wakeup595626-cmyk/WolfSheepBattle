@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish01-ui11-audio03-tutorial06';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish01-ui11-audio03-tutorial06';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish01-ui11-audio03-tutorial06';
+const GAME_VERSION = 'v1.3.0-dev-polish02-ui12';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish02-ui12';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish02-ui12';
 const BATTLEFIELD_CENTER_X = -90;
 // Keep the four-lane battlefield centered while tightening the unused gaps just
 // enough for a readable compact unit-card rail at the 1280 x 720 baseline.
@@ -150,11 +150,12 @@ const PAUSE_PANEL_HEIGHT = 650;
 const PAUSE_PANEL_ART_WIDTH = 740;
 const PAUSE_CONTENT_ROOT_WIDTH = 430;
 const PAUSE_CONTENT_ROOT_HEIGHT = 548;
-const PAUSE_ACTION_BUTTON_WIDTH = 204;
-const PAUSE_ACTION_BUTTON_HEIGHT = 46;
-const PAUSE_ACTION_COLUMN_X = 107;
+const PAUSE_ACTION_BUTTON_WIDTH = 184;
+const PAUSE_ACTION_BUTTON_HEIGHT = 58;
+const PAUSE_ACTION_COLUMN_X = 100;
 const PAUSE_SETTINGS_ROW_WIDTH = 430;
-const PAUSE_BGM_ROW_HEIGHT = 210;
+const PAUSE_BGM_ROW_HEIGHT = 200;
+const PAUSE_VOLUME_ROW_WIDTH = 211;
 const PAUSE_VOLUME_ROW_HEIGHT = 56;
 const TACTIC_HEADER_Y = PAUSE_BUTTON_Y - PAUSE_BUTTON_HEIGHT / 2
     - PAUSE_TACTIC_VERTICAL_GAP - TACTIC_HEADER_HEIGHT / 2;
@@ -10895,13 +10896,13 @@ export class GameController extends Component {
 
         this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 240, 410, 46, 34, UI_TEXT_PRIMARY);
         this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 204, 410, 24, 16, UI_TEXT_SECONDARY);
-        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, 148,
+        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, 153,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.resumeGame());
-        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, 148,
+        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, 153,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.restartGame());
-        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, 96,
+        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, 79,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.openHelpPanel());
-        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, 96,
+        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, 79,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.returnToTitle());
         this.createBgmTrackSelector(this.pauseContentRoot, -28);
         this.musicVolumeControl = this.createVolumeControl(
@@ -10909,7 +10910,8 @@ export class GameController extends Component {
             'MusicVolume',
             'music',
             '\u97F3\u4E50',
-            -166,
+            -109,
+            -158,
             new Color(111, 148, 213, 255),
         );
         this.sfxVolumeControl = this.createVolumeControl(
@@ -10917,7 +10919,8 @@ export class GameController extends Component {
             'SfxVolume',
             'sfx',
             '\u97F3\u6548',
-            -230,
+            109,
+            -158,
             new Color(77, 174, 144, 255),
         );
         this.refreshAudioVolumeControls();
@@ -11383,24 +11386,25 @@ export class GameController extends Component {
         name: string,
         channel: AudioChannel,
         title: string,
+        x: number,
         y: number,
         accent: Color,
     ): VolumeControlView {
-        const root = this.createGraphicsNode(name, PAUSE_SETTINGS_ROW_WIDTH, PAUSE_VOLUME_ROW_HEIGHT, 0, y, parent);
+        const root = this.createGraphicsNode(name, PAUSE_VOLUME_ROW_WIDTH, PAUSE_VOLUME_ROW_HEIGHT, x, y, parent);
         const background = root.getComponent(Graphics)!;
         background.fillColor = new Color(250, 239, 207, 174);
-        background.roundRect(-PAUSE_SETTINGS_ROW_WIDTH / 2, -PAUSE_VOLUME_ROW_HEIGHT / 2,
-            PAUSE_SETTINGS_ROW_WIDTH, PAUSE_VOLUME_ROW_HEIGHT, 13);
+        background.roundRect(-PAUSE_VOLUME_ROW_WIDTH / 2, -PAUSE_VOLUME_ROW_HEIGHT / 2,
+            PAUSE_VOLUME_ROW_WIDTH, PAUSE_VOLUME_ROW_HEIGHT, 13);
         background.fill();
         background.lineWidth = 1.5;
         background.strokeColor = new Color(167, 118, 62, 165);
-        background.roundRect(-PAUSE_SETTINGS_ROW_WIDTH / 2 + 0.75, -PAUSE_VOLUME_ROW_HEIGHT / 2 + 0.75,
-            PAUSE_SETTINGS_ROW_WIDTH - 1.5, PAUSE_VOLUME_ROW_HEIGHT - 1.5, 12);
+        background.roundRect(-PAUSE_VOLUME_ROW_WIDTH / 2 + 0.75, -PAUSE_VOLUME_ROW_HEIGHT / 2 + 0.75,
+            PAUSE_VOLUME_ROW_WIDTH - 1.5, PAUSE_VOLUME_ROW_HEIGHT - 1.5, 12);
         background.stroke();
 
-        const titleLabel = this.createLabel(root, `${name}Title`, title, -185, 0, 54, 40, 18, UI_TEXT_PRIMARY);
+        const titleLabel = this.createLabel(root, `${name}Title`, title, -56, 14, 88, 20, 18, UI_TEXT_PRIMARY);
         this.applyTargetTypography(titleLabel, 'VolumeTitle');
-        const muteButton = this.createButton(root, `${name}Mute`, '', -139, 0, 38, 40, 20, () => {
+        const muteButton = this.createButton(root, `${name}Mute`, '', -82, -10, 32, 32, 20, () => {
             if (channel === 'music') {
                 this.audioManager.toggleMusicMute();
             } else {
@@ -11409,10 +11413,10 @@ export class GameController extends Component {
             this.refreshAudioVolumeControls();
             this.refreshAudioUnlockHint();
         });
-        const minusButton = this.createButton(root, `${name}Minus`, '\u2212', -99, 0, 34, 40, 20, () => {
+        const minusButton = this.createButton(root, `${name}Minus`, '\u2212', -48, -10, 30, 32, 20, () => {
             this.adjustAudioVolume(channel, -5);
         });
-        const plusButton = this.createButton(root, `${name}Plus`, '+', 125, 0, 34, 40, 20, () => {
+        const plusButton = this.createButton(root, `${name}Plus`, '+', 58, -10, 30, 32, 20, () => {
             this.adjustAudioVolume(channel, 5);
         });
         this.applyTargetTypography(minusButton.label, 'VolumeButton');
@@ -11421,9 +11425,9 @@ export class GameController extends Component {
         this.drawButton(minusButton, new Color(241, 224, 181, 255), new Color(167, 118, 62, 220));
         this.drawButton(plusButton, new Color(241, 224, 181, 255), new Color(167, 118, 62, 220));
 
-        const trackWidth = 176;
-        const valueWidth = 146;
-        const trackNode = this.createGraphicsNode(`${name}Track`, trackWidth, 42, 15, 0, root);
+        const trackWidth = 66;
+        const valueWidth = 52;
+        const trackNode = this.createGraphicsNode(`${name}Track`, trackWidth, 34, 5, -10, root);
         const trackGraphics = trackNode.getComponent(Graphics)!;
         trackGraphics.fillColor = new Color(99, 87, 72, 180);
         trackGraphics.roundRect(-trackWidth / 2, -7, trackWidth, 14, 7);
@@ -11462,10 +11466,10 @@ export class GameController extends Component {
             root,
             `${name}Percent`,
             '0%',
-            181,
-            0,
+            62,
+            14,
             52,
-            40,
+            20,
             18,
             UI_TEXT_PRIMARY,
         );
