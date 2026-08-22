@@ -2509,8 +2509,7 @@ export class GameController extends Component {
                     unitCardKeys[type],
                     cardSize.width,
                     cardSize.height,
-                    true,
-                    14,
+                    false,
                 );
                 const tierBadgeArt = this.applyChildSprite(
                     button.tierBadgeNode,
@@ -2524,6 +2523,7 @@ export class GameController extends Component {
                     tierBadgeArt.node.setSiblingIndex(0);
                     button.tierBadgeLabel.node.setSiblingIndex(button.tierBadgeNode.children.length - 1);
                 }
+                button.tierBadgeNode.active = !button.artSprite;
                 this.orderUnitCardChildren(button);
             }
         }
@@ -5679,33 +5679,35 @@ export class GameController extends Component {
     }
 
     private applyUnitCardContentLayout(button: UnitTypeButtonView, cardWidth: number, type: SheepType): void {
-        const innerMargin = 8;
-        const tierSize = cardWidth >= 170 ? 44 : 38;
-        const statusWidth = Math.max(44, Math.min(64, Math.round(cardWidth * 0.27)));
-        const statusHeight = UNIT_CARD_HEIGHT - 16;
-        const tierCenterX = -cardWidth / 2 + innerMargin + tierSize / 2;
-        const statusCenterX = cardWidth / 2 - innerMargin - statusWidth / 2;
-        const mainLeft = tierCenterX + tierSize / 2 + 6;
-        const mainRight = statusCenterX - statusWidth / 2 - 6;
+        const outerMargin = cardWidth >= 170 ? 10 : 6;
+        const portraitWidth = Math.round(cardWidth * 0.4);
+        const tierSize = cardWidth >= 170 ? 28 : 24;
+        const statusWidth = Math.max(32, Math.min(52, Math.round(cardWidth * 0.24)));
+        const statusHeight = cardWidth >= 170 ? 44 : 38;
+        const tierCenterX = -cardWidth / 2 + outerMargin + tierSize / 2;
+        const statusCenterX = cardWidth / 2 - outerMargin - statusWidth / 2;
+        const mainLeft = -cardWidth / 2 + portraitWidth + 2;
+        const mainRight = statusCenterX - statusWidth / 2 - 3;
         const mainWidth = Math.max(24, mainRight - mainLeft);
         const mainCenterX = (mainLeft + mainRight) / 2;
 
-        button.tierBadgeNode.setPosition(tierCenterX, 0, 0);
+        button.tierBadgeNode.setPosition(tierCenterX, UNIT_CARD_HEIGHT / 2 - outerMargin - tierSize / 2, 0);
         button.tierBadgeNode.getComponent(UITransform)?.setContentSize(tierSize, tierSize);
         button.tierBadgeNode.getChildByName('TierBadgeArt')
-            ?.getComponent(UITransform)?.setContentSize(tierSize - 8, tierSize - 8);
+            ?.getComponent(UITransform)?.setContentSize(tierSize - 5, tierSize - 5);
         this.resizeAndPositionLabel(button.tierBadgeLabel, 0, 0, tierSize - 2, tierSize - 2);
-        button.tierBadgeLabel.fontSize = cardWidth >= 170 ? 17 : 15;
+        button.tierBadgeLabel.fontSize = cardWidth >= 170 ? 14 : 12;
         button.tierBadgeLabel.lineHeight = button.tierBadgeLabel.fontSize + 2;
         this.drawTierBadge(button.tierBadgeGraphics, button.tierBadgeLabel, type, tierSize - 2);
 
         this.resizeAndPositionLabel(button.label, mainCenterX, 0, mainWidth, UNIT_CARD_HEIGHT - 18);
-        button.label.fontSize = cardWidth >= 170 ? 16 : 14;
-        button.label.lineHeight = button.label.fontSize + 4;
+        button.label.fontSize = cardWidth >= 170 ? 15 : 11;
+        button.label.lineHeight = button.label.fontSize + 5;
+        button.label.horizontalAlign = HorizontalTextAlignment.LEFT;
 
         button.statusBackgroundNode.setPosition(statusCenterX, 0, 0);
         button.statusBackgroundNode.getComponent(UITransform)?.setContentSize(statusWidth, statusHeight);
-        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, statusWidth - 8, statusHeight - 8);
+        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, statusWidth - 6, statusHeight - 6);
         button.stateLabel.fontSize = cardWidth >= 170 ? 12 : 11;
         button.stateLabel.lineHeight = button.stateLabel.fontSize + 2;
     }
@@ -14784,7 +14786,7 @@ export class GameController extends Component {
             Tween.stopAllByTarget(button.node);
             const targetScale = state === 'pressed' ? 0.98 : 1;
             button.node.setScale(targetScale, targetScale, 1);
-            button.label.string = `${tier.displayName.sheep}\n${definition.cost}\u80FD`;
+            button.label.string = `${tier.displayName.sheep}\n${definition.cost}\u80FD\u91CF`;
             button.label.color = usesPilotCard
                 ? (isSelected ? new Color(76, 50, 30, 255) : isAvailable ? UI_TEXT_PRIMARY : UI_TEXT_SECONDARY)
                 : (isSelected ? new Color(76, 50, 30, 255)
@@ -14806,14 +14808,14 @@ export class GameController extends Component {
         const statusWidth = statusSize?.width ?? 34;
         const statusHeight = statusSize?.height ?? UNIT_CARD_HEIGHT - 16;
         const palette = state === 'insufficient'
-                ? { fill: new Color(255, 222, 199, 232), border: new Color(205, 111, 78, 205), text: new Color(174, 67, 43, 255) }
+                ? { fill: new Color(255, 222, 199, 112), border: new Color(205, 111, 78, 205), text: new Color(174, 67, 43, 255) }
                 : state === 'selected-insufficient'
-                    ? { fill: new Color(255, 226, 154, 238), border: new Color(190, 126, 21, 220), text: new Color(139, 66, 25, 255) }
+                    ? { fill: new Color(255, 226, 154, 126), border: new Color(190, 126, 21, 220), text: new Color(139, 66, 25, 255) }
                     : state === 'selected'
-                        ? { fill: new Color(255, 238, 166, 238), border: new Color(190, 126, 21, 220), text: new Color(103, 69, 22, 255) }
-                : state === 'locked'
-                    ? { fill: new Color(113, 105, 98, 232), border: new Color(82, 76, 71, 205), text: new Color(239, 232, 219, 255) }
-                    : { fill: new Color(188, 231, 199, 232), border: new Color(76, 145, 91, 205), text: new Color(38, 91, 52, 255) };
+                        ? { fill: new Color(255, 238, 166, 118), border: new Color(190, 126, 21, 220), text: new Color(103, 69, 22, 255) }
+                    : state === 'locked'
+                    ? { fill: new Color(113, 105, 98, 138), border: new Color(82, 76, 71, 205), text: new Color(239, 232, 219, 255) }
+                    : { fill: new Color(188, 231, 199, 98), border: new Color(76, 145, 91, 205), text: new Color(38, 91, 52, 255) };
         graphics.clear();
         graphics.fillColor = palette.fill;
         graphics.roundRect(
@@ -14821,13 +14823,13 @@ export class GameController extends Component {
             -statusHeight / 2,
             statusWidth,
             statusHeight,
-            10,
+            9,
         );
         graphics.fill();
-        graphics.lineWidth = 2;
+        graphics.lineWidth = 1.5;
         graphics.strokeColor = palette.border;
-        graphics.moveTo(-statusWidth / 2 + 1, -statusHeight / 2 + 10);
-        graphics.lineTo(-statusWidth / 2 + 1, statusHeight / 2 - 10);
+        graphics.moveTo(-statusWidth / 2 + 1, -statusHeight / 2 + 7);
+        graphics.lineTo(-statusWidth / 2 + 1, statusHeight / 2 - 7);
         graphics.stroke();
         button.stateLabel.color = palette.text;
     }
