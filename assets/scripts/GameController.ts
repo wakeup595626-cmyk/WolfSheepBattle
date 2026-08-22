@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish03-ui13-audio04-tutorial07';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish03-ui13-audio04-tutorial07';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish03-ui13-audio04-tutorial07';
+const GAME_VERSION = 'v1.3.0-dev-polish04-ui14';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish04-ui14';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish04-ui14';
 const BATTLEFIELD_CENTER_X = -90;
 // Keep the four-lane battlefield centered while tightening the unused gaps just
 // enough for a readable compact unit-card rail at the 1280 x 720 baseline.
@@ -545,8 +545,17 @@ const PLAYER_GATE_VISUAL_OFFSET_X = -PLAYER_GATE_ALPHA_BODY_OFFSET_X;
 const UNIT_CARD_MIN_WIDTH = 88;
 const UNIT_CARD_MAX_WIDTH = 240;
 const UNIT_CARD_GRASS_USAGE_RATIO = 0.9;
-const UNIT_CARD_HEIGHT = 100;
+const UNIT_CARD_HEIGHT = 90;
 const UNIT_CARD_GAP = 10;
+const UNIT_CARD_PORTRAIT_RATIO = 0.42;
+const UNIT_CARD_TEXT_RATIO = 0.28;
+const UNIT_CARD_ART_SLICE_INSET = 16;
+const UNIT_CARD_PORTRAIT_CROP_X_RATIO = 0.035;
+const UNIT_CARD_PORTRAIT_CROP_Y_RATIO = 0.06;
+const UNIT_CARD_PORTRAIT_CROP_WIDTH_RATIO = 0.36;
+const UNIT_CARD_PORTRAIT_CROP_HEIGHT_RATIO = 0.88;
+const UNIT_CARD_LABEL_FONT_SIZE = 15;
+const UNIT_CARD_LABEL_LINE_HEIGHT = 20;
 const PLAYER_HUD_VISIBLE_HALF_HEIGHT = Math.max(
     BASE_BAR_HEIGHT,
     PLAYER_RESOURCE_BADGE_HEIGHT,
@@ -967,8 +976,13 @@ interface UnitTypeButtonView extends ButtonView {
     readonly statusBackgroundNode: Node;
     readonly statusBackgroundGraphics: Graphics;
     readonly stateLabel: Label;
+    readonly portraitBackdropNode: Node;
+    readonly portraitBackdropGraphics: Graphics;
     artSprite?: Sprite;
     artSelectionGraphics?: Graphics;
+    portraitSprite?: Sprite;
+    portraitFrame?: SpriteFrame;
+    portraitUniformScale: number;
     pressed: boolean;
     visualState: UnitCardVisualState;
 }
@@ -2509,8 +2523,10 @@ export class GameController extends Component {
                     unitCardKeys[type],
                     cardSize.width,
                     cardSize.height,
-                    false,
+                    true,
+                    UNIT_CARD_ART_SLICE_INSET,
                 );
+                this.applyUnitCardPortrait(button, type);
                 const tierBadgeArt = this.applyChildSprite(
                     button.tierBadgeNode,
                     'TierBadgeArt',
@@ -2523,7 +2539,7 @@ export class GameController extends Component {
                     tierBadgeArt.node.setSiblingIndex(0);
                     button.tierBadgeLabel.node.setSiblingIndex(button.tierBadgeNode.children.length - 1);
                 }
-                button.tierBadgeNode.active = !button.artSprite;
+                button.tierBadgeNode.active = !!tierBadgeArt || !button.artSprite;
                 this.orderUnitCardChildren(button);
             }
         }
@@ -5680,16 +5696,16 @@ export class GameController extends Component {
 
     private applyUnitCardContentLayout(button: UnitTypeButtonView, cardWidth: number, type: SheepType): void {
         const outerMargin = cardWidth >= 170 ? 10 : 6;
-        const portraitWidth = Math.round(cardWidth * 0.4);
+        const innerWidth = cardWidth - outerMargin * 2;
+        const portraitWidth = Math.round(innerWidth * UNIT_CARD_PORTRAIT_RATIO);
+        const textWidth = Math.round(innerWidth * UNIT_CARD_TEXT_RATIO);
         const tierSize = cardWidth >= 170 ? 28 : 24;
-        const statusWidth = Math.max(32, Math.min(52, Math.round(cardWidth * 0.24)));
-        const statusHeight = cardWidth >= 170 ? 44 : 38;
+        const statusWidth = Math.max(32, innerWidth - portraitWidth - textWidth);
+        const statusHeight = UNIT_CARD_HEIGHT - 18;
+        const portraitCenterX = -cardWidth / 2 + outerMargin + portraitWidth / 2;
+        const textCenterX = portraitCenterX + portraitWidth / 2 + textWidth / 2;
         const tierCenterX = -cardWidth / 2 + outerMargin + tierSize / 2;
         const statusCenterX = cardWidth / 2 - outerMargin - statusWidth / 2;
-        const mainLeft = -cardWidth / 2 + portraitWidth + 2;
-        const mainRight = statusCenterX - statusWidth / 2 - 3;
-        const mainWidth = Math.max(24, mainRight - mainLeft);
-        const mainCenterX = (mainLeft + mainRight) / 2;
 
         button.tierBadgeNode.setPosition(tierCenterX, UNIT_CARD_HEIGHT / 2 - outerMargin - tierSize / 2, 0);
         button.tierBadgeNode.getComponent(UITransform)?.setContentSize(tierSize, tierSize);
@@ -5700,16 +5716,105 @@ export class GameController extends Component {
         button.tierBadgeLabel.lineHeight = button.tierBadgeLabel.fontSize + 2;
         this.drawTierBadge(button.tierBadgeGraphics, button.tierBadgeLabel, type, tierSize - 2);
 
-        this.resizeAndPositionLabel(button.label, mainCenterX, 0, mainWidth, UNIT_CARD_HEIGHT - 18);
-        button.label.fontSize = cardWidth >= 170 ? 15 : 11;
-        button.label.lineHeight = button.label.fontSize + 5;
-        button.label.horizontalAlign = HorizontalTextAlignment.LEFT;
+        this.layoutUnitCardPortrait(button, type, portraitCenterX, portraitWidth);
+        this.resizeAndPositionLabel(button.label, textCenterX, 0, textWidth, UNIT_CARD_HEIGHT - 14);
+        button.label.fontSize = UNIT_CARD_LABEL_FONT_SIZE;
+        button.label.lineHeight = UNIT_CARD_LABEL_LINE_HEIGHT;
+        button.label.overflow = Label.Overflow.CLAMP;
+        button.label.enableWrapText = false;
+        button.label.horizontalAlign = HorizontalTextAlignment.CENTER;
+        button.label.verticalAlign = VerticalTextAlignment.CENTER;
 
         button.statusBackgroundNode.setPosition(statusCenterX, 0, 0);
-        button.statusBackgroundNode.getComponent(UITransform)?.setContentSize(statusWidth, statusHeight);
-        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, statusWidth - 6, statusHeight - 6);
-        button.stateLabel.fontSize = cardWidth >= 170 ? 12 : 11;
-        button.stateLabel.lineHeight = button.stateLabel.fontSize + 2;
+        button.statusBackgroundNode.getComponent(UITransform)?.setContentSize(Math.max(22, statusWidth - 12), statusHeight);
+        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, Math.max(24, statusWidth - 8), statusHeight - 6);
+        button.stateLabel.fontSize = 11;
+        button.stateLabel.lineHeight = 13;
+        button.stateLabel.overflow = Label.Overflow.CLAMP;
+    }
+
+    private applyUnitCardPortrait(button: UnitTypeButtonView, type: SheepType): void {
+        const sourceFrame = button.artSprite?.spriteFrame;
+        if (!sourceFrame?.texture) {
+            button.portraitBackdropNode.active = false;
+            if (button.portraitSprite) button.portraitSprite.node.active = false;
+            return;
+        }
+
+        const sourceRect = sourceFrame.rect;
+        const cropRect = new Rect(
+            sourceRect.x + sourceRect.width * UNIT_CARD_PORTRAIT_CROP_X_RATIO,
+            sourceRect.y + sourceRect.height * UNIT_CARD_PORTRAIT_CROP_Y_RATIO,
+            sourceRect.width * UNIT_CARD_PORTRAIT_CROP_WIDTH_RATIO,
+            sourceRect.height * UNIT_CARD_PORTRAIT_CROP_HEIGHT_RATIO,
+        );
+        if (!button.portraitFrame) button.portraitFrame = new SpriteFrame();
+        button.portraitFrame.reset({
+            texture: sourceFrame.texture,
+            originalSize: new Size(cropRect.width, cropRect.height),
+            rect: cropRect,
+            offset: new Vec2(0, 0),
+            isRotate: false,
+        }, true);
+        if (!button.portraitSprite) {
+            button.portraitSprite = this.createSpriteSlot(
+                'UnitCardPortraitSprite',
+                button.node,
+                cropRect.width,
+                cropRect.height,
+                0,
+                0,
+            ).sprite;
+        }
+        button.portraitSprite.spriteFrame = button.portraitFrame;
+        button.portraitSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+        button.portraitSprite.type = Sprite.Type.SIMPLE;
+        button.portraitBackdropNode.active = true;
+        button.portraitSprite.node.active = true;
+        const cardWidth = button.node.getComponent(UITransform)?.contentSize.width ?? UNIT_CARD_MIN_WIDTH;
+        this.applyUnitCardContentLayout(button, cardWidth, type);
+    }
+
+    private layoutUnitCardPortrait(
+        button: UnitTypeButtonView,
+        type: SheepType,
+        centerX: number,
+        regionWidth: number,
+    ): void {
+        const backdropWidth = Math.max(30, regionWidth - 2);
+        const backdropHeight = UNIT_CARD_HEIGHT - 8;
+        button.portraitBackdropNode.setPosition(centerX, 0, 0);
+        button.portraitBackdropNode.getComponent(UITransform)?.setContentSize(backdropWidth, backdropHeight);
+        const backdropColors: Record<SheepType, Color> = {
+            [SheepType.Small]: new Color(184, 226, 218, 255),
+            [SheepType.Medium]: new Color(169, 218, 211, 255),
+            [SheepType.Large]: new Color(241, 216, 166, 255),
+            [SheepType.Giant]: new Color(216, 202, 235, 255),
+        };
+        button.portraitBackdropGraphics.clear();
+        button.portraitBackdropGraphics.fillColor = backdropColors[type];
+        button.portraitBackdropGraphics.roundRect(
+            -backdropWidth / 2,
+            -backdropHeight / 2,
+            backdropWidth,
+            backdropHeight,
+            8,
+        );
+        button.portraitBackdropGraphics.fill();
+
+        const portraitSprite = button.portraitSprite;
+        const sourceSize = button.portraitFrame?.originalSize;
+        if (!portraitSprite || !sourceSize || sourceSize.width <= 0 || sourceSize.height <= 0) return;
+        const availableWidth = Math.max(1, regionWidth - 12);
+        const availableHeight = UNIT_CARD_HEIGHT - 12;
+        const uniformScale = Math.min(availableWidth / sourceSize.width, availableHeight / sourceSize.height);
+        button.portraitUniformScale = uniformScale;
+        portraitSprite.node.setPosition(centerX, 0, 0);
+        portraitSprite.node.setScale(1, 1, 1);
+        portraitSprite.node.getComponent(UITransform)?.setContentSize(
+            sourceSize.width * uniformScale,
+            sourceSize.height * uniformScale,
+        );
     }
 
     private createUnitTypeButtons(): void {
@@ -5757,7 +5862,7 @@ export class GameController extends Component {
             );
             button.label.fontSize = 14;
             button.label.lineHeight = 17;
-            button.label.overflow = Label.Overflow.SHRINK;
+            button.label.overflow = Label.Overflow.CLAMP;
             button.label.enableWrapText = false;
             button.label.horizontalAlign = HorizontalTextAlignment.CENTER;
             button.label.verticalAlign = VerticalTextAlignment.CENTER;
@@ -5768,10 +5873,14 @@ export class GameController extends Component {
             const statusBackgroundNode = this.createGraphicsNode('StatusBackground',
                 48, UNIT_CARD_HEIGHT - 10, 0, 0, button.node);
             const statusBackgroundGraphics = statusBackgroundNode.getComponent(Graphics)!;
+            const portraitBackdropNode = this.createGraphicsNode('UnitCardPortraitBackdrop',
+                40, UNIT_CARD_HEIGHT - 8, 0, 0, button.node);
+            const portraitBackdropGraphics = portraitBackdropNode.getComponent(Graphics)!;
+            portraitBackdropNode.active = false;
             const stateLabel = this.createLabel(button.node, 'UnitCardState', '',
                 0, 0, 46, UNIT_CARD_HEIGHT - 12, 11, UI_TEXT_SECONDARY);
             stateLabel.lineHeight = 13;
-            stateLabel.overflow = Label.Overflow.SHRINK;
+            stateLabel.overflow = Label.Overflow.CLAMP;
             stateLabel.enableWrapText = false;
             stateLabel.horizontalAlign = HorizontalTextAlignment.CENTER;
             stateLabel.verticalAlign = VerticalTextAlignment.CENTER;
@@ -5783,7 +5892,10 @@ export class GameController extends Component {
                 statusBackgroundNode,
                 statusBackgroundGraphics,
                 stateLabel,
+                portraitBackdropNode,
+                portraitBackdropGraphics,
                 artSelectionGraphics,
+                portraitUniformScale: 1,
                 pressed: false,
                 visualState: 'available',
             };
@@ -14260,6 +14372,10 @@ export class GameController extends Component {
             this.resultPanelCroppedFrame.destroy();
         }
         this.resultPanelCroppedFrame = undefined;
+        for (const button of this.typeButtons.values()) {
+            if (button.portraitFrame?.isValid) button.portraitFrame.destroy();
+            button.portraitFrame = undefined;
+        }
         for (const effect of [...this.activePilotVfx, ...this.pilotVfxPool]) {
             effect.destroy();
         }
@@ -14757,9 +14873,11 @@ export class GameController extends Component {
             const usesPilotCard = !!button.artSprite?.node.active && !!button.artSprite.spriteFrame;
             if (usesPilotCard && button.artSprite) {
                 button.graphics.enabled = false;
-                button.artSprite.color = isAvailable
+                const cardTint = isAvailable
                     ? (state === 'pressed' ? new Color(225, 235, 226, 255) : Color.WHITE)
                     : state === 'locked' ? new Color(142, 142, 138, 255) : new Color(178, 180, 174, 255);
+                button.artSprite.color = cardTint;
+                if (button.portraitSprite?.node.active) button.portraitSprite.color = cardTint;
                 if (button.artSelectionGraphics) {
                     const selectionNode = button.artSelectionGraphics.node;
                     selectionNode.active = isSelected;
@@ -14799,7 +14917,7 @@ export class GameController extends Component {
             Tween.stopAllByTarget(button.node);
             const targetScale = state === 'pressed' ? 0.98 : 1;
             button.node.setScale(targetScale, targetScale, 1);
-            button.label.string = `${tier.displayName.sheep}\n${definition.cost}\u80FD\u91CF`;
+            button.label.string = `${tier.displayName.sheep}\n${definition.cost}\n\u80FD\u91CF`;
             button.label.color = usesPilotCard
                 ? (isSelected ? new Color(76, 50, 30, 255) : isAvailable ? UI_TEXT_PRIMARY : UI_TEXT_SECONDARY)
                 : (isSelected ? new Color(76, 50, 30, 255)
@@ -14851,6 +14969,14 @@ export class GameController extends Component {
         let nextIndex = 0;
         if (button.artSprite?.node.isValid) {
             button.artSprite.node.setSiblingIndex(nextIndex);
+            nextIndex += 1;
+        }
+        if (button.portraitBackdropNode.isValid) {
+            button.portraitBackdropNode.setSiblingIndex(nextIndex);
+            nextIndex += 1;
+        }
+        if (button.portraitSprite?.node.isValid) {
+            button.portraitSprite.node.setSiblingIndex(nextIndex);
             nextIndex += 1;
         }
         if (button.artSelectionGraphics?.node.isValid) {
