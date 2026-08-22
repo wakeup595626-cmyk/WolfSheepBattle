@@ -70,6 +70,12 @@ const LANE_X = [
     BATTLEFIELD_CENTER_X + LANE_SPACING * 0.5,
     BATTLEFIELD_CENTER_X + LANE_SPACING * 1.5,
 ];
+const CARTOON_BATTLEFIELD_SOURCE_WIDTH = 1600;
+// Measured from the two visible grass/road boundaries of each lane in the
+// integrated 1600 x 720 runtime background. Ratios let the same axes follow
+// the background at every supported landscape width.
+const CARTOON_LANE_CENTER_RATIOS = [305.5, 574.5, 845, 1115.5]
+    .map((pixelX) => pixelX / CARTOON_BATTLEFIELD_SOURCE_WIDTH - 0.5);
 const LANE_WIDTH = 180;
 const LANE_BOTTOM_Y = -270;
 const LANE_TOP_Y = 270;
@@ -2077,6 +2083,7 @@ export class GameController extends Component {
         );
 
         this.resizeBattlefieldBackgroundToCover();
+        this.refreshLaneAxisLayout();
         const board = this.battlefieldBackgroundLayer?.getChildByName('Board');
         if (board?.isValid) this.redrawBoardFallback(board, metrics.visibleWidth, metrics.visibleHeight);
         const loadingFallback = this.artLoadingPanel?.getChildByName('LoadingFallbackBackground');
@@ -2175,7 +2182,47 @@ export class GameController extends Component {
 
     private resizeBattlefieldBackgroundToCover(): void {
         if (!this.battleBackgroundSlot?.isValid || !this.screenMetrics) return;
+        if (BATTLEFIELD_VISUAL_MODE === 'cartoon_20x9_v02') {
+            // The integrated background owns the visible road axes. Stretch it
+            // to the complete safe logical viewport so all four painted roads
+            // remain present instead of cropping the outer lanes at 16:9.
+            this.battleBackgroundSlot.getComponent(UITransform)?.setContentSize(
+                this.screenMetrics.visibleWidth,
+                this.screenMetrics.visibleHeight,
+            );
+            this.battleBackgroundSlot.setPosition(0, 0, 0);
+            this.battleBackgroundSlot.setScale(1, 1, 1);
+            return;
+        }
         this.setNodeCoverSize(this.battleBackgroundSlot, this.battleBackgroundSourceAspect);
+    }
+
+    private getConfiguredLaneCenterX(lane: number): number {
+        if (BATTLEFIELD_VISUAL_MODE === 'cartoon_20x9_v02' && this.screenMetrics) {
+            return (CARTOON_LANE_CENTER_RATIOS[lane] ?? 0) * this.screenMetrics.visibleWidth;
+        }
+        return LANE_X[lane];
+    }
+
+    private refreshLaneAxisLayout(): void {
+        for (let lane = 0; lane < LANE_X.length; lane += 1) {
+            const laneX = this.getConfiguredLaneCenterX(lane);
+            this.laneCenterAnchors[lane]?.setPosition(laneX, 0, 0);
+            this.laneArtSlots[lane]?.setPosition(laneX, LANE_MID_Y, 0);
+            this.aiSpawnGateSlots[lane]?.setPosition(laneX, AI_GATE_GROUND_Y, 0);
+            this.laneSpawnMarkers[lane]?.node.setPosition(laneX, SPAWN_BUTTON_Y, 0);
+            this.laneHitAreas[lane]?.node.setPosition(laneX, LANE_HIT_AREA_CENTER_Y, 0);
+            this.freezeLaneHighlightNodes[lane]?.setPosition(laneX, LANE_MID_Y, 0);
+            this.supplyPoints[lane]?.node.setPosition(laneX, this.supplyPoints[lane].node.position.y, 0);
+            this.laneVisualsLayer?.getChildByName(`LaneNumber${lane + 1}`)?.setPosition(
+                laneX,
+                this.laneVisualsLayer.getChildByName(`LaneNumber${lane + 1}`)!.position.y,
+                0,
+            );
+        }
+        for (const unit of [...this.units, ...this.dyingUnits, ...this.levelFiveSmallUnitPool]) {
+            unit.node.setPosition(this.getConfiguredLaneCenterX(unit.lane), unit.node.position.y, 0);
+        }
     }
 
     private setNodeCoverSize(node: Node, sourceAspect: number): void {
@@ -2247,7 +2294,7 @@ export class GameController extends Component {
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
             const anchor = new Node(`LaneCenterAnchor${lane + 1}`);
             anchor.setParent(this.laneVisualsLayer);
-            anchor.setPosition(LANE_X[lane], 0, 0);
+            anchor.setPosition(this.getConfiguredLaneCenterX(lane), 0, 0);
             anchor.addComponent(UITransform).setContentSize(1, LANE_LENGTH);
             this.laneCenterAnchors[lane] = anchor;
 
@@ -2270,7 +2317,7 @@ export class GameController extends Component {
     }
 
     private getLaneCenterX(lane: number): number {
-        return this.laneCenterAnchors[lane]?.position.x ?? LANE_X[lane];
+        return this.laneCenterAnchors[lane]?.position.x ?? this.getConfiguredLaneCenterX(lane);
     }
 
     private drawBoard(): void {
@@ -3178,7 +3225,8 @@ export class GameController extends Component {
             gap: UNIT_CARD_GAP,
             grassUsageRatio: UNIT_CARD_GRASS_USAGE_RATIO,
         });
-        console.info('[VisualPolish04][LaneCenters]', LANE_X.map((laneX, lane) => {
+        console.info('[VisualPolish04][LaneCenters]', LANE_X.map((_fallbackLaneX, lane) => {
+            const laneX = this.getLaneCenterX(lane);
             const aiGateRootX = this.aiSpawnGateSlots[lane]?.position.x ?? laneX;
             const aiGateVisualLocalX = this.aiSpawnGateSprites[lane]?.node.position.x ?? 0;
             const aiGateVisualWorldX = aiGateRootX + aiGateVisualLocalX;
@@ -3202,8 +3250,8 @@ export class GameController extends Component {
                 playerGateVisualWorldX,
                 playerGateAlphaBodyCenterX,
                 playerGateFinalError: Math.abs(playerGateAlphaBodyCenterX - laneX),
-                playerUnitSpawnX: LANE_X[lane],
-                aiUnitSpawnX: LANE_X[lane],
+                playerUnitSpawnX: laneX,
+                aiUnitSpawnX: laneX,
                 supplyPointX: this.supplyPoints[lane]?.node.position.x,
                 laneNumberX: this.laneVisualsLayer.getChildByName(`LaneNumber${lane + 1}`)?.position.x,
                 laneHitArea: {
@@ -5165,7 +5213,7 @@ export class GameController extends Component {
 
     private createLaneButtons(): void {
         for (let lane = 0; lane < LANE_X.length; lane += 1) {
-            this.createButton(this.hudLayer, `SpawnButton${lane}`, `第 ${lane + 1} 线\n出兵`, LANE_X[lane], -178, 120, 44, 15, () => {
+            this.createButton(this.hudLayer, `SpawnButton${lane}`, `第 ${lane + 1} 线\n出兵`, this.getLaneCenterX(lane), -178, 120, 44, 15, () => {
                 this.tryDeploySelectedUnit(lane);
             });
         }
@@ -12211,7 +12259,7 @@ export class GameController extends Component {
         }
         const node = new Node(`${team === Team.Player ? 'Sheep' : 'Wolf'}_${definition.type}_${this.nextUnitId}`);
         node.setParent(this.unitsAndVfxLayer);
-        node.setPosition(LANE_X[lane], safeStartY, 0);
+        node.setPosition(this.getLaneCenterX(lane), safeStartY, 0);
         node.addComponent(UITransform).setContentSize(definition.radius * 2 + 12, definition.radius * 2 + 28);
         const shadowSize = this.getUnitGroundShadowSize(definition.type);
         const groundShadowNode = this.createGraphicsNode('GroundShadow', shadowSize.width, shadowSize.height,
@@ -12404,7 +12452,7 @@ export class GameController extends Component {
         this.nextUnitId += 1;
         unit.node.name = `${team === Team.Player ? 'Sheep' : 'Wolf'}_${definition.type}_${unit.id}`;
         unit.node.setParent(this.unitsAndVfxLayer);
-        unit.node.setPosition(LANE_X[lane], safeStartY, 0);
+        unit.node.setPosition(this.getLaneCenterX(lane), safeStartY, 0);
         unit.node.setScale(1, 1, 1);
         unit.node.active = true;
         unit.opacity.opacity = 255;
