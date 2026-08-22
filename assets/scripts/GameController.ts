@@ -5654,7 +5654,7 @@ export class GameController extends Component {
         return {
             width,
             height: UNIT_CARD_HEIGHT * UNIT_ORDER.length + UNIT_CARD_GAP * (UNIT_ORDER.length - 1),
-            centerX: (grassLeft + firstLaneTouchLeft) / 2,
+            centerX: grassLeft + width / 2,
         };
     }
 
