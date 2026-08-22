@@ -200,9 +200,7 @@ const START_BUTTON_PRESS_DEBOUNCE_MS = 300;
 const STATUS_TOAST_WIDTH = 540;
 const STATUS_TOAST_HEIGHT = 60;
 const STATUS_TOAST_X = BATTLEFIELD_CENTER_X;
-// Derived from the lower HUD baseline so the toast remains above the spawn gates
-// across supported landscape aspect ratios instead of relying on a screenshot offset.
-const STATUS_TOAST_Y = PLAYER_HUD_Y + BASE_BAR_HEIGHT / 2 + 112;
+const STATUS_TOAST_GATE_CLEARANCE = 16;
 const STATUS_TOAST_FADE_IN_SECONDS = 0.15;
 const STATUS_TOAST_HOLD_SECONDS = 1.2;
 const STATUS_TOAST_FADE_OUT_SECONDS = 0.2;
@@ -532,6 +530,9 @@ const LANE_TOUCH_DRAG_THRESHOLD = 12;
 const LANE_TOUCH_DEDUPLICATION_MS = 80;
 const SPAWN_GATE_VISUAL_SIZE = 72;
 const AI_GATE_GROUND_Y = LANE_TOP_Y - SPAWN_GATE_VISUAL_SIZE;
+// Keep the shared toast directly below the AI gate row. Its upper edge stays
+// clear of the gate art while the whole message remains in the upper safe band.
+const STATUS_TOAST_Y = AI_GATE_GROUND_Y - STATUS_TOAST_GATE_CLEARANCE - STATUS_TOAST_HEIGHT / 2;
 const PLAYER_GATE_GROUND_LOCAL_Y = -SPAWN_GATE_VISUAL_SIZE / 2;
 // Alpha-bounds audit of the four 128x128 states: AI centers average 0.375 px
 // left of the texture center, while the player states average exactly at center.
