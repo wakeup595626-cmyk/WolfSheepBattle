@@ -49,7 +49,7 @@ interface SfxSlot {
     expiresAt: number;
 }
 
-interface StoredAudioSettingsV1 {
+interface StoredAudioSettings {
     readonly schemaVersion?: number;
     readonly selectedBgmId?: string;
     readonly musicVolume?: number;
@@ -62,21 +62,23 @@ interface StoredAudioSettingsV1 {
     readonly userAdjustedSfxVolume?: boolean;
     readonly userSelectedBgm?: boolean;
     readonly legacyZeroMigrationApplied?: boolean;
+    readonly legacyDefaultVolumeMigrationApplied?: boolean;
 }
 
 type BgmLoadCallback = (clip: AudioClip | undefined) => void;
 type BgmFadeMode = 'none' | 'fadeOut' | 'fadeIn' | 'finalFadeOut';
 
 const AUDIO_SETTINGS_KEY = 'wolf-sheep-battle.audio-settings.v1';
-const AUDIO_SETTINGS_SCHEMA_VERSION = 2;
+const AUDIO_SETTINGS_SCHEMA_VERSION = 3;
 const MUSIC_ENABLED_KEY = 'wolf-sheep-battle.audio.music-enabled';
 const SFX_ENABLED_KEY = 'wolf-sheep-battle.audio.sfx-enabled';
 const MUSIC_VOLUME_KEY = 'wolf-sheep-battle.audio.music-volume';
 const SFX_VOLUME_KEY = 'wolf-sheep-battle.audio.sfx-volume';
 const MUSIC_LAST_VOLUME_KEY = 'wolf-sheep-battle.audio.music-last-volume';
 const SFX_LAST_VOLUME_KEY = 'wolf-sheep-battle.audio.sfx-last-volume';
-const DEFAULT_MUSIC_VOLUME = 0.8;
-const DEFAULT_SFX_VOLUME = 0.8;
+const LEGACY_DEFAULT_VOLUME = 0.8;
+const DEFAULT_MUSIC_VOLUME = 1;
+const DEFAULT_SFX_VOLUME = 1;
 const PAUSED_MUSIC_MULTIPLIER = 0.35;
 const DEFAULT_BGM_TRACK_ID: BgmTrackId = 'cheerful_lighthearted';
 const DEFAULT_BGM_CROSS_FADE_SECONDS = 0.6;
@@ -211,6 +213,7 @@ export class AudioManager extends Component {
     private userAdjustedSfxVolume = false;
     private userSelectedBgm = false;
     private legacyZeroMigrationApplied = false;
+    private legacyDefaultVolumeMigrationApplied = false;
     private audioActivated = false;
     private battlePaused = false;
     private lifecyclePaused = false;
@@ -1100,6 +1103,9 @@ export class AudioManager extends Component {
     private loadSettings(): void {
         const stored = this.readStoredAudioSettings();
         if (stored) {
+            const storedSchemaVersion = typeof stored.schemaVersion === 'number'
+                && Number.isFinite(stored.schemaVersion) ? stored.schemaVersion : 0;
+            const predatesAudio100Defaults = storedSchemaVersion < AUDIO_SETTINGS_SCHEMA_VERSION;
             const storedTrackId = typeof stored.selectedBgmId === 'string'
                 ? stored.selectedBgmId : DEFAULT_BGM_TRACK_ID;
             const storedTrackIsValid = !!this.getBgmTrack(storedTrackId);
@@ -1117,29 +1123,50 @@ export class AudioManager extends Component {
                 && stored.musicMuted === false && stored.userAdjustedMusicVolume !== true;
             const sfxZeroWasBuggy = storedSfxVolume === 0
                 && stored.sfxMuted === false && stored.userAdjustedSfxVolume !== true;
+            const musicWasUntouchedLegacyDefault = predatesAudio100Defaults
+                && stored.userAdjustedMusicVolume === false
+                && storedMusicVolume === LEGACY_DEFAULT_VOLUME
+                && stored.musicMuted !== true;
+            const sfxWasUntouchedLegacyDefault = predatesAudio100Defaults
+                && stored.userAdjustedSfxVolume === false
+                && storedSfxVolume === LEGACY_DEFAULT_VOLUME
+                && stored.sfxMuted !== true;
             this.legacyZeroMigrationApplied = musicZeroWasBuggy || sfxZeroWasBuggy
                 || stored.legacyZeroMigrationApplied === true;
-            this.musicVolume = !musicVolumeIsValid || musicZeroWasBuggy
+            this.legacyDefaultVolumeMigrationApplied = musicWasUntouchedLegacyDefault
+                || sfxWasUntouchedLegacyDefault
+                || stored.legacyDefaultVolumeMigrationApplied === true;
+            const musicUsesNewDefault = !musicVolumeIsValid || musicZeroWasBuggy
+                || musicWasUntouchedLegacyDefault;
+            const sfxUsesNewDefault = !sfxVolumeIsValid || sfxZeroWasBuggy
+                || sfxWasUntouchedLegacyDefault;
+            this.musicVolume = musicUsesNewDefault
                 ? DEFAULT_MUSIC_VOLUME : stored.musicMuted === true ? 0 : storedMusicVolume;
-            this.sfxVolume = !sfxVolumeIsValid || sfxZeroWasBuggy
+            this.sfxVolume = sfxUsesNewDefault
                 ? DEFAULT_SFX_VOLUME : stored.sfxMuted === true ? 0 : storedSfxVolume;
             this.musicEnabled = this.musicVolume > 0;
             this.sfxEnabled = this.sfxVolume > 0;
-            this.lastNonZeroMusicVolume = this.loadStoredPositiveVolume(
-                stored.lastNonZeroMusicVolume,
-                storedMusicVolume > 0 ? storedMusicVolume : DEFAULT_MUSIC_VOLUME,
-            );
-            this.lastNonZeroSfxVolume = this.loadStoredPositiveVolume(
-                stored.lastNonZeroSfxVolume,
-                storedSfxVolume > 0 ? storedSfxVolume : DEFAULT_SFX_VOLUME,
-            );
-            // V1 did not record user intent. Preserve every valid custom value,
-            // including ambiguous zero, unless the old muted flag proves that
-            // zero was an impossible "enabled but silent" initialization state.
-            this.userAdjustedMusicVolume = stored.userAdjustedMusicVolume === true
-                || (musicVolumeIsValid && (storedMusicVolume !== DEFAULT_MUSIC_VOLUME || stored.musicMuted === true));
-            this.userAdjustedSfxVolume = stored.userAdjustedSfxVolume === true
-                || (sfxVolumeIsValid && (storedSfxVolume !== DEFAULT_SFX_VOLUME || stored.sfxMuted === true));
+            this.lastNonZeroMusicVolume = musicUsesNewDefault ? DEFAULT_MUSIC_VOLUME
+                : this.loadStoredPositiveVolume(
+                    stored.lastNonZeroMusicVolume,
+                    storedMusicVolume > 0 ? storedMusicVolume : DEFAULT_MUSIC_VOLUME,
+                );
+            this.lastNonZeroSfxVolume = sfxUsesNewDefault ? DEFAULT_SFX_VOLUME
+                : this.loadStoredPositiveVolume(
+                    stored.lastNonZeroSfxVolume,
+                    storedSfxVolume > 0 ? storedSfxVolume : DEFAULT_SFX_VOLUME,
+                );
+            // Schema 2 records explicit intent. Earlier schemas cannot distinguish
+            // a player-selected 80% from the old 80% default, so ambiguous valid
+            // values are preserved instead of being overwritten.
+            this.userAdjustedMusicVolume = typeof stored.userAdjustedMusicVolume === 'boolean'
+                ? stored.userAdjustedMusicVolume
+                : musicVolumeIsValid
+                    && (storedMusicVolume !== LEGACY_DEFAULT_VOLUME || stored.musicMuted === true);
+            this.userAdjustedSfxVolume = typeof stored.userAdjustedSfxVolume === 'boolean'
+                ? stored.userAdjustedSfxVolume
+                : sfxVolumeIsValid
+                    && (storedSfxVolume !== LEGACY_DEFAULT_VOLUME || stored.sfxMuted === true);
             this.userSelectedBgm = stored.userSelectedBgm === true
                 || (storedTrackIsValid && storedTrackId !== DEFAULT_BGM_TRACK_ID);
             const settingsNeedRepair = stored.schemaVersion !== AUDIO_SETTINGS_SCHEMA_VERSION
@@ -1155,7 +1182,9 @@ export class AudioManager extends Component {
                 || typeof stored.userAdjustedSfxVolume !== 'boolean'
                 || typeof stored.userSelectedBgm !== 'boolean'
                 || typeof stored.legacyZeroMigrationApplied !== 'boolean'
-                || musicZeroWasBuggy || sfxZeroWasBuggy;
+                || typeof stored.legacyDefaultVolumeMigrationApplied !== 'boolean'
+                || musicZeroWasBuggy || sfxZeroWasBuggy
+                || musicWasUntouchedLegacyDefault || sfxWasUntouchedLegacyDefault;
             if (settingsNeedRepair) {
                 this.saveAudioSettings();
             }
@@ -1174,6 +1203,7 @@ export class AudioManager extends Component {
             this.userAdjustedSfxVolume = false;
             this.userSelectedBgm = false;
             this.legacyZeroMigrationApplied = false;
+            this.legacyDefaultVolumeMigrationApplied = false;
             this.saveAudioSettings();
             return;
         }
@@ -1199,23 +1229,24 @@ export class AudioManager extends Component {
         this.selectedBgmId = DEFAULT_BGM_TRACK_ID;
         this.userAdjustedMusicVolume = !musicZeroWasBuggy && legacyMusicVolume !== undefined
             && legacyMusicVolume !== null
-            && (legacyMusicVolume !== DEFAULT_MUSIC_VOLUME || legacyMusicEnabled === false);
+            && (legacyMusicVolume !== LEGACY_DEFAULT_VOLUME || legacyMusicEnabled === false);
         this.userAdjustedSfxVolume = !sfxZeroWasBuggy && legacySfxVolume !== undefined
             && legacySfxVolume !== null
-            && (legacySfxVolume !== DEFAULT_SFX_VOLUME || legacySfxEnabled === false);
+            && (legacySfxVolume !== LEGACY_DEFAULT_VOLUME || legacySfxEnabled === false);
         this.userSelectedBgm = false;
         this.legacyZeroMigrationApplied = musicZeroWasBuggy || sfxZeroWasBuggy;
+        this.legacyDefaultVolumeMigrationApplied = false;
         this.saveAudioSettings();
     }
 
-    private readStoredAudioSettings(): StoredAudioSettingsV1 | null | undefined {
+    private readStoredAudioSettings(): StoredAudioSettings | null | undefined {
         try {
             const value = sys.localStorage.getItem(AUDIO_SETTINGS_KEY);
             if (!value) {
                 return undefined;
             }
             const parsed = JSON.parse(value);
-            return parsed && typeof parsed === 'object' ? parsed as StoredAudioSettingsV1 : null;
+            return parsed && typeof parsed === 'object' ? parsed as StoredAudioSettings : null;
         } catch (error) {
             console.warn('[WolfSheepBattle][Audio] Audio settings are invalid; defaults will be used.', {
                 error: error instanceof Error ? error.message : `${error}`,
@@ -1225,7 +1256,7 @@ export class AudioManager extends Component {
     }
 
     private saveAudioSettings(): void {
-        const settings: StoredAudioSettingsV1 = {
+        const settings: StoredAudioSettings = {
             schemaVersion: AUDIO_SETTINGS_SCHEMA_VERSION,
             selectedBgmId: this.selectedBgmId,
             musicVolume: this.musicVolume,
@@ -1238,6 +1269,7 @@ export class AudioManager extends Component {
             userAdjustedSfxVolume: this.userAdjustedSfxVolume,
             userSelectedBgm: this.userSelectedBgm,
             legacyZeroMigrationApplied: this.legacyZeroMigrationApplied,
+            legacyDefaultVolumeMigrationApplied: this.legacyDefaultVolumeMigrationApplied,
         };
         try {
             sys.localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(settings));
