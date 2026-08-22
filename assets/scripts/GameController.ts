@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-battle01-ui10';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-battle01-ui10';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-battle01-ui10';
+const GAME_VERSION = 'v1.3.0-dev-polish01-ui11-audio03-tutorial06';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish01-ui11-audio03-tutorial06';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish01-ui11-audio03-tutorial06';
 const BATTLEFIELD_CENTER_X = -90;
 // Keep the four-lane battlefield centered while tightening the unused gaps just
 // enough for a readable compact unit-card rail at the 1280 x 720 baseline.
@@ -635,7 +635,7 @@ const TACTIC_NOTICE_FADE_OUT_SECONDS = 0.22;
 const LEVEL_PROGRESS_STORAGE_KEY = 'wolf-sheep-battle.v1.highest-unlocked-level';
 const LEVEL_PROGRESS_STORAGE_KEY_V2 = 'wolf-sheep-battle.progress.v2';
 const LEVEL_PROGRESS_SCHEMA_VERSION = 7;
-const LEVEL_ONE_TUTORIAL_VERSION = 5;
+const LEVEL_ONE_TUTORIAL_VERSION = 6;
 const LEVEL_ONE_TUTORIAL_DIM_ALPHA = 153;
 const LEVEL_ONE_TUTORIAL_CARD_WIDTH = 560;
 const LEVEL_ONE_TUTORIAL_CARD_HEIGHT = 280;
@@ -658,16 +658,18 @@ type LaneType = 'normal' | 'mud' | 'flower';
 type TacticIcon = 'sprint' | 'heal' | 'shock' | 'freeze' | 'surge' | 'supplyBoost';
 type LevelOneTutorialProgress = 'inactive' | 'welcome' | 'deploy-four-sheep'
     | 'deploy-four-sheep-complete' | 'capture-supply' | 'capture-supply-complete'
-    | 'use-sprint' | 'use-sprint-complete' | 'battle-goal' | 'ready' | 'completed';
+    | 'use-sprint' | 'use-sprint-complete' | 'audio-settings' | 'audio-settings-complete'
+    | 'battle-goal' | 'ready' | 'completed';
 type LevelOneTutorialPage = 'welcome' | 'deploy-four-sheep' | 'capture-supply'
-    | 'use-sprint' | 'battle-goal' | 'ready';
-type LevelOneTutorialPointerTarget = SheepType | 'sprint' | number;
+    | 'use-sprint' | 'audio-settings' | 'battle-goal' | 'ready';
+type LevelOneTutorialPointerTarget = SheepType | 'sprint' | 'pause' | 'bgm' | 'music-volume' | number;
 
 const LEVEL_ONE_TUTORIAL_PAGES: readonly LevelOneTutorialPage[] = [
     'welcome',
     'deploy-four-sheep',
     'capture-supply',
     'use-sprint',
+    'audio-settings',
     'battle-goal',
     'ready',
 ];
@@ -984,6 +986,8 @@ interface VolumeControlView {
     readonly fallbackMuteIconGraphics: Graphics;
     readonly percentLabel: Label;
     readonly muteButton: ButtonView;
+    readonly minusButton: ButtonView;
+    readonly plusButton: ButtonView;
     readonly trackWidth: number;
     readonly valueWidth: number;
     muteIconSprite?: Sprite;
@@ -1586,6 +1590,9 @@ export class GameController extends Component {
     private readonly tutorialEnergySubsidiesRemaining = new Map<SheepType, number>();
     private tutorialSprintSubsidyGranted = false;
     private tutorialSprintSubsidyRemaining = 0;
+    private tutorialAudioSettingsOpened = false;
+    private tutorialBgmSwitched = false;
+    private tutorialMusicVolumeAdjusted = false;
     private tutorialRecoveryMessage = '';
     private readonly tutorialTargetRects: Rect[] = [];
     private isFinished = false;
@@ -9124,6 +9131,9 @@ export class GameController extends Component {
             // Page history is presentational only. It never rolls back battle state,
             // ownership, spent resources, granted effects, or AI-freeze state.
             this.tutorialVisiblePage -= 1;
+            if (LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] !== 'audio-settings') {
+                this.closeLevelOneTutorialAudioSettings();
+            }
             this.tutorialIdleSeconds = 0;
             this.refreshLevelOneTutorialPresentation();
         } finally {
@@ -9166,6 +9176,10 @@ export class GameController extends Component {
                 this.tutorialProgress = 'use-sprint';
                 this.tutorialSimulationFrozen = true;
             } else if (page === 'use-sprint') {
+                this.tutorialProgress = 'audio-settings';
+                this.tutorialSimulationFrozen = true;
+            } else if (page === 'audio-settings') {
+                this.closeLevelOneTutorialAudioSettings();
                 this.tutorialProgress = 'battle-goal';
             } else if (page === 'battle-goal') {
                 this.tutorialProgress = 'ready';
@@ -9192,6 +9206,7 @@ export class GameController extends Component {
         if (page === 'deploy-four-sheep') return this.tutorialProgress === 'deploy-four-sheep-complete';
         if (page === 'capture-supply') return this.tutorialProgress === 'capture-supply-complete';
         if (page === 'use-sprint') return this.tutorialProgress === 'use-sprint-complete';
+        if (page === 'audio-settings') return this.tutorialBgmSwitched && this.tutorialMusicVolumeAdjusted;
         return true;
     }
 
@@ -9307,6 +9322,9 @@ export class GameController extends Component {
         this.tutorialCompletedDeploymentTypes.clear();
         this.tutorialCompletedDeploymentLanes.clear();
         this.tutorialDeploymentUnitIds.clear();
+        this.tutorialAudioSettingsOpened = false;
+        this.tutorialBgmSwitched = false;
+        this.tutorialMusicVolumeAdjusted = false;
         this.tutorialVisiblePage = 0;
         this.tutorialHighestViewedPage = 0;
         this.tutorialRecoveryMessage = '';
@@ -9320,6 +9338,7 @@ export class GameController extends Component {
 
     private endLevelOneTutorial(markCompleted: boolean, status?: string): void {
         const wasActive = this.tutorialFlowActive;
+        this.closeLevelOneTutorialAudioSettings();
         this.tutorialFlowActive = false;
         this.tutorialSimulationFrozen = false;
         this.tutorialInteractionLocked = false;
@@ -9500,11 +9519,23 @@ export class GameController extends Component {
                     ? '全体冲刺已真实扣除2点补给并成功生效。\n请点击“下一步”查看能量、暂停与胜负目标。'
                     : '补给数量显示在玩家补给栏。请点击右侧“全体冲刺”。\n只有真实扣除2点补给并让场上单位加速后才能继续。'),
             };
+        case 'audio-settings':
+            return {
+                stepLabel,
+                title: '背景音乐与音量',
+                body: !this.tutorialAudioSettingsOpened
+                    ? '点击右上角“暂停”，打开真实暂停设置。\n这里可以切换背景音乐风格并调整音乐音量。'
+                    : !this.tutorialBgmSwitched
+                        ? '当前有“轻松欢快”和“热血对战”两种风格。\n请点击当前未选中的另一张音乐卡，完成一次真实切换。'
+                        : !this.tutorialMusicVolumeAdjusted
+                            ? '背景音乐已切换。请点击音乐音量行的加号或减号，\n完成一次真实音量变化；百分比会立即保存。'
+                            : '背景音乐切换和音乐音量调整都已完成。\n请手动点击“下一步”，教学不会自动跳页。',
+            };
         case 'battle-goal':
             return {
                 stepLabel,
                 title: '能量与胜负目标',
-                body: '出兵消耗能量，能量会自动恢复；单位到达敌方领地后会伤害基地。\n先摧毁敌方基地即可获胜；需要暂停或重开时可点击右上角“暂停”。',
+                body: '出兵消耗能量，能量会自动恢复；单位到达敌方领地后会伤害基地。\n先摧毁敌方基地即可获胜；暂停设置中的音乐选择会继续保留。',
             };
         case 'ready':
             return {
@@ -9519,6 +9550,28 @@ export class GameController extends Component {
                 body: '',
             };
         }
+    }
+
+    private getLevelOneTutorialAlternateBgmOption(): BgmStyleOptionView | undefined {
+        const selectedId = this.audioManager.getSelectedBgmId();
+        return Array.from(this.bgmStyleOptions.values()).find((option) => option.track.id !== selectedId);
+    }
+
+    private getLevelOneTutorialMusicVolumeButton(): ButtonView | undefined {
+        if (!this.musicVolumeControl) return undefined;
+        return this.audioManager.getMusicVolume() >= 1
+            ? this.musicVolumeControl.minusButton : this.musicVolumeControl.plusButton;
+    }
+
+    private closeLevelOneTutorialAudioSettings(): void {
+        if (!this.tutorialAudioSettingsOpened) return;
+        this.tutorialAudioSettingsOpened = false;
+        this.pausePanel.active = false;
+        this.isPaused = false;
+        this.audioManager.setBattlePaused(false);
+        this.pauseButton.node.active = this.isStarted && !this.isFinished;
+        this.refreshLaneSpawnMarkers();
+        this.updatePilotAIGate(0);
     }
 
     private getLevelOneTutorialTargetNodes(): readonly Node[] {
@@ -9538,6 +9591,19 @@ export class GameController extends Component {
             return [this.playerSupplyBadge, this.playerSprintCard?.node]
                 .filter((node): node is Node => !!node);
         }
+        if (page === 'audio-settings') {
+            if (!this.tutorialAudioSettingsOpened) return [this.pauseButton?.node].filter((node): node is Node => !!node);
+            if (!this.tutorialBgmSwitched) {
+                const option = this.getLevelOneTutorialAlternateBgmOption();
+                const selector = this.pauseContentRoot?.getChildByName('BgmSelector');
+                return [selector, option?.touchArea].filter((node): node is Node => !!node);
+            }
+            if (!this.tutorialMusicVolumeAdjusted) {
+                return [this.musicVolumeControl?.root, this.getLevelOneTutorialMusicVolumeButton()?.node]
+                    .filter((node): node is Node => !!node);
+            }
+            return [];
+        }
         if (page === 'battle-goal') {
             return [this.pauseButton?.node, this.playerBaseHudNode, this.aiBaseHudNode]
                 .filter((node): node is Node => !!node);
@@ -9550,6 +9616,10 @@ export class GameController extends Component {
         if (page === 'deploy-four-sheep' && this.tutorialProgress === 'deploy-four-sheep') return 2;
         if (page === 'capture-supply') return 2;
         if (page === 'use-sprint') return 2;
+        if (page === 'audio-settings') {
+            if (this.tutorialBgmSwitched && this.tutorialMusicVolumeAdjusted) return 0;
+            return this.tutorialAudioSettingsOpened ? 2 : 1;
+        }
         if (page === 'battle-goal') return 3;
         return 0;
     }
@@ -9815,6 +9885,17 @@ export class GameController extends Component {
             if (target === 'sprint' && this.tutorialProgress === 'use-sprint'
                 && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'use-sprint') {
                 this.tryUseSprint(Team.Player);
+            } else if (target === 'pause'
+                && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings') {
+                this.pauseGame();
+            } else if (target === 'bgm'
+                && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings') {
+                const option = this.getLevelOneTutorialAlternateBgmOption();
+                if (option) this.selectBgmStyleFromUi(option.track);
+            } else if (target === 'music-volume'
+                && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings') {
+                const delta = this.audioManager.getMusicVolume() >= 1 ? -5 : 5;
+                this.adjustAudioVolume('music', delta);
             } else if (typeof target === 'number' && this.tutorialProgress === 'deploy-four-sheep') {
                 this.tryDeploySelectedUnit(target);
             } else if (this.tutorialProgress === 'deploy-four-sheep') {
@@ -9854,6 +9935,13 @@ export class GameController extends Component {
             const sprintRect = this.tutorialTargetRects[1];
             return sprintRect && this.isLevelOneTutorialPointInside(sprintRect, x, y) ? 'sprint' : undefined;
         }
+        if (LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings') {
+            const targetRect = this.tutorialTargetRects[this.tutorialAudioSettingsOpened ? 1 : 0];
+            if (!targetRect || !this.isLevelOneTutorialPointInside(targetRect, x, y)) return undefined;
+            if (!this.tutorialAudioSettingsOpened) return 'pause';
+            if (!this.tutorialBgmSwitched) return 'bgm';
+            if (!this.tutorialMusicVolumeAdjusted) return 'music-volume';
+        }
         return undefined;
     }
 
@@ -9861,6 +9949,10 @@ export class GameController extends Component {
         if (target === 'sprint') {
             return this.tutorialTargetRects[1]
                 ? this.isLevelOneTutorialPointInside(this.tutorialTargetRects[1], x, y) : false;
+        }
+        if (target === 'pause' || target === 'bgm' || target === 'music-volume') {
+            const targetRect = this.tutorialTargetRects[this.tutorialAudioSettingsOpened ? 1 : 0];
+            return targetRect ? this.isLevelOneTutorialPointInside(targetRect, x, y) : false;
         }
         const targetNode = typeof target === 'number'
             ? this.laneSpawnMarkers[target]?.node : this.typeButtons.get(target)?.node;
@@ -10918,7 +11010,12 @@ export class GameController extends Component {
     }
 
     private pauseGame(): void {
-        if (!this.isStarted || this.isFinished || this.isPaused || this.tutorialFlowActive) {
+        const tutorialAudioPauseAllowed = this.tutorialFlowActive
+            && this.tutorialProgress === 'audio-settings'
+            && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings'
+            && !this.tutorialAudioSettingsOpened;
+        if (!this.isStarted || this.isFinished || this.isPaused
+            || (this.tutorialFlowActive && !tutorialAudioPauseAllowed)) {
             return;
         }
         this.isPaused = true;
@@ -10936,6 +11033,11 @@ export class GameController extends Component {
         this.showModal(this.pausePanel);
         this.refreshLaneSpawnMarkers();
         this.updatePilotAIGate(0);
+        if (tutorialAudioPauseAllowed) {
+            this.tutorialAudioSettingsOpened = true;
+            this.tutorialPanel.setSiblingIndex(this.modalLayer.children.length - 1);
+            this.refreshLevelOneTutorialPresentation();
+        }
     }
 
     private async preparePauseArt(): Promise<void> {
@@ -11140,11 +11242,7 @@ export class GameController extends Component {
         touchArea.on(NodeEventType.TOUCH_CANCEL, () => root.setScale(1, 1, 1), this);
         touchArea.on(NodeEventType.TOUCH_END, () => {
             root.setScale(1, 1, 1);
-            this.audioManager.activateAudio();
-            this.audioManager.selectBgmTrack(track.id);
-            this.audioManager.playSfx('ui_click');
-            this.refreshBgmTrackSelector();
-            this.refreshAudioUnlockHint();
+            this.selectBgmStyleFromUi(track);
         }, this);
         touchArea.setSiblingIndex(root.children.length - 1);
         return {
@@ -11162,6 +11260,24 @@ export class GameController extends Component {
             backgroundSprite: undefined,
             musicIconSprite: undefined,
         };
+    }
+
+    private selectBgmStyleFromUi(track: BgmTrackConfig): void {
+        const previousId = this.audioManager.getSelectedBgmId();
+        this.audioManager.activateAudio();
+        this.audioManager.selectBgmTrack(track.id);
+        this.audioManager.playSfx('ui_click');
+        this.refreshBgmTrackSelector();
+        this.refreshAudioUnlockHint();
+        if (this.tutorialFlowActive && this.tutorialAudioSettingsOpened
+            && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings'
+            && previousId !== this.audioManager.getSelectedBgmId()) {
+            this.tutorialBgmSwitched = true;
+            this.tutorialProgress = this.tutorialMusicVolumeAdjusted
+                ? 'audio-settings-complete' : 'audio-settings';
+            this.tutorialPanel.setSiblingIndex(this.modalLayer.children.length - 1);
+            this.refreshLevelOneTutorialPresentation();
+        }
     }
 
     private refreshBgmTrackSelector(): void {
@@ -11340,6 +11456,8 @@ export class GameController extends Component {
             fallbackMuteIconGraphics,
             percentLabel,
             muteButton,
+            minusButton,
+            plusButton,
             trackWidth,
             valueWidth,
             formalTrackReady: false,
@@ -11413,6 +11531,8 @@ export class GameController extends Component {
     }
 
     private setAudioVolume(channel: AudioChannel, percent: number): void {
+        const previousVolume = channel === 'music'
+            ? this.audioManager.getMusicVolume() : this.audioManager.getSfxVolume();
         const normalized = Math.max(0, Math.min(100, Math.round(percent))) / 100;
         if (channel === 'music') {
             this.audioManager.setMusicVolume(normalized);
@@ -11421,6 +11541,17 @@ export class GameController extends Component {
         }
         this.refreshAudioVolumeControls();
         this.refreshAudioUnlockHint();
+        const currentVolume = channel === 'music'
+            ? this.audioManager.getMusicVolume() : this.audioManager.getSfxVolume();
+        if (channel === 'music' && this.tutorialFlowActive && this.tutorialAudioSettingsOpened
+            && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings'
+            && Math.abs(currentVolume - previousVolume) > 0.0001) {
+            this.tutorialMusicVolumeAdjusted = true;
+            this.tutorialProgress = this.tutorialBgmSwitched
+                ? 'audio-settings-complete' : 'audio-settings';
+            this.tutorialPanel.setSiblingIndex(this.modalLayer.children.length - 1);
+            this.refreshLevelOneTutorialPresentation();
+        }
     }
 
     private refreshAudioVolumeControls(): void {
