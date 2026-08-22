@@ -10894,15 +10894,15 @@ export class GameController extends Component {
         this.pauseContentRoot.addComponent(UITransform).setContentSize(PAUSE_CONTENT_ROOT_WIDTH, PAUSE_CONTENT_ROOT_HEIGHT);
         this.pauseContentRoot.setPosition(0, 0, 0);
 
-        this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 240, 410, 46, 34, UI_TEXT_PRIMARY);
-        this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 204, 410, 24, 16, UI_TEXT_SECONDARY);
-        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, 153,
+        this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 264, 410, 46, 34, UI_TEXT_PRIMARY);
+        this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 228, 410, 24, 16, UI_TEXT_SECONDARY);
+        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, 179,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.resumeGame());
-        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, 153,
+        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, 179,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.restartGame());
-        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, 79,
+        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, 105,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.openHelpPanel());
-        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, 79,
+        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, 105,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.returnToTitle());
         this.createBgmTrackSelector(this.pauseContentRoot, -28);
         this.musicVolumeControl = this.createVolumeControl(
