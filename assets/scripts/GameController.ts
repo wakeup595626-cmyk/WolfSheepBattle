@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-tutorial04-ui07';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-tutorial04-ui07';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-tutorial04-ui07';
+const GAME_VERSION = 'v1.3.0-dev-tutorial05-ui09';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-tutorial05-ui09';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-tutorial05-ui09';
 const BATTLEFIELD_CENTER_X = -90;
 const LANE_SPACING = 270;
 const LANE_X = [
@@ -524,25 +524,31 @@ const AI_GATE_ALPHA_BODY_OFFSET_X = -0.375 * SPAWN_GATE_VISUAL_SIZE / 128;
 const PLAYER_GATE_ALPHA_BODY_OFFSET_X = 0;
 const AI_GATE_VISUAL_OFFSET_X = -AI_GATE_ALPHA_BODY_OFFSET_X;
 const PLAYER_GATE_VISUAL_OFFSET_X = -PLAYER_GATE_ALPHA_BODY_OFFSET_X;
-const UNIT_CARD_WIDTH = 260;
-const UNIT_CARD_HEIGHT = 40;
-const UNIT_CARD_MAX_VISUAL_SCALE = 1.02;
-const UNIT_CARD_VISIBLE_HALF_HEIGHT = UNIT_CARD_HEIGHT * UNIT_CARD_MAX_VISUAL_SCALE / 2;
+const UNIT_CARD_WIDTH = 48;
+const UNIT_CARD_HEIGHT = 70;
+const UNIT_CARD_GAP = 4;
+const UNIT_CARD_SIDEBAR_PADDING = 4;
+const UNIT_CARD_SIDEBAR_WIDTH = UNIT_CARD_WIDTH + UNIT_CARD_SIDEBAR_PADDING * 2;
+const UNIT_CARD_SIDEBAR_HEIGHT = UNIT_CARD_HEIGHT * 4 + UNIT_CARD_GAP * 3
+    + UNIT_CARD_SIDEBAR_PADDING * 2;
 const PLAYER_HUD_VISIBLE_HALF_HEIGHT = Math.max(
     BASE_BAR_HEIGHT,
     PLAYER_RESOURCE_BADGE_HEIGHT,
     ENERGY_BAR_HEIGHT,
 ) / 2;
 const DEBUG_BOTTOM_HUD_ASSERT = false;
-const UNIT_CARD_TIER_AREA_WIDTH = 36;
-const UNIT_CARD_MAIN_AREA_WIDTH = 154;
-const UNIT_CARD_STATUS_AREA_WIDTH = 70;
-const UNIT_CARD_TIER_CENTER_X = -UNIT_CARD_WIDTH / 2 + UNIT_CARD_TIER_AREA_WIDTH / 2;
-const UNIT_CARD_MAIN_CENTER_X = -UNIT_CARD_WIDTH / 2 + UNIT_CARD_TIER_AREA_WIDTH
-    + UNIT_CARD_MAIN_AREA_WIDTH / 2;
-const UNIT_CARD_STATUS_CENTER_X = UNIT_CARD_WIDTH / 2 - UNIT_CARD_STATUS_AREA_WIDTH / 2;
-const UNIT_CARD_STATUS_BOX_WIDTH = 66;
-const UNIT_CARD_STATUS_BOX_HEIGHT = 28;
+const UNIT_CARD_TIER_CENTER_X = 0;
+const UNIT_CARD_TIER_CENTER_Y = 21;
+const UNIT_CARD_MAIN_CENTER_X = 0;
+const UNIT_CARD_MAIN_CENTER_Y = -1;
+const UNIT_CARD_MAIN_AREA_WIDTH = 42;
+const UNIT_CARD_MAIN_AREA_HEIGHT = 30;
+const UNIT_CARD_STATUS_CENTER_X = 0;
+const UNIT_CARD_STATUS_CENTER_Y = -25;
+const UNIT_CARD_STATUS_BOX_WIDTH = 42;
+const UNIT_CARD_STATUS_BOX_HEIGHT = 16;
+const UNIT_CARD_TIER_AREA_WIDTH = 24;
+const UNIT_CARD_STATUS_AREA_WIDTH = UNIT_CARD_STATUS_BOX_WIDTH;
 // Development-only lane diagnostics. Keep this false for normal Creator and
 // WeChat builds: warnings are emitted only when an invariant is actually broken.
 const DEBUG_LANE_ASSERT = false;
@@ -628,7 +634,7 @@ const TACTIC_NOTICE_FADE_OUT_SECONDS = 0.22;
 const LEVEL_PROGRESS_STORAGE_KEY = 'wolf-sheep-battle.v1.highest-unlocked-level';
 const LEVEL_PROGRESS_STORAGE_KEY_V2 = 'wolf-sheep-battle.progress.v2';
 const LEVEL_PROGRESS_SCHEMA_VERSION = 7;
-const LEVEL_ONE_TUTORIAL_VERSION = 4;
+const LEVEL_ONE_TUTORIAL_VERSION = 5;
 const LEVEL_ONE_TUTORIAL_DIM_ALPHA = 153;
 const LEVEL_ONE_TUTORIAL_CARD_WIDTH = 560;
 const LEVEL_ONE_TUTORIAL_CARD_HEIGHT = 280;
@@ -939,7 +945,8 @@ interface UnitTypeButtonView extends ButtonView {
     visualState: UnitCardVisualState;
 }
 
-type UnitCardVisualState = 'locked' | 'insufficient' | 'available' | 'selected' | 'pressed';
+type UnitCardVisualState = 'locked' | 'insufficient' | 'available' | 'selected'
+    | 'selected-insufficient' | 'pressed';
 
 type AudioChannel = 'music' | 'sfx';
 
@@ -1528,7 +1535,7 @@ export class GameController extends Component {
     private readonly selectedTacticsByLevel = new Map<number, TacticIcon[]>();
     private readonly bestResultsByLevel = new Map<number, LevelBestResultSave>();
     private battleElapsedSeconds = 0;
-    private selectedSheepType: SheepType | undefined = SheepType.Small;
+    private selectedSheepType: SheepType | undefined;
     private nextUnitId = 1;
     private playerSpawnCooldown = 0;
     private aiDecisionCooldown = AI_INITIAL_DECISION_DELAY;
@@ -1618,6 +1625,7 @@ export class GameController extends Component {
     private unitsAndVfxLayer!: Node;
     private battleInputLayer!: Node;
     private hudLayer!: Node;
+    private unitCardSidebar!: Node;
     private toastLayer!: Node;
     private modalLayer!: Node;
     private rightControlBar!: Node;
@@ -2102,16 +2110,22 @@ export class GameController extends Component {
             this.applyCurrentTacticDeckLayout(tacticFirstCardY);
         }
 
-        const unitCardY = Math.max(
-            -330,
-            metrics.safeBottom + HUD_SAFE_MARGIN + UNIT_CARD_VISIBLE_HALF_HEIGHT,
+        this.playerHudY = Math.max(
+            PLAYER_HUD_Y - 16,
+            metrics.safeBottom + HUD_SAFE_MARGIN + PLAYER_HUD_VISIBLE_HALF_HEIGHT,
         );
-        for (const button of this.typeButtons.values()) {
-            button.node.setPosition(button.node.position.x, unitCardY, 0);
-        }
-        this.playerHudY = unitCardY + UNIT_CARD_VISIBLE_HALF_HEIGHT
-            + HUD_SAFE_MARGIN + PLAYER_HUD_VISIBLE_HALF_HEIGHT;
         this.applyBattleHudColumnLayout();
+        if (this.unitCardSidebar?.isValid) {
+            // Keep the actual 48 px touch rectangles inside the safe area while the
+            // decorative 4 px sidebar shell may use the remaining non-interactive gutter.
+            const sidebarX = metrics.safeLeft + HUD_SAFE_MARGIN - 2 + UNIT_CARD_SIDEBAR_WIDTH / 2;
+            const sidebarBottom = this.playerHudY + PLAYER_HUD_VISIBLE_HALF_HEIGHT + HUD_SAFE_MARGIN;
+            this.unitCardSidebar.setPosition(
+                sidebarX,
+                sidebarBottom + UNIT_CARD_SIDEBAR_HEIGHT / 2,
+                0,
+            );
+        }
         this.auditBottomHudClearance(metrics);
 
         this.updateCapsuleExclusion(metrics);
@@ -2415,12 +2429,6 @@ export class GameController extends Component {
             }
         }
 
-        const cardKeys: Readonly<Record<SheepType, ArtPilotResourceKey>> = {
-            [SheepType.Small]: ArtPilotResourceKey.UnitCardSmall,
-            [SheepType.Medium]: ArtPilotResourceKey.UnitCardMedium,
-            [SheepType.Large]: ArtPilotResourceKey.UnitCardLarge,
-            [SheepType.Giant]: ArtPilotResourceKey.UnitCardGiant,
-        };
         const tierBadgeKeys: Readonly<Record<SheepType, ArtPilotResourceKey>> = {
             [SheepType.Small]: ArtPilotResourceKey.TierBadgeSmall,
             [SheepType.Medium]: ArtPilotResourceKey.TierBadgeMedium,
@@ -2429,17 +2437,13 @@ export class GameController extends Component {
         };
         for (const type of UNIT_ORDER) {
             const button = this.typeButtons.get(type);
-            const cardFrame = this.artResourceManager.getFrame(cardKeys[type]);
-            if (button?.artSprite && cardFrame) {
-                button.artSprite.spriteFrame = cardFrame;
-                button.artSprite.node.active = true;
-                button.graphics.enabled = false;
+            if (button) {
                 const tierBadgeArt = this.applyChildSprite(
                     button.tierBadgeNode,
                     'TierBadgeArt',
                     tierBadgeKeys[type],
-                    30,
-                    30,
+                    24,
+                    24,
                 );
                 if (tierBadgeArt) {
                     button.tierBadgeGraphics.enabled = false;
@@ -4801,34 +4805,42 @@ export class GameController extends Component {
 
     private auditBottomHudClearance(metrics: LandscapeLayoutMetrics): void {
         if (!DEBUG_BOTTOM_HUD_ASSERT || this.typeButtons.size !== UNIT_ORDER.length) return;
-        const cardTop = Math.max(...Array.from(this.typeButtons.values()).map((button) => {
-            const height = button.node.getComponent(UITransform)?.height ?? UNIT_CARD_HEIGHT;
-            return button.node.position.y + height * Math.abs(button.node.scale.y) / 2;
-        }));
         const hudNodes = [this.playerSupplyBadge, this.playerBaseHudNode, this.playerEnergyBar?.node]
             .filter((node): node is Node => !!node?.isValid);
-        if (hudNodes.length !== 3) return;
+        if (hudNodes.length !== 3 || !this.unitCardSidebar?.isValid) return;
         const hudBottom = Math.min(...hudNodes.map((node) => {
             const height = node.getComponent(UITransform)?.height ?? 0;
             return node.position.y - height * Math.abs(node.scale.y) / 2;
         }));
-        const clearance = hudBottom - cardTop;
+        const hudTop = Math.max(...hudNodes.map((node) => {
+            const height = node.getComponent(UITransform)?.height ?? 0;
+            return node.position.y + height * Math.abs(node.scale.y) / 2;
+        }));
+        const sidebarBottom = this.unitCardSidebar.position.y - UNIT_CARD_SIDEBAR_HEIGHT / 2;
+        const sidebarRight = this.unitCardSidebar.position.x + UNIT_CARD_WIDTH / 2;
+        const firstLaneTouchLeft = this.getLaneCenterX(0) - LANE_HIT_AREA_WIDTH / 2;
+        const hudSafeBottomClearance = hudBottom - metrics.safeBottom;
+        const sidebarHudClearance = sidebarBottom - hudTop;
+        const laneTouchClearance = firstLaneTouchLeft - sidebarRight;
         const signature = `${metrics.visibleWidth.toFixed(1)}x${metrics.visibleHeight.toFixed(1)}`
-            + `:${metrics.safeBottom.toFixed(1)}:${clearance.toFixed(2)}`;
+            + `:${metrics.safeBottom.toFixed(1)}:${hudSafeBottomClearance.toFixed(2)}`
+            + `:${sidebarHudClearance.toFixed(2)}:${laneTouchClearance.toFixed(2)}`;
         if (signature === this.bottomHudAuditSignature) return;
         this.bottomHudAuditSignature = signature;
         const details = {
             visible: `${metrics.visibleWidth.toFixed(1)}x${metrics.visibleHeight.toFixed(1)}`,
             safeBottom: Number(metrics.safeBottom.toFixed(1)),
-            unitCardTop: Number(cardTop.toFixed(2)),
-            playerHudBottom: Number(hudBottom.toFixed(2)),
-            clearance: Number(clearance.toFixed(2)),
+            hudSafeBottomClearance: Number(hudSafeBottomClearance.toFixed(2)),
+            sidebarHudClearance: Number(sidebarHudClearance.toFixed(2)),
+            laneTouchClearance: Number(laneTouchClearance.toFixed(2)),
             required: HUD_SAFE_MARGIN,
         };
-        if (clearance + 0.01 < HUD_SAFE_MARGIN) {
-            console.warn('[WolfSheepBattle][BottomHud] 卡片与玩家HUD安全间距不足。', details);
+        if (hudSafeBottomClearance + 0.01 < HUD_SAFE_MARGIN
+            || sidebarHudClearance + 0.01 < HUD_SAFE_MARGIN
+            || laneTouchClearance < 0) {
+            console.warn('[WolfSheepBattle][BottomHud] 左侧卡栏或玩家HUD安全间距不足。', details);
         } else {
-            console.info('[WolfSheepBattle][BottomHud] 卡片与玩家HUD边界检查通过。', details);
+            console.info('[WolfSheepBattle][BottomHud] 左侧卡栏与玩家HUD边界检查通过。', details);
         }
     }
 
@@ -5563,10 +5575,39 @@ export class GameController extends Component {
     }
 
     private createUnitTypeButtons(): void {
-        const xPositions = [-480, -160, 160, 480];
+        this.unitCardSidebar = this.createGraphicsNode(
+            'UnitCardSidebar',
+            UNIT_CARD_SIDEBAR_WIDTH,
+            UNIT_CARD_SIDEBAR_HEIGHT,
+            0,
+            0,
+            this.hudLayer,
+        );
+        const sidebarGraphics = this.unitCardSidebar.getComponent(Graphics)!;
+        sidebarGraphics.fillColor = new Color(47, 81, 48, 218);
+        sidebarGraphics.roundRect(
+            -UNIT_CARD_SIDEBAR_WIDTH / 2,
+            -UNIT_CARD_SIDEBAR_HEIGHT / 2,
+            UNIT_CARD_SIDEBAR_WIDTH,
+            UNIT_CARD_SIDEBAR_HEIGHT,
+            12,
+        );
+        sidebarGraphics.fill();
+        sidebarGraphics.lineWidth = 2;
+        sidebarGraphics.strokeColor = new Color(113, 83, 43, 235);
+        sidebarGraphics.roundRect(
+            -UNIT_CARD_SIDEBAR_WIDTH / 2 + 1,
+            -UNIT_CARD_SIDEBAR_HEIGHT / 2 + 1,
+            UNIT_CARD_SIDEBAR_WIDTH - 2,
+            UNIT_CARD_SIDEBAR_HEIGHT - 2,
+            11,
+        );
+        sidebarGraphics.stroke();
+        const firstCardY = (UNIT_ORDER.length - 1) * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP) / 2;
         for (let index = 0; index < UNIT_ORDER.length; index += 1) {
             const type = UNIT_ORDER[index];
-            const button = this.createButton(this.hudLayer, `TypeButton${type}`, '', xPositions[index], -330,
+            const cardY = firstCardY - index * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP);
+            const button = this.createButton(this.unitCardSidebar, `TypeButton${type}`, '', 0, cardY,
                 UNIT_CARD_WIDTH, UNIT_CARD_HEIGHT, 15, () => {
                 if (this.isPaused || !this.isLevelOneTutorialUnitSelectionAllowed(type)) {
                     return;
@@ -5577,42 +5618,41 @@ export class GameController extends Component {
                 }
                 this.selectUnitType(type);
             });
-            let artSprite: Sprite | undefined;
             let artSelectionGraphics: Graphics | undefined;
-            if (ART_PILOT_ENABLED && (ART_FULL_ENABLED || type === SheepType.Small)) {
-                const artSlot = this.createSpriteSlot(`UnitCard${type}Art`, button.node,
-                    UNIT_CARD_WIDTH, UNIT_CARD_HEIGHT, 0, 0);
-                artSlot.node.setSiblingIndex(0);
-                artSprite = artSlot.sprite;
+            if (ART_PILOT_ENABLED) {
                 const selectionNode = this.createGraphicsNode('UnitCardSelection',
                     UNIT_CARD_WIDTH, UNIT_CARD_HEIGHT, 0, 0, button.node);
-                selectionNode.setSiblingIndex(1);
+                selectionNode.setSiblingIndex(0);
                 artSelectionGraphics = selectionNode.getComponent(Graphics)!;
                 selectionNode.active = false;
             }
             this.resizeAndPositionLabel(
                 button.label,
                 UNIT_CARD_MAIN_CENTER_X,
-                0,
-                UNIT_CARD_MAIN_AREA_WIDTH - 20,
-                UNIT_CARD_HEIGHT - 8,
+                UNIT_CARD_MAIN_CENTER_Y,
+                UNIT_CARD_MAIN_AREA_WIDTH,
+                UNIT_CARD_MAIN_AREA_HEIGHT,
             );
-            button.label.fontSize = 15;
-            button.label.lineHeight = 19;
-            this.configureSingleLineLabel(button.label, UI_TEXT_PRIMARY);
-            const tierBadgeNode = this.createGraphicsNode('TierBadge', 30, 30,
-                UNIT_CARD_TIER_CENTER_X, 0, button.node);
+            button.label.fontSize = 13;
+            button.label.lineHeight = 14;
+            button.label.overflow = Label.Overflow.SHRINK;
+            button.label.enableWrapText = false;
+            button.label.horizontalAlign = HorizontalTextAlignment.CENTER;
+            button.label.verticalAlign = VerticalTextAlignment.CENTER;
+            button.label.color = UI_TEXT_PRIMARY;
+            const tierBadgeNode = this.createGraphicsNode('TierBadge', 24, 24,
+                UNIT_CARD_TIER_CENTER_X, UNIT_CARD_TIER_CENTER_Y, button.node);
             tierBadgeNode.addComponent(UIOpacity);
-            const tierBadgeLabel = this.createLabel(tierBadgeNode, 'TierLabel', '', 0, 0, 26, 28, 15, Color.WHITE);
+            const tierBadgeLabel = this.createLabel(tierBadgeNode, 'TierLabel', '', 0, 0, 22, 22, 13, Color.WHITE);
             const statusBackgroundNode = this.createGraphicsNode('StatusBackground',
                 UNIT_CARD_STATUS_BOX_WIDTH, UNIT_CARD_STATUS_BOX_HEIGHT,
-                UNIT_CARD_STATUS_CENTER_X, 0, button.node);
+                UNIT_CARD_STATUS_CENTER_X, UNIT_CARD_STATUS_CENTER_Y, button.node);
             const statusBackgroundGraphics = statusBackgroundNode.getComponent(Graphics)!;
             const stateLabel = this.createLabel(button.node, 'UnitCardState', '',
-                UNIT_CARD_STATUS_CENTER_X, 0,
-                UNIT_CARD_STATUS_BOX_WIDTH - 6, UNIT_CARD_STATUS_BOX_HEIGHT - 4,
-                15, UI_TEXT_SECONDARY);
-            stateLabel.lineHeight = 18;
+                UNIT_CARD_STATUS_CENTER_X, UNIT_CARD_STATUS_CENTER_Y,
+                UNIT_CARD_STATUS_BOX_WIDTH - 2, UNIT_CARD_STATUS_BOX_HEIGHT - 2,
+                11, UI_TEXT_SECONDARY);
+            stateLabel.lineHeight = 13;
             this.configureSingleLineLabel(stateLabel, UI_TEXT_SECONDARY);
             const unitButton: UnitTypeButtonView = {
                 ...button,
@@ -5622,7 +5662,6 @@ export class GameController extends Component {
                 statusBackgroundNode,
                 statusBackgroundGraphics,
                 stateLabel,
-                artSprite,
                 artSelectionGraphics,
                 pressed: false,
                 visualState: 'available',
@@ -5641,7 +5680,7 @@ export class GameController extends Component {
             };
             button.node.on(NodeEventType.TOUCH_END, releasePress, this);
             button.node.on(NodeEventType.TOUCH_CANCEL, releasePress, this);
-            this.drawTierBadge(unitButton.tierBadgeGraphics, unitButton.tierBadgeLabel, type, 28);
+            this.drawTierBadge(unitButton.tierBadgeGraphics, unitButton.tierBadgeLabel, type, 22);
             this.typeButtons.set(type, unitButton);
         }
     }
@@ -5655,8 +5694,11 @@ export class GameController extends Component {
             return;
         }
         if (this.selectedSheepType === type) {
-            this.selectedSheepType = undefined;
-            this.refreshHud('已取消出兵单位选择。请先选择出兵单位。');
+            const expected = this.tutorialFlowActive
+                ? LEVEL_ONE_TUTORIAL_DEPLOYMENTS[this.tutorialDeploymentIndex] : undefined;
+            this.refreshHud(expected?.type === type
+                ? `已选择${this.getUnitDisplayName(type, Team.Player)}，请点击第${expected.lane + 1}路出兵。`
+                : `${this.getUnitDisplayName(type, Team.Player)}保持选中，请点击道路出兵。`);
         } else {
             this.selectedSheepType = type;
             const definition = UNIT_DEFINITIONS[type];
@@ -9022,7 +9064,6 @@ export class GameController extends Component {
                 // Keep the normal update loop frozen; the tutorial whitelist below
                 // advances only real player units, supply points, VFX and HUD.
                 this.tutorialSimulationFrozen = true;
-                this.selectedSheepType = undefined;
             } else if (page === 'capture-supply') {
                 this.grantLevelOneTutorialSprintSubsidy();
                 this.tutorialProgress = 'use-sprint';
@@ -9035,7 +9076,6 @@ export class GameController extends Component {
             this.tutorialVisiblePage = nextPage;
             this.tutorialHighestViewedPage = nextPage;
             this.tutorialIdleSeconds = 0;
-            this.selectedSheepType = undefined;
             this.lastUnitButtonState = '';
             this.refreshUnitTypeButtons();
             this.refreshLaneSpawnMarkers();
@@ -9211,7 +9251,6 @@ export class GameController extends Component {
             this.saveLevelProgress();
         }
         if (wasActive && this.isStarted && !this.isFinished && !this.isPaused) {
-            this.selectedSheepType = this.selectedSheepType ?? SheepType.Small;
             this.lastUnitButtonState = '';
             this.refreshUnitTypeButtons();
             this.refreshLaneSpawnMarkers();
@@ -11730,7 +11769,6 @@ export class GameController extends Component {
             }
             this.tutorialDeploymentIndex += 1;
             this.playerSpawnCooldown = 0;
-            this.selectedSheepType = undefined;
             this.lastUnitButtonState = '';
             if (this.tutorialDeploymentIndex >= LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length
                 && this.tutorialCompletedDeploymentTypes.size === LEVEL_ONE_TUTORIAL_DEPLOYMENTS.length
@@ -13933,6 +13971,8 @@ export class GameController extends Component {
             return;
         }
         this.cleanupLevelOneTutorial(false);
+        this.selectedSheepType = undefined;
+        this.lastUnitButtonState = '';
         this.isFinished = true;
         this.cancelFreezeLaneSelection(false);
         this.isPaused = false;
@@ -14139,7 +14179,7 @@ export class GameController extends Component {
         this.applyLevelStartingResources();
         this.playerSupply = 0;
         this.aiSupply = 0;
-        this.selectedSheepType = SheepType.Small;
+        this.selectedSheepType = undefined;
         this.playerSpawnCooldown = 0;
         this.aiDeployNoticeCooldown = 0;
         this.playerShockUnlocked = false;
@@ -14355,18 +14395,22 @@ export class GameController extends Component {
             const state = this.getUnitCardVisualState(type, button);
             const isUnlocked = this.isUnitTypeUnlocked(type);
             const hasEnoughEnergy = this.playerEnergy >= definition.cost;
-            const statusState: UnitCardVisualState = !isUnlocked ? 'locked'
-                : hasEnoughEnergy ? 'available' : 'insufficient';
+            const statusState: UnitCardVisualState = state === 'selected' || state === 'selected-insufficient'
+                ? state : !isUnlocked ? 'locked' : hasEnoughEnergy ? 'available' : 'insufficient';
+            const tutorialExpected = this.tutorialFlowActive && this.tutorialProgress === 'deploy-four-sheep'
+                ? LEVEL_ONE_TUTORIAL_DEPLOYMENTS[this.tutorialDeploymentIndex] : undefined;
+            const isTutorialCardTarget = tutorialExpected?.type === type && this.selectedSheepType !== type;
             button.visualState = state;
-            const isSelected = state === 'selected';
+            const isSelected = state === 'selected' || state === 'selected-insufficient';
             const isAvailable = state === 'available' || state === 'selected' || state === 'pressed';
             const fillColor = isSelected
-                ? new Color(246, 200, 75, 255)
-                : state === 'pressed' ? new Color(47, 111, 143, 255)
-                    : isAvailable ? new Color(58, 83, 108, 255) : new Color(55, 61, 70, 255);
+                ? state === 'selected-insufficient'
+                    ? new Color(222, 188, 107, 255) : new Color(250, 224, 141, 255)
+                : state === 'pressed' ? new Color(188, 219, 174, 255)
+                    : isAvailable ? new Color(226, 239, 205, 255) : new Color(181, 175, 151, 255);
             const borderColor = isSelected
-                ? new Color(184, 121, 22, 255)
-                : isAvailable ? new Color(135, 181, 216, 255) : new Color(105, 114, 126, 255);
+                ? new Color(190, 126, 21, 255)
+                : isAvailable ? new Color(91, 139, 70, 255) : new Color(126, 105, 72, 255);
             const usesPilotCard = !!button.artSprite?.node.active && !!button.artSprite.spriteFrame;
             if (usesPilotCard && button.artSprite) {
                 button.graphics.enabled = false;
@@ -14407,15 +14451,18 @@ export class GameController extends Component {
                 this.drawButton(button, fillColor, borderColor);
             }
             Tween.stopAllByTarget(button.node);
-            const targetScale = state === 'pressed' ? 0.98 : isSelected ? 1.02 : 1;
+            const targetScale = state === 'pressed' ? 0.98 : 1;
             button.node.setScale(targetScale, targetScale, 1);
-            button.label.string = `${tier.displayName.sheep} · ${definition.cost}\u80FD\u91CF`;
+            button.label.string = `${tier.displayName.sheep}\n${definition.cost}\u80FD`;
             button.label.color = usesPilotCard
                 ? (isSelected ? new Color(76, 50, 30, 255) : isAvailable ? UI_TEXT_PRIMARY : UI_TEXT_SECONDARY)
                 : (isSelected ? new Color(76, 50, 30, 255)
-                    : isAvailable ? Color.WHITE : new Color(170, 176, 184, 255));
-            button.stateLabel.string = statusState === 'locked' ? '\u672A\u89E3\u9501'
-                : statusState === 'insufficient' ? '\u80FD\u91CF\u4E0D\u8DB3' : '\u53EF\u7528';
+                    : isAvailable ? new Color(43, 75, 40, 255) : new Color(92, 81, 66, 255));
+            button.stateLabel.string = isTutorialCardTarget ? '\u6559\u7A0B'
+                : statusState === 'locked' ? '\u9501\u5B9A'
+                : statusState === 'insufficient' ? '\u7F3A\u80FD'
+                    : statusState === 'selected-insufficient' ? '\u9009\u4E2D\u7F3A\u80FD'
+                        : statusState === 'selected' ? '\u5DF2\u9009' : '\u53EF\u7528';
             this.drawUnitCardStatus(button, statusState);
             button.tierBadgeNode.getComponent(UIOpacity)!.opacity = isUnlocked ? 255 : 185;
             this.orderUnitCardChildren(button);
@@ -14426,6 +14473,10 @@ export class GameController extends Component {
         const graphics = button.statusBackgroundGraphics;
         const palette = state === 'insufficient'
                 ? { fill: new Color(255, 222, 199, 255), border: new Color(205, 111, 78, 255), text: new Color(174, 67, 43, 255) }
+                : state === 'selected-insufficient'
+                    ? { fill: new Color(255, 226, 154, 255), border: new Color(190, 126, 21, 255), text: new Color(139, 66, 25, 255) }
+                    : state === 'selected'
+                        ? { fill: new Color(255, 238, 166, 255), border: new Color(190, 126, 21, 255), text: new Color(103, 69, 22, 255) }
                 : state === 'locked'
                     ? { fill: new Color(113, 105, 98, 255), border: new Color(82, 76, 71, 255), text: new Color(239, 232, 219, 255) }
                     : { fill: new Color(188, 231, 199, 255), border: new Color(76, 145, 91, 255), text: new Color(38, 91, 52, 255) };
@@ -14436,7 +14487,7 @@ export class GameController extends Component {
             -UNIT_CARD_STATUS_BOX_HEIGHT / 2,
             UNIT_CARD_STATUS_BOX_WIDTH,
             UNIT_CARD_STATUS_BOX_HEIGHT,
-            8,
+            5,
         );
         graphics.fill();
         graphics.lineWidth = 2;
@@ -14446,7 +14497,7 @@ export class GameController extends Component {
             -UNIT_CARD_STATUS_BOX_HEIGHT / 2 + 1,
             UNIT_CARD_STATUS_BOX_WIDTH - 2,
             UNIT_CARD_STATUS_BOX_HEIGHT - 2,
-            7,
+            4,
         );
         graphics.stroke();
         button.stateLabel.color = palette.text;
@@ -14470,7 +14521,9 @@ export class GameController extends Component {
 
     private getUnitCardVisualState(type: SheepType, button: UnitTypeButtonView): UnitCardVisualState {
         if (!this.isUnitTypeUnlocked(type)) return 'locked';
-        if (this.selectedSheepType === type) return 'selected';
+        if (this.selectedSheepType === type) {
+            return this.playerEnergy < UNIT_DEFINITIONS[type].cost ? 'selected-insufficient' : 'selected';
+        }
         if (button.pressed) return 'pressed';
         if (this.playerEnergy < UNIT_DEFINITIONS[type].cost) return 'insufficient';
         return 'available';
