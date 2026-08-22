@@ -5,11 +5,26 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const sharp = require(process.env.WSB_SHARP_PATH || 'sharp');
 
-const [inputPath, sourceOutputPath, runtimeOutputPath] = process.argv.slice(2);
+const [
+    inputPath,
+    sourceOutputPath,
+    runtimeOutputPath,
+    runtimeWidthArgument = '768',
+    runtimeHeightArgument,
+] = process.argv.slice(2);
 
 if (!inputPath || !sourceOutputPath || !runtimeOutputPath) {
-    console.error('Usage: node extract_generated_card_alpha.mjs <input> <source-output> <runtime-output>');
+    console.error('Usage: node extract_generated_card_alpha.mjs <input> <source-output> <runtime-output> [runtime-width] [runtime-height]');
     process.exit(2);
+}
+
+const runtimeWidth = Number.parseInt(runtimeWidthArgument, 10);
+const runtimeHeight = runtimeHeightArgument === undefined
+    ? undefined
+    : Number.parseInt(runtimeHeightArgument, 10);
+if (!Number.isInteger(runtimeWidth) || runtimeWidth <= 0
+    || (runtimeHeight !== undefined && (!Number.isInteger(runtimeHeight) || runtimeHeight <= 0))) {
+    throw new Error('Runtime dimensions must be positive integers.');
 }
 
 const isConnectedNeutralBackground = (red, green, blue) => {
@@ -131,8 +146,6 @@ const right = Math.min(width - 1, maxX + padding);
 const bottom = Math.min(height - 1, maxY + padding);
 const cropWidth = right - left + 1;
 const cropHeight = bottom - top + 1;
-const runtimeWidth = 768;
-
 await fs.mkdir(path.dirname(sourceOutputPath), { recursive: true });
 await fs.mkdir(path.dirname(runtimeOutputPath), { recursive: true });
 
@@ -144,11 +157,22 @@ const sourceImage = sharp(pixels, { raw: { width, height, channels } }).extract(
 });
 
 await sourceImage.clone().png({ compressionLevel: 9, adaptiveFiltering: true }).toFile(sourceOutputPath);
-const resized = await sourceImage.clone().resize({
-    width: runtimeWidth,
-    kernel: sharp.kernel.lanczos3,
-    withoutEnlargement: true,
-}).raw().toBuffer({ resolveWithObject: true });
+const resizeOptions = runtimeHeight === undefined
+    ? {
+        width: runtimeWidth,
+        kernel: sharp.kernel.lanczos3,
+        withoutEnlargement: true,
+    }
+    : {
+        width: runtimeWidth,
+        height: runtimeHeight,
+        fit: 'contain',
+        position: 'centre',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+        kernel: sharp.kernel.lanczos3,
+        withoutEnlargement: true,
+    };
+const resized = await sourceImage.clone().resize(resizeOptions).raw().toBuffer({ resolveWithObject: true });
 for (let offset = 0; offset < resized.data.length; offset += resized.info.channels) {
     if (resized.data[offset + 3] > 3) continue;
     resized.data[offset] = 0;
