@@ -543,7 +543,7 @@ const PLAYER_GATE_VISUAL_OFFSET_X = -PLAYER_GATE_ALPHA_BODY_OFFSET_X;
 const UNIT_CARD_MIN_WIDTH = 88;
 const UNIT_CARD_MAX_WIDTH = 240;
 const UNIT_CARD_GRASS_USAGE_RATIO = 0.9;
-const UNIT_CARD_HEIGHT = 52;
+const UNIT_CARD_HEIGHT = 100;
 const UNIT_CARD_GAP = 10;
 const PLAYER_HUD_VISIBLE_HALF_HEIGHT = Math.max(
     BASE_BAR_HEIGHT,
@@ -2485,6 +2485,12 @@ export class GameController extends Component {
             }
         }
 
+        const unitCardKeys: Readonly<Record<SheepType, ArtPilotResourceKey>> = {
+            [SheepType.Small]: ArtPilotResourceKey.UnitCardSmall,
+            [SheepType.Medium]: ArtPilotResourceKey.UnitCardMedium,
+            [SheepType.Large]: ArtPilotResourceKey.UnitCardLarge,
+            [SheepType.Giant]: ArtPilotResourceKey.UnitCardGiant,
+        };
         const tierBadgeKeys: Readonly<Record<SheepType, ArtPilotResourceKey>> = {
             [SheepType.Small]: ArtPilotResourceKey.TierBadgeSmall,
             [SheepType.Medium]: ArtPilotResourceKey.TierBadgeMedium,
@@ -2494,18 +2500,29 @@ export class GameController extends Component {
         for (const type of UNIT_ORDER) {
             const button = this.typeButtons.get(type);
             if (button) {
+                const cardSize = button.node.getComponent(UITransform)!.contentSize;
+                button.artSprite = this.applyTacticRegionSprite(
+                    button.node,
+                    'UnitCardBackgroundSprite',
+                    unitCardKeys[type],
+                    cardSize.width,
+                    cardSize.height,
+                    true,
+                    14,
+                );
                 const tierBadgeArt = this.applyChildSprite(
                     button.tierBadgeNode,
                     'TierBadgeArt',
                     tierBadgeKeys[type],
-                    24,
-                    24,
+                    cardSize.width >= 170 ? 36 : 30,
+                    cardSize.width >= 170 ? 36 : 30,
                 );
                 if (tierBadgeArt) {
                     button.tierBadgeGraphics.enabled = false;
                     tierBadgeArt.node.setSiblingIndex(0);
                     button.tierBadgeLabel.node.setSiblingIndex(button.tierBadgeNode.children.length - 1);
                 }
+                this.orderUnitCardChildren(button);
             }
         }
         this.lastUnitButtonState = '';
@@ -5660,32 +5677,34 @@ export class GameController extends Component {
     }
 
     private applyUnitCardContentLayout(button: UnitTypeButtonView, cardWidth: number, type: SheepType): void {
-        const innerMargin = 6;
-        const tierSize = Math.max(28, Math.min(34, UNIT_CARD_HEIGHT - 14));
-        const statusWidth = Math.max(34, Math.min(54, Math.round(cardWidth * 0.25)));
-        const statusHeight = UNIT_CARD_HEIGHT - 10;
+        const innerMargin = 8;
+        const tierSize = cardWidth >= 170 ? 44 : 38;
+        const statusWidth = Math.max(44, Math.min(64, Math.round(cardWidth * 0.27)));
+        const statusHeight = UNIT_CARD_HEIGHT - 16;
         const tierCenterX = -cardWidth / 2 + innerMargin + tierSize / 2;
         const statusCenterX = cardWidth / 2 - innerMargin - statusWidth / 2;
-        const mainLeft = tierCenterX + tierSize / 2 + 4;
-        const mainRight = statusCenterX - statusWidth / 2 - 4;
+        const mainLeft = tierCenterX + tierSize / 2 + 6;
+        const mainRight = statusCenterX - statusWidth / 2 - 6;
         const mainWidth = Math.max(24, mainRight - mainLeft);
         const mainCenterX = (mainLeft + mainRight) / 2;
 
         button.tierBadgeNode.setPosition(tierCenterX, 0, 0);
         button.tierBadgeNode.getComponent(UITransform)?.setContentSize(tierSize, tierSize);
+        button.tierBadgeNode.getChildByName('TierBadgeArt')
+            ?.getComponent(UITransform)?.setContentSize(tierSize - 8, tierSize - 8);
         this.resizeAndPositionLabel(button.tierBadgeLabel, 0, 0, tierSize - 2, tierSize - 2);
-        button.tierBadgeLabel.fontSize = cardWidth >= 130 ? 16 : 14;
+        button.tierBadgeLabel.fontSize = cardWidth >= 170 ? 17 : 15;
         button.tierBadgeLabel.lineHeight = button.tierBadgeLabel.fontSize + 2;
         this.drawTierBadge(button.tierBadgeGraphics, button.tierBadgeLabel, type, tierSize - 2);
 
-        this.resizeAndPositionLabel(button.label, mainCenterX, 0, mainWidth, UNIT_CARD_HEIGHT - 10);
-        button.label.fontSize = cardWidth >= 130 ? 14 : 12;
-        button.label.lineHeight = button.label.fontSize + 3;
+        this.resizeAndPositionLabel(button.label, mainCenterX, 0, mainWidth, UNIT_CARD_HEIGHT - 18);
+        button.label.fontSize = cardWidth >= 170 ? 16 : 14;
+        button.label.lineHeight = button.label.fontSize + 4;
 
         button.statusBackgroundNode.setPosition(statusCenterX, 0, 0);
         button.statusBackgroundNode.getComponent(UITransform)?.setContentSize(statusWidth, statusHeight);
-        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, statusWidth - 4, statusHeight - 4);
-        button.stateLabel.fontSize = cardWidth >= 130 ? 11 : 10;
+        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, statusWidth - 8, statusHeight - 8);
+        button.stateLabel.fontSize = cardWidth >= 170 ? 12 : 11;
         button.stateLabel.lineHeight = button.stateLabel.fontSize + 2;
     }
 
@@ -14780,16 +14799,16 @@ export class GameController extends Component {
         const graphics = button.statusBackgroundGraphics;
         const statusSize = button.statusBackgroundNode.getComponent(UITransform)?.contentSize;
         const statusWidth = statusSize?.width ?? 34;
-        const statusHeight = statusSize?.height ?? UNIT_CARD_HEIGHT - 10;
+        const statusHeight = statusSize?.height ?? UNIT_CARD_HEIGHT - 16;
         const palette = state === 'insufficient'
-                ? { fill: new Color(255, 222, 199, 255), border: new Color(205, 111, 78, 255), text: new Color(174, 67, 43, 255) }
+                ? { fill: new Color(255, 222, 199, 232), border: new Color(205, 111, 78, 205), text: new Color(174, 67, 43, 255) }
                 : state === 'selected-insufficient'
-                    ? { fill: new Color(255, 226, 154, 255), border: new Color(190, 126, 21, 255), text: new Color(139, 66, 25, 255) }
+                    ? { fill: new Color(255, 226, 154, 238), border: new Color(190, 126, 21, 220), text: new Color(139, 66, 25, 255) }
                     : state === 'selected'
-                        ? { fill: new Color(255, 238, 166, 255), border: new Color(190, 126, 21, 255), text: new Color(103, 69, 22, 255) }
+                        ? { fill: new Color(255, 238, 166, 238), border: new Color(190, 126, 21, 220), text: new Color(103, 69, 22, 255) }
                 : state === 'locked'
-                    ? { fill: new Color(113, 105, 98, 255), border: new Color(82, 76, 71, 255), text: new Color(239, 232, 219, 255) }
-                    : { fill: new Color(188, 231, 199, 255), border: new Color(76, 145, 91, 255), text: new Color(38, 91, 52, 255) };
+                    ? { fill: new Color(113, 105, 98, 232), border: new Color(82, 76, 71, 205), text: new Color(239, 232, 219, 255) }
+                    : { fill: new Color(188, 231, 199, 232), border: new Color(76, 145, 91, 205), text: new Color(38, 91, 52, 255) };
         graphics.clear();
         graphics.fillColor = palette.fill;
         graphics.roundRect(
@@ -14797,18 +14816,13 @@ export class GameController extends Component {
             -statusHeight / 2,
             statusWidth,
             statusHeight,
-            5,
+            10,
         );
         graphics.fill();
         graphics.lineWidth = 2;
         graphics.strokeColor = palette.border;
-        graphics.roundRect(
-            -statusWidth / 2 + 1,
-            -statusHeight / 2 + 1,
-            statusWidth - 2,
-            statusHeight - 2,
-            4,
-        );
+        graphics.moveTo(-statusWidth / 2 + 1, -statusHeight / 2 + 10);
+        graphics.lineTo(-statusWidth / 2 + 1, statusHeight / 2 - 10);
         graphics.stroke();
         button.stateLabel.color = palette.text;
     }
