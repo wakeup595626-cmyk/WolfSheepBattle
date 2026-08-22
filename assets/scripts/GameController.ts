@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish02-ui12';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish02-ui12';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish02-ui12';
+const GAME_VERSION = 'v1.3.0-dev-polish03-ui13-audio04-tutorial07';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish03-ui13-audio04-tutorial07';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish03-ui13-audio04-tutorial07';
 const BATTLEFIELD_CENTER_X = -90;
 // Keep the four-lane battlefield centered while tightening the unused gaps just
 // enough for a readable compact unit-card rail at the 1280 x 720 baseline.
@@ -641,7 +641,7 @@ const TACTIC_NOTICE_FADE_OUT_SECONDS = 0.22;
 const LEVEL_PROGRESS_STORAGE_KEY = 'wolf-sheep-battle.v1.highest-unlocked-level';
 const LEVEL_PROGRESS_STORAGE_KEY_V2 = 'wolf-sheep-battle.progress.v2';
 const LEVEL_PROGRESS_SCHEMA_VERSION = 7;
-const LEVEL_ONE_TUTORIAL_VERSION = 6;
+const LEVEL_ONE_TUTORIAL_VERSION = 7;
 const LEVEL_ONE_TUTORIAL_DIM_ALPHA = 153;
 const LEVEL_ONE_TUTORIAL_CARD_WIDTH = 560;
 const LEVEL_ONE_TUTORIAL_CARD_HEIGHT = 280;
@@ -9556,12 +9556,14 @@ export class GameController extends Component {
                 stepLabel,
                 title: '背景音乐与音量',
                 body: !this.tutorialAudioSettingsOpened
-                    ? '点击右上角“暂停”，打开真实暂停设置。\n这里可以切换背景音乐风格并调整音乐音量。'
+                    ? '新玩家音乐与音效初始均为100%，默认使用“轻松欢快”。\n点击右上角“暂停”，打开真实暂停设置。'
                     : !this.tutorialBgmSwitched
                         ? '当前有“轻松欢快”和“热血对战”两种风格。\n请点击当前未选中的另一张音乐卡，完成一次真实切换。'
                         : !this.tutorialMusicVolumeAdjusted
-                            ? '背景音乐已切换。请点击音乐音量行的加号或减号，\n完成一次真实音量变化；百分比会立即保存。'
-                            : '背景音乐切换和音乐音量调整都已完成。\n请手动点击“下一步”，教学不会自动跳页。',
+                            ? this.audioManager.getMusicVolume() > 0
+                                ? '背景音乐已切换。请点击音乐音量行的减号，\n或向左拖动滑杆，完成一次真实下调。'
+                                : '已保留你原来的音乐静音设置。请点击音乐滑杆，\n完成一次真实调整；音效音量仍可独立设置。'
+                            : '背景音乐和音乐音量均已真实调整并保存。\n旁边的音效音量可以独立设置；请手动点击“下一步”。',
             };
         case 'battle-goal':
             return {
@@ -9589,10 +9591,10 @@ export class GameController extends Component {
         return Array.from(this.bgmStyleOptions.values()).find((option) => option.track.id !== selectedId);
     }
 
-    private getLevelOneTutorialMusicVolumeButton(): ButtonView | undefined {
+    private getLevelOneTutorialMusicVolumeTarget(): Node | undefined {
         if (!this.musicVolumeControl) return undefined;
-        return this.audioManager.getMusicVolume() >= 1
-            ? this.musicVolumeControl.minusButton : this.musicVolumeControl.plusButton;
+        return this.audioManager.getMusicVolume() > 0
+            ? this.musicVolumeControl.minusButton.node : this.musicVolumeControl.trackNode;
     }
 
     private closeLevelOneTutorialAudioSettings(): void {
@@ -9631,7 +9633,7 @@ export class GameController extends Component {
                 return [selector, option?.touchArea].filter((node): node is Node => !!node);
             }
             if (!this.tutorialMusicVolumeAdjusted) {
-                return [this.musicVolumeControl?.root, this.getLevelOneTutorialMusicVolumeButton()?.node]
+                return [this.musicVolumeControl?.root, this.getLevelOneTutorialMusicVolumeTarget()]
                     .filter((node): node is Node => !!node);
             }
             return [];
@@ -9926,8 +9928,11 @@ export class GameController extends Component {
                 if (option) this.selectBgmStyleFromUi(option.track);
             } else if (target === 'music-volume'
                 && LEVEL_ONE_TUTORIAL_PAGES[this.tutorialVisiblePage] === 'audio-settings') {
-                const delta = this.audioManager.getMusicVolume() >= 1 ? -5 : 5;
-                this.adjustAudioVolume('music', delta);
+                if (this.audioManager.getMusicVolume() > 0) {
+                    this.adjustAudioVolume('music', -5);
+                } else {
+                    this.setVolumeFromTouch(this.musicVolumeControl, event);
+                }
             } else if (typeof target === 'number' && this.tutorialProgress === 'deploy-four-sheep') {
                 this.tryDeploySelectedUnit(target);
             } else if (this.tutorialProgress === 'deploy-four-sheep') {
