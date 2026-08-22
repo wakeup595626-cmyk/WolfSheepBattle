@@ -57,12 +57,14 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish04-ui14';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish04-ui14';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish04-ui14';
+const GAME_VERSION = 'v1.3.0-dev-polish05-ui15-layout01';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish05-ui15-layout01';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish05-ui15-layout01';
 const BATTLEFIELD_CENTER_X = -90;
-// Keep the four-lane battlefield centered while tightening the unused gaps just
-// enough for a readable compact unit-card rail at the 1280 x 720 baseline.
+// Rebalance the battle screen into three non-overlapping columns. Every
+// lane-owned visual and interaction axis consumes this same translation.
+const BATTLEFIELD_OFFSET_X = 80;
+const BATTLEFIELD_CONTENT_CENTER_X = BATTLEFIELD_CENTER_X + BATTLEFIELD_OFFSET_X;
 const LANE_SPACING = 234;
 const LANE_X = [
     BATTLEFIELD_CENTER_X - LANE_SPACING * 1.5,
@@ -129,7 +131,7 @@ const BATTLE_HUD_COLUMNS = {
         height: ENERGY_BAR_HEIGHT,
     },
 } as const;
-const FUNCTION_SIDEBAR_WIDTH = 216;
+const FUNCTION_SIDEBAR_WIDTH = 198;
 const FUNCTION_SIDEBAR_X = DESIGN_WIDTH / 2 - HUD_SAFE_MARGIN - FUNCTION_SIDEBAR_WIDTH / 2;
 const TACTIC_HEADER_HEIGHT = 36;
 const PAUSE_BUTTON_WIDTH = FUNCTION_SIDEBAR_WIDTH;
@@ -159,21 +161,28 @@ const PAUSE_VOLUME_ROW_WIDTH = 211;
 const PAUSE_VOLUME_ROW_HEIGHT = 56;
 const TACTIC_HEADER_Y = PAUSE_BUTTON_Y - PAUSE_BUTTON_HEIGHT / 2
     - PAUSE_TACTIC_VERTICAL_GAP - TACTIC_HEADER_HEIGHT / 2;
-const TACTIC_CARD_HEIGHT = 124;
+const TACTIC_CARD_HEIGHT = 116;
 const TACTIC_CARD_GAP = 9;
 const TACTIC_HEADER_CARD_GAP = 12;
-const TACTIC_CARD_TOP_HEIGHT = 88;
-const TACTIC_CARD_BOTTOM_HEIGHT = 36;
+const TACTIC_CARD_TOP_HEIGHT = 82;
+const TACTIC_CARD_BOTTOM_HEIGHT = 34;
 const TACTIC_CARD_DIVIDER_Y = -TACTIC_CARD_HEIGHT / 2 + TACTIC_CARD_BOTTOM_HEIGHT;
-const TACTIC_ICON_CELL_WIDTH = 68;
-const TACTIC_TEXT_CELL_WIDTH = 136;
-const TACTIC_TOP_CELL_HEIGHT = 80;
-const TACTIC_COST_CELL_WIDTH = 60;
-const TACTIC_META_CELL_WIDTH = 56;
-const TACTIC_STATE_CELL_WIDTH = 84;
+const TACTIC_ICON_CELL_WIDTH = 64;
+const TACTIC_TEXT_CELL_WIDTH = 126;
+const TACTIC_TOP_CELL_HEIGHT = 76;
+const TACTIC_TOP_CELL_GAP = 4;
+const TACTIC_TOP_INNER_LEFT = -(TACTIC_ICON_CELL_WIDTH + TACTIC_TOP_CELL_GAP
+    + TACTIC_TEXT_CELL_WIDTH) / 2;
+const TACTIC_ICON_CELL_X = TACTIC_TOP_INNER_LEFT + TACTIC_ICON_CELL_WIDTH / 2;
+const TACTIC_TEXT_CELL_X = TACTIC_TOP_INNER_LEFT + TACTIC_ICON_CELL_WIDTH
+    + TACTIC_TOP_CELL_GAP + TACTIC_TEXT_CELL_WIDTH / 2;
+const TACTIC_COST_CELL_WIDTH = 56;
+const TACTIC_META_CELL_WIDTH = 52;
+const TACTIC_STATE_CELL_WIDTH = 74;
 const TACTIC_BOTTOM_CELL_HEIGHT = 28;
 const TACTIC_BOTTOM_CELL_GAP = 4;
-const TACTIC_BOTTOM_INNER_LEFT = -104;
+const TACTIC_BOTTOM_INNER_LEFT = -(TACTIC_COST_CELL_WIDTH + TACTIC_BOTTOM_CELL_GAP
+    + TACTIC_META_CELL_WIDTH + TACTIC_BOTTOM_CELL_GAP + TACTIC_STATE_CELL_WIDTH) / 2;
 const TACTIC_COST_CELL_X = TACTIC_BOTTOM_INNER_LEFT + TACTIC_COST_CELL_WIDTH / 2;
 const TACTIC_META_CELL_X = TACTIC_BOTTOM_INNER_LEFT + TACTIC_COST_CELL_WIDTH
     + TACTIC_BOTTOM_CELL_GAP + TACTIC_META_CELL_WIDTH / 2;
@@ -200,7 +209,7 @@ const START_BUTTON_RELEASE_SECONDS = 0.15;
 const START_BUTTON_PRESS_DEBOUNCE_MS = 300;
 const STATUS_TOAST_WIDTH = 540;
 const STATUS_TOAST_HEIGHT = 60;
-const STATUS_TOAST_X = BATTLEFIELD_CENTER_X;
+const STATUS_TOAST_X = BATTLEFIELD_CONTENT_CENTER_X;
 const STATUS_TOAST_GATE_CLEARANCE = 16;
 const STATUS_TOAST_FADE_IN_SECONDS = 0.15;
 const STATUS_TOAST_HOLD_SECONDS = 1.2;
@@ -547,15 +556,15 @@ const UNIT_CARD_MAX_WIDTH = 240;
 const UNIT_CARD_GRASS_USAGE_RATIO = 0.9;
 const UNIT_CARD_HEIGHT = 90;
 const UNIT_CARD_GAP = 10;
-const UNIT_CARD_PORTRAIT_RATIO = 0.42;
-const UNIT_CARD_TEXT_RATIO = 0.28;
+const UNIT_CARD_PORTRAIT_RATIO = 0.4;
+const UNIT_CARD_TEXT_RATIO = 0.32;
 const UNIT_CARD_ART_SLICE_INSET = 16;
 const UNIT_CARD_PORTRAIT_CROP_X_RATIO = 0.035;
 const UNIT_CARD_PORTRAIT_CROP_Y_RATIO = 0.06;
 const UNIT_CARD_PORTRAIT_CROP_WIDTH_RATIO = 0.36;
 const UNIT_CARD_PORTRAIT_CROP_HEIGHT_RATIO = 0.88;
-const UNIT_CARD_LABEL_FONT_SIZE = 15;
-const UNIT_CARD_LABEL_LINE_HEIGHT = 20;
+const UNIT_CARD_LABEL_FONT_SIZE = 16;
+const UNIT_CARD_LABEL_LINE_HEIGHT = 21;
 const PLAYER_HUD_VISIBLE_HALF_HEIGHT = Math.max(
     BASE_BAR_HEIGHT,
     PLAYER_RESOURCE_BADGE_HEIGHT,
@@ -1688,6 +1697,8 @@ export class GameController extends Component {
     private readonly aiSpawnGateFrameIndices = [-1, -1, -1, -1];
     private battleBackgroundSlot?: Node;
     private battleBackgroundSprite?: Sprite;
+    private battleBackgroundEdgeFillSlot?: Node;
+    private battleBackgroundEdgeFillSprite?: Sprite;
     private battleBackgroundSourceAspect = DESIGN_WIDTH / DESIGN_HEIGHT;
     private playerBaseArtSlot?: Node;
     private playerBaseArtSprite?: Sprite;
@@ -2123,7 +2134,7 @@ export class GameController extends Component {
             this.goldenSupplyPanel.setPosition(metrics.safeLeft + HUD_SAFE_MARGIN + 108, 232, 0);
         }
         if (this.goldenSupplyNotice?.isValid) {
-            this.goldenSupplyNotice.setPosition(BATTLEFIELD_CENTER_X, 218, 0);
+            this.goldenSupplyNotice.setPosition(BATTLEFIELD_CONTENT_CENTER_X, 218, 0);
         }
 
         const sidebarX = metrics.safeRight - HUD_SAFE_MARGIN - FUNCTION_SIDEBAR_WIDTH / 2;
@@ -2217,18 +2228,38 @@ export class GameController extends Component {
                 this.screenMetrics.visibleWidth,
                 this.screenMetrics.visibleHeight,
             );
-            this.battleBackgroundSlot.setPosition(0, 0, 0);
+            this.battleBackgroundSlot.setPosition(BATTLEFIELD_OFFSET_X, 0, 0);
             this.battleBackgroundSlot.setScale(1, 1, 1);
+            if (this.battleBackgroundEdgeFillSlot?.isValid) {
+                this.battleBackgroundEdgeFillSlot.getComponent(UITransform)?.setContentSize(
+                    this.screenMetrics.visibleWidth,
+                    this.screenMetrics.visibleHeight,
+                );
+                // Mirror a second copy behind the translated background. Only
+                // the newly exposed left strip is visible, so no black edge or
+                // texture seam is introduced and the painted road axes stay exact.
+                this.battleBackgroundEdgeFillSlot.setPosition(
+                    BATTLEFIELD_OFFSET_X - this.screenMetrics.visibleWidth,
+                    0,
+                    0,
+                );
+                this.battleBackgroundEdgeFillSlot.setScale(-1, 1, 1);
+                this.battleBackgroundEdgeFillSlot.active = !!this.battleBackgroundEdgeFillSprite?.spriteFrame;
+            }
             return;
+        }
+        if (this.battleBackgroundEdgeFillSlot?.isValid) {
+            this.battleBackgroundEdgeFillSlot.active = false;
         }
         this.setNodeCoverSize(this.battleBackgroundSlot, this.battleBackgroundSourceAspect);
     }
 
     private getConfiguredLaneCenterX(lane: number): number {
         if (BATTLEFIELD_VISUAL_MODE === 'cartoon_20x9_v02' && this.screenMetrics) {
-            return (CARTOON_LANE_CENTER_RATIOS[lane] ?? 0) * this.screenMetrics.visibleWidth;
+            return (CARTOON_LANE_CENTER_RATIOS[lane] ?? 0) * this.screenMetrics.visibleWidth
+                + BATTLEFIELD_OFFSET_X;
         }
-        return LANE_X[lane];
+        return LANE_X[lane] + BATTLEFIELD_OFFSET_X;
     }
 
     private refreshLaneAxisLayout(): void {
@@ -2240,6 +2271,7 @@ export class GameController extends Component {
             this.laneSpawnMarkers[lane]?.node.setPosition(laneX, SPAWN_BUTTON_Y, 0);
             this.laneHitAreas[lane]?.node.setPosition(laneX, LANE_HIT_AREA_CENTER_Y, 0);
             this.freezeLaneHighlightNodes[lane]?.setPosition(laneX, LANE_MID_Y, 0);
+            this.laneEffectVisuals[lane]?.setPosition(laneX, LANE_MID_Y, 0);
             this.supplyPoints[lane]?.node.setPosition(laneX, this.supplyPoints[lane].node.position.y, 0);
             this.laneVisualsLayer?.getChildByName(`LaneNumber${lane + 1}`)?.setPosition(
                 laneX,
@@ -2250,6 +2282,8 @@ export class GameController extends Component {
         for (const unit of [...this.units, ...this.dyingUnits, ...this.levelFiveSmallUnitPool]) {
             unit.node.setPosition(this.getConfiguredLaneCenterX(unit.lane), unit.node.position.y, 0);
         }
+        this.aiBaseArtSlot?.setPosition(BATTLEFIELD_CONTENT_CENTER_X, 390, 0);
+        this.playerBaseArtSlot?.setPosition(BATTLEFIELD_CONTENT_CENTER_X, -390, 0);
     }
 
     private setNodeCoverSize(node: Node, sourceAspect: number): void {
@@ -2390,16 +2424,24 @@ export class GameController extends Component {
         const laneCenterY = (LANE_BOTTOM_Y + LANE_TOP_Y) * 0.5;
         const lanesToCreate = ART_FULL_ENABLED ? LANE_X.length : 1;
         if (ART_FULL_ENABLED) {
-            const background = this.createSpriteSlot('FormalBattleBackground', this.battlefieldBackgroundLayer, DESIGN_WIDTH, DESIGN_HEIGHT, 0, 0);
-            background.node.setSiblingIndex(0);
+            const edgeFill = this.createSpriteSlot('FormalBattleBackgroundEdgeFill',
+                this.battlefieldBackgroundLayer, DESIGN_WIDTH, DESIGN_HEIGHT, 0, 0);
+            edgeFill.node.setSiblingIndex(0);
+            this.battleBackgroundEdgeFillSlot = edgeFill.node;
+            this.battleBackgroundEdgeFillSprite = edgeFill.sprite;
+            const background = this.createSpriteSlot('FormalBattleBackground', this.battlefieldBackgroundLayer,
+                DESIGN_WIDTH, DESIGN_HEIGHT, BATTLEFIELD_OFFSET_X, 0);
+            background.node.setSiblingIndex(1);
             this.battleBackgroundSlot = background.node;
             this.battleBackgroundSprite = background.sprite;
 
-            const aiBase = this.createSpriteSlot('FormalAIBase', this.basesAndSpawnGatesLayer, 760, 285, BATTLEFIELD_CENTER_X, 390);
+            const aiBase = this.createSpriteSlot('FormalAIBase', this.basesAndSpawnGatesLayer,
+                760, 285, BATTLEFIELD_CONTENT_CENTER_X, 390);
             aiBase.node.setSiblingIndex(1);
             this.aiBaseArtSlot = aiBase.node;
             this.aiBaseArtSprite = aiBase.sprite;
-            const playerBase = this.createSpriteSlot('FormalPlayerBase', this.basesAndSpawnGatesLayer, 760, 285, BATTLEFIELD_CENTER_X, -390);
+            const playerBase = this.createSpriteSlot('FormalPlayerBase', this.basesAndSpawnGatesLayer,
+                760, 285, BATTLEFIELD_CONTENT_CENTER_X, -390);
             playerBase.node.setSiblingIndex(1);
             this.playerBaseArtSlot = playerBase.node;
             this.playerBaseArtSprite = playerBase.sprite;
@@ -3008,6 +3050,10 @@ export class GameController extends Component {
                     ? 1600 / 720 : DESIGN_WIDTH / DESIGN_HEIGHT;
             this.battleBackgroundSprite.spriteFrame = backgroundFrame;
             this.battleBackgroundSlot.active = true;
+            if (this.battleBackgroundEdgeFillSlot && this.battleBackgroundEdgeFillSprite) {
+                this.battleBackgroundEdgeFillSprite.spriteFrame = backgroundFrame;
+                this.battleBackgroundEdgeFillSlot.active = BATTLEFIELD_VISUAL_MODE === 'cartoon_20x9_v02';
+            }
             const boardGraphics = this.battlefieldBackgroundLayer.getChildByName('Board')?.getComponent(Graphics);
             if (boardGraphics) {
                 boardGraphics.enabled = false;
@@ -3809,7 +3855,7 @@ export class GameController extends Component {
             ArtPilotResourceKey.SupplyIcon,
             12,
             12,
-            -21,
+            -19,
             0,
         );
         card.metaIconSprite = this.applyChildSprite(
@@ -3818,7 +3864,7 @@ export class GameController extends Component {
             card.kind === 'shock' ? ArtPilotResourceKey.TacticStateOnce : ArtPilotResourceKey.TacticStateClock,
             12,
             12,
-            -20,
+            -18,
             0,
         );
         card.costIconFallbackGraphics.node.active = !card.costIconSprite;
@@ -4564,7 +4610,7 @@ export class GameController extends Component {
         this.goldenSupplyPanel.active = false;
 
         this.goldenSupplyNotice = this.createGraphicsNode(
-            'GoldenSupplyNotice', 470, 48, BATTLEFIELD_CENTER_X, 218, this.toastLayer,
+            'GoldenSupplyNotice', 470, 48, BATTLEFIELD_CONTENT_CENTER_X, 218, this.toastLayer,
         );
         const noticeGraphics = this.goldenSupplyNotice.getComponent(Graphics)!;
         noticeGraphics.fillColor = new Color(255, 245, 196, 245);
@@ -5304,7 +5350,7 @@ export class GameController extends Component {
             this.toastLayer,
             'FreezeSelectionCancelButton',
             '取消选择',
-            BATTLEFIELD_CENTER_X,
+            BATTLEFIELD_CONTENT_CENTER_X,
             PLAYER_HUD_Y + 72,
             170,
             44,
@@ -6075,7 +6121,7 @@ export class GameController extends Component {
             'IconCell',
             TACTIC_ICON_CELL_WIDTH,
             TACTIC_TOP_CELL_HEIGHT,
-            -70,
+            TACTIC_ICON_CELL_X,
             0,
             topSectionNode,
         );
@@ -6083,7 +6129,7 @@ export class GameController extends Component {
             'TextCell',
             TACTIC_TEXT_CELL_WIDTH,
             TACTIC_TOP_CELL_HEIGHT,
-            36,
+            TACTIC_TEXT_CELL_X,
             0,
             topSectionNode,
         );
@@ -6164,7 +6210,7 @@ export class GameController extends Component {
             'EffectLabel',
             '',
             0,
-            -20,
+            -18,
             textWidth,
             34,
             13,
@@ -6175,7 +6221,7 @@ export class GameController extends Component {
             'CostIconFallback',
             12,
             12,
-            -21,
+            -19,
             0,
             costCellNode,
         );
@@ -6183,9 +6229,9 @@ export class GameController extends Component {
             costCellNode,
             'CostLabel',
             '',
-            7,
+            6,
             0,
-            36,
+            32,
             20,
             12,
             UI_TEXT_PRIMARY,
@@ -6194,7 +6240,7 @@ export class GameController extends Component {
             'MetaIconFallback',
             12,
             12,
-            -20,
+            -18,
             0,
             metaCellNode,
         );
@@ -6202,9 +6248,9 @@ export class GameController extends Component {
             metaCellNode,
             'MetaLabel',
             '',
-            7,
+            6,
             0,
-            36,
+            32,
             20,
             11.5,
             UI_TEXT_PRIMARY,
@@ -6213,7 +6259,7 @@ export class GameController extends Component {
             'StateIconFallback',
             12,
             12,
-            -32,
+            -27,
             0,
             stateCellNode,
         );
@@ -6221,9 +6267,9 @@ export class GameController extends Component {
             stateCellNode,
             'StateLabel',
             '',
-            6,
+            5,
             0,
-            60,
+            52,
             20,
             11.5,
             Color.WHITE,
@@ -6948,7 +6994,7 @@ export class GameController extends Component {
             resourceKey,
             12,
             12,
-            -32,
+            -27,
             0,
         );
         card.stateIconSprite = stateIcon;
@@ -6964,8 +7010,8 @@ export class GameController extends Component {
             this.drawTacticFallbackIcon(card.stateIconFallbackGraphics, fallbackIcon);
             card.stateIconFallbackGraphics.node.setSiblingIndex(1);
         }
-        card.stateLabel.node.setPosition(showStateIcon ? 6 : 0, 0, 0);
-        card.stateLabel.node.getComponent(UITransform)?.setContentSize(showStateIcon ? 60 : 76, 20);
+        card.stateLabel.node.setPosition(showStateIcon ? 5 : 0, 0, 0);
+        card.stateLabel.node.getComponent(UITransform)?.setContentSize(showStateIcon ? 52 : 66, 20);
         card.stateLabel.node.setSiblingIndex(card.stateCellNode.children.length - 1);
     }
 
@@ -7056,18 +7102,18 @@ export class GameController extends Component {
         }
 
         const showCostIcon = card.kind !== 'shock';
-        card.costIconSprite?.node.setPosition(-21, 0, 0);
+        card.costIconSprite?.node.setPosition(-19, 0, 0);
         if (card.costIconSprite) card.costIconSprite.node.active = showCostIcon;
         card.costIconFallbackGraphics.node.active = showCostIcon && !card.costIconSprite;
-        card.costLabel.node.setPosition(showCostIcon ? 7 : 0, 0, 0);
-        card.costLabel.node.getComponent(UITransform)?.setContentSize(showCostIcon ? 36 : 52, 20);
+        card.costLabel.node.setPosition(showCostIcon ? 6 : 0, 0, 0);
+        card.costLabel.node.getComponent(UITransform)?.setContentSize(showCostIcon ? 32 : 48, 20);
 
         const showMetaIcon = card.kind !== 'shock';
-        card.metaIconSprite?.node.setPosition(-20, 0, 0);
+        card.metaIconSprite?.node.setPosition(-18, 0, 0);
         if (card.metaIconSprite) card.metaIconSprite.node.active = showMetaIcon;
         card.metaIconFallbackGraphics.node.active = showMetaIcon && !card.metaIconSprite;
-        card.metaLabel.node.setPosition(showMetaIcon ? 7 : 0, 0, 0);
-        card.metaLabel.node.getComponent(UITransform)?.setContentSize(showMetaIcon ? 36 : 48, 20);
+        card.metaLabel.node.setPosition(showMetaIcon ? 6 : 0, 0, 0);
+        card.metaLabel.node.getComponent(UITransform)?.setContentSize(showMetaIcon ? 32 : 44, 20);
         if (card.costIconSprite) {
             card.costIconSprite.color = display.costVisualState === 'insufficient'
                 ? Color.WHITE : titleColor;
@@ -15213,7 +15259,7 @@ export class GameController extends Component {
 
     private createShockEffect(owner: Team): void {
         const territoryEffectY = owner === Team.Player ? LANE_MID_Y - 150 : LANE_MID_Y + 150;
-        const effect = this.createGraphicsNode('ShockWave', 1120, 330, 0,
+        const effect = this.createGraphicsNode('ShockWave', 1120, 330, BATTLEFIELD_CONTENT_CENTER_X,
             territoryEffectY, this.unitsAndVfxLayer);
         const graphics = effect.getComponent(Graphics)!;
         const fillColor = owner === Team.Player ? new Color(90, 194, 255, 72) : new Color(255, 111, 91, 72);
@@ -15254,8 +15300,8 @@ export class GameController extends Component {
             if (!this.node.isValid || this.isFinished) return;
             if (laneWide) {
                 const y = team === Team.Player ? LANE_MID_Y - 150 : LANE_MID_Y + 150;
-                for (const laneX of LANE_X) {
-                    this.playPilotVfx(key, laneX, y, 118, 12);
+                for (let lane = 0; lane < LANE_X.length; lane += 1) {
+                    this.playPilotVfx(key, this.getLaneCenterX(lane), y, 118, 12);
                 }
                 return;
             }

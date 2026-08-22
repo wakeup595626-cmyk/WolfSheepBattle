@@ -1,0 +1,29 @@
+{
+  "name": "WolfSheepBattle-v1.3.0-dev-polish05-ui15-layout01-wechat",
+  "platform": "wechatgame",
+  "buildPath": "project://build",
+  "outputName": "wechatgame-polish05-ui15-layout01",
+  "debug": false,
+  "sourceMaps": false,
+  "md5Cache": false,
+  "mainBundleCompressionType": "merge_dep",
+  "mainBundleIsRemote": false,
+  "engineModulesConfigKey": "defaultConfig",
+  "startScene": "267677db-a17c-4dde-b71e-4d4929fd7689",
+  "scenes": [
+    {
+      "url": "db://assets/scenes/Battle.scene",
+      "uuid": "267677db-a17c-4dde-b71e-4d4929fd7689"
+    }
+  ],
+  "packages": {
+    "wechatgame": {
+      "orientation": "landscapeRight",
+      "appid": "wxfbd176abc5b3911c",
+      "buildOpenDataContextTemplate": "",
+      "separateEngine": false,
+      "highPerformanceMode": false,
+      "__version__": "1.0.4"
+    }
+  }
+}
