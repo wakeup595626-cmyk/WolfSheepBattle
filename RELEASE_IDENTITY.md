@@ -2,9 +2,9 @@
 
 - 游戏正式名称：羊狼四线战
 - 正式 AppID：`wxfbd176abc5b3911c`
-- 当前开发版本：`v1.3.0-dev-tutorial05-ui09`
-- 本轮整理批次：`v1.3.0-dev-tutorial05-ui09`
-- 本轮版本名称：补给与战术实操教学
+- 当前开发版本：`v1.3.0-dev-battle01-ui10`
+- 本轮整理批次：`v1.3.0-dev-battle01-ui10`
+- 本轮版本名称：战场布局与连续部署优化
 
 ## 发布约束
 
@@ -17,4 +17,4 @@
 
 ## 当前门禁状态
 
-正式 AppID 已归一化，两首正式 BGM 的授权状态以 `THIRD_PARTY_AUDIO.md` 当前记录为准，均为 `VERIFIED`。游戏运行版本为 `v1.3.0-dev-tutorial05-ui09`；微信开发者工具和真机验证完成前，不进入正式发布版本。
+正式 AppID 已归一化，两首正式 BGM 的授权状态以 `THIRD_PARTY_AUDIO.md` 当前记录为准，均为 `VERIFIED`。游戏运行版本为 `v1.3.0-dev-battle01-ui10`；微信开发者工具和真机验证完成前，不进入正式发布版本。

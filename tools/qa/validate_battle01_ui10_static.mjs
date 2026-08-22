@@ -33,6 +33,9 @@ const lane1X = laneCenterX - laneSpacing * 1.5;
 const lane1HitLeft = lane1X - laneHitWidth / 2;
 const cardRight1280 = -1280 / 2 + 12 + cardWidth;
 
+check('battle01-ui10 source identity', source.includes("const GAME_VERSION = 'v1.3.0-dev-battle01-ui10';")
+    && source.includes("const DEVELOPMENT_BATCH = 'v1.3.0-dev-battle01-ui10';")
+    && source.includes("const REQUESTED_TASK_ID = 'v1.3.0-dev-battle01-ui10';"));
 check('compact horizontal cards', cardWidth === 96 && cardHeight === 40 && cardWidth / cardHeight === 2.4);
 check('independent visible card gaps', cardGap === 10
     && source.includes('The sidebar is layout-only')
@@ -57,6 +60,7 @@ const spawnRows = radii.map((radius) => {
     return { radius, player, ai, mid: (player + ai) / 2 };
 });
 check('symmetric extended road', laneBottom === -270 && laneTop === 270);
+check('lower HUD preserves formal gate clearance', constantNumber('PLAYER_HUD_Y') === -301);
 check('all spawn midpoints exact', spawnRows.every((row) => row.mid === 0), spawnRows);
 check('supply visual derived from real spawn helper', source.includes('this.getLaneSupplyPointY(lane)'));
 check('supply capture follows visual center', source.includes('unit.node.position.y - centerY'));

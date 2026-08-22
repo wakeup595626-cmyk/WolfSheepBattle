@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-tutorial05-ui09';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-tutorial05-ui09';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-tutorial05-ui09';
+const GAME_VERSION = 'v1.3.0-dev-battle01-ui10';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-battle01-ui10';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-battle01-ui10';
 const BATTLEFIELD_CENTER_X = -90;
 // Keep the four-lane battlefield centered while tightening the unused gaps just
 // enough for a readable compact unit-card rail at the 1280 x 720 baseline.
@@ -81,8 +81,9 @@ const HUD_SAFE_MARGIN = 12;
 const TOP_HUD_Y = 308;
 const AI_HUD_Y = TOP_HUD_Y;
 // Responsive layout applies its existing -16 px lower-HUD offset, yielding
-// -313 at the 1280 x 720 baseline. This leaves 12 px below the lowered gates.
-const PLAYER_HUD_Y = -297;
+// -317 at the 1280 x 720 baseline. The formal gate alpha bounds then retain
+// the required 12 px gap above the HUD's visible top edge.
+const PLAYER_HUD_Y = -301;
 const BASE_BAR_HEIGHT = 48;
 const HUD_BASE_BAR_WIDTH = 400;
 const PLAYER_RESOURCE_BADGE_WIDTH = 170;
