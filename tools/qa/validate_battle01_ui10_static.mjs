@@ -42,6 +42,10 @@ check('1280 lane click clearance', lane1HitLeft - cardRight1280 >= 8,
 check('tutorial highlight differs from selected gold', source.includes('new Color(67, 214, 244, 255)'));
 check('card modal input guard', source.includes('private canHandleUnitCardTouch(type: SheepType)')
     && source.includes('(tutorialAllowsCardInput || !this.isBlockingModalVisible())'));
+check('tutorial rectangles are rebuilt from live target nodes', source.includes('this.tutorialTargetRects.length = 0;')
+    && source.includes('this.tutorialTargetRects.push(...targetRects);')
+    && source.includes('this.getLevelOneTutorialTargetRect(targetNode)')
+    && source.includes('this.refreshLevelOneTutorialPresentation();'));
 
 const laneBottom = constantNumber('LANE_BOTTOM_Y');
 const laneTop = constantNumber('LANE_TOP_Y');
@@ -57,6 +61,9 @@ check('all spawn midpoints exact', spawnRows.every((row) => row.mid === 0), spaw
 check('supply visual derived from real spawn helper', source.includes('this.getLaneSupplyPointY(lane)'));
 check('supply capture follows visual center', source.includes('unit.node.position.y - centerY'));
 check('level four effect follows lane length', source.includes('const laneEffectHalfHeight = (LANE_LENGTH - 21) / 2'));
+check('level four tutorial describes actual road bounds', source.includes('特殊路面覆盖双方实际出兵边界之间的整段道路'));
+check('level six tutorial describes actual spawn midpoint', source.includes('补给点始终位于双方真实出兵点的中点'));
+check('level one capture copy follows actual spawn midpoint', source.includes('双方真实出兵点中间的补给点'));
 
 for (const obsolete of [
     'PLAYER_MAX_ACTIVE_UNITS',

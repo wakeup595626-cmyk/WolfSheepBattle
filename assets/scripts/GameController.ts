@@ -1329,7 +1329,7 @@ const LEVEL_CONFIGS: readonly LevelConfig[] = [
         implemented: true,
         title: '补给争夺战',
         subtitle: '黄金补给线',
-        description: '黄金补给线会定期转移。占领黄金补给点可获得额外补给，守到活动结束还能获得奖励。',
+        description: '黄金补给线会定期转移，补给点始终位于双方真实出兵点的中点。占领后可获得额外补给，守到活动结束还能获得奖励。',
         playerStartEnergy: ENERGY_START,
         aiStartEnergy: ENERGY_START,
         aiInitialDecisionDelay: LEVEL_SIX_AI_MIN_DEPLOY_COOLDOWN,
@@ -9390,7 +9390,7 @@ export class GameController extends Component {
         case 'deploy-four-sheep': {
             const expected = LEVEL_ONE_TUTORIAL_DEPLOYMENTS[this.tutorialDeploymentIndex];
             const hint = expected
-                ? `请按固定顺序选择${this.getUnitDisplayName(expected.type, Team.Player)}并点击第${expected.lane + 1}线入口。`
+                ? `请按固定顺序选择${this.getUnitDisplayName(expected.type, Team.Player)}并点击第${expected.lane + 1}线本方入口。`
                 : '四种羊已分别真实派往四条道路，请点击“下一步”。';
             return {
                 stepLabel,
@@ -9403,8 +9403,8 @@ export class GameController extends Component {
                 stepLabel,
                 title: '占领补给点',
                 body: this.tutorialRecoveryMessage || (this.tutorialProgress === 'capture-supply-complete'
-                    ? '第1线中央补给点已真实归玩家所有，补给会持续增加。\n请点击“下一步”学习使用战术牌。'
-                    : '四只羊暂时保持冻结；进入本页后，第1线小羊会沿正常规则移动。\n必须等中央补给点真实变为玩家所有才能继续。'),
+                    ? '第1线真实出兵中点的补给点已归玩家所有，补给会持续增加。\n请点击“下一步”学习使用战术牌。'
+                    : '四只羊暂时保持冻结；进入本页后，第1线小羊会沿正常规则移动。\n必须等双方真实出兵点中间的补给点归玩家所有才能继续。'),
             };
         case 'use-sprint':
             return {
@@ -9854,10 +9854,10 @@ export class GameController extends Component {
         const body = this.createLabel(
             this.specialRoadTutorialPanel,
             'Body',
-            '① 第2路是泥泞道路，双方单位移动速度降低30%。\n'
-                + '② 第3路是花径，羊方单位受到的伤害降低12%。\n'
-                + '③ 普通道路没有额外效果。\n'
-                + '④ 观察道路状态，再选择羊群和出兵路线。\n'
+            '① 特殊路面覆盖双方实际出兵边界之间的整段道路。\n'
+                + '② 第2路是泥泞道路，双方单位移动速度降低30%。\n'
+                + '③ 第3路是花径，羊方单位受到的伤害降低12%。\n'
+                + '④ 普通道路没有额外效果；观察道路状态再选择路线。\n'
                 + '⑤ 本关解锁新战术牌“道路冻结”。',
             0,
             30,
