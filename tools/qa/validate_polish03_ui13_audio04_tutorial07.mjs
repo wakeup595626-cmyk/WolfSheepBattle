@@ -177,14 +177,14 @@ for (const scenario of audioScenarios) {
     const sample = await openPage({ audio: scenario.seed, waitMs: 2600 });
     const state = await inController(sample.page, `(c) => ({
         music: c.audioManager.getMusicVolume(), sfx: c.audioManager.getSfxVolume(),
-        bgm: c.audioManager.getSelectedBgmId(), rootCount: c.audioManager.node.scene
-            ? c.audioManager.node.scene.children.filter((node) => node.name === 'GlobalAudioManager').length : 1,
-        sourceCount: c.audioManager.node.components.filter((component) => component.constructor.name === 'AudioSource').length,
+        bgm: c.audioManager.getSelectedBgmId(), managerNodeName: c.audioManager.node.name,
+        bgmSourceValid: Boolean(c.audioManager.bgmSource?.isValid), sfxSlotCount: c.audioManager.sfxSlots.length,
         stored: JSON.parse(localStorage.getItem('${AUDIO_KEY}')),
     })`);
     const expected = scenario.expect;
     check(Math.abs(state.music - expected.music) < 0.0001 && Math.abs(state.sfx - expected.sfx) < 0.0001
         && state.stored.schemaVersion === 3
+        && state.managerNodeName === 'GlobalAudioManager' && state.bgmSourceValid && state.sfxSlotCount === 6
         && (expected.bgm === undefined || state.bgm === expected.bgm)
         && (expected.migrated === undefined || state.stored.legacyDefaultVolumeMigrationApplied === expected.migrated)
         && (expected.zeroMigrated === undefined || state.stored.legacyZeroMigrationApplied === expected.zeroMigrated),
@@ -308,6 +308,7 @@ check(tutorialState.before.music === 1 && tutorialState.before.sfx === 1 && !tut
     && tutorialState.after.next && tutorialState.after.page === 4
     && tutorialState.after.stored.userAdjustedMusicVolume === true,
     'tutorial/audio-page-real-switch-adjust-save-manual-next', tutorialState);
+await tutorial.page.waitForTimeout(1400);
 await tutorial.page.screenshot({ path: path.join(OUTPUT_DIR, '1280x720-tutorial-audio-settings.png'), fullPage: true });
 await tutorial.context.close();
 
