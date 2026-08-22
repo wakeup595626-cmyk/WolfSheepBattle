@@ -209,6 +209,7 @@ const LOADING_PROGRESS_WIDTH = 452;
 const LOADING_PROGRESS_SMOOTHING = 7.5;
 const LOADING_FADE_SECONDS = 0.32;
 const LOADING_TIP_INTERVAL_SECONDS = 2.5;
+const LOADING_TIP_PANEL_Y = -228;
 const LOADING_TIPS = [
     '小提示：选择兵种后，点击任意道路即可出兵。',
     '小提示：占领中央补给点可以获得补给。',
@@ -1677,7 +1678,6 @@ export class GameController extends Component {
     private aiBaseFillSprite?: Sprite;
     private artLoadingPanel?: Node;
     private artLoadingLabel?: Label;
-    private artLoadingFillSprite?: Sprite;
     private artLoadingFillFallback?: Node;
     private artLoadingTipLabel?: Label;
     private artLoadingTipOpacity?: UIOpacity;
@@ -2556,12 +2556,16 @@ export class GameController extends Component {
         barGraphics.roundRect(-284, -15, 568, 30, 15);
         barGraphics.fill();
 
-        const fallbackFill = this.createGraphicsNode('LoadingProgressFillFallback',
-            LOADING_PROGRESS_WIDTH, 22, -LOADING_PROGRESS_WIDTH / 2, -142, content);
+        // The formal fill texture contains a five-pixel, alpha-62 horizontal strip.
+        // Rendering it over the track makes the bar look split on high-density
+        // devices. Use one opaque procedural fill as the real fill layer while
+        // retaining the formal frame and the existing progress interpolation.
+        const fallbackFill = this.createGraphicsNode('LoadingProgressFill',
+            LOADING_PROGRESS_WIDTH, 26, -LOADING_PROGRESS_WIDTH / 2, -142, content);
         fallbackFill.getComponent(UITransform)!.setAnchorPoint(0, 0.5);
         const fallbackFillGraphics = fallbackFill.getComponent(Graphics)!;
-        fallbackFillGraphics.fillColor = new Color(105, 215, 180, 255);
-        fallbackFillGraphics.roundRect(0, -11, LOADING_PROGRESS_WIDTH, 22, 11);
+        fallbackFillGraphics.fillColor = new Color(106, 210, 212, 255);
+        fallbackFillGraphics.roundRect(0, -13, LOADING_PROGRESS_WIDTH, 26, 13);
         fallbackFillGraphics.fill();
         fallbackFill.setScale(0, 1, 1);
         this.artLoadingFillFallback = fallbackFill;
@@ -2571,24 +2575,12 @@ export class GameController extends Component {
             frame.sprite.spriteFrame = this.loadingProgressFrame;
             frame.node.active = true;
         }
-        if (this.loadingProgressFillFrame) {
-            const fill = this.createSpriteSlot('LoadingProgressFillArt', content,
-                LOADING_PROGRESS_WIDTH, 26, 0, -142);
-            fill.sprite.spriteFrame = this.loadingProgressFillFrame;
-            fill.sprite.type = Sprite.Type.FILLED;
-            fill.sprite.fillType = Sprite.FillType.HORIZONTAL;
-            fill.sprite.fillStart = 0;
-            fill.sprite.fillRange = 0;
-            fill.node.active = true;
-            this.artLoadingFillSprite = fill.sprite;
-        }
-
         if (this.loadingTipPanelFrame) {
-            const tipPanel = this.createSpriteSlot('LoadingTipPanelArt', content, 760, 76, 0, -222);
+            const tipPanel = this.createSpriteSlot('LoadingTipPanelArt', content, 760, 76, 0, LOADING_TIP_PANEL_Y);
             tipPanel.sprite.spriteFrame = this.loadingTipPanelFrame;
             tipPanel.node.active = true;
         } else {
-            const tipPanel = this.createGraphicsNode('LoadingTipPanelFallback', 760, 70, 0, -222, content);
+            const tipPanel = this.createGraphicsNode('LoadingTipPanelFallback', 760, 70, 0, LOADING_TIP_PANEL_Y, content);
             const tipGraphics = tipPanel.getComponent(Graphics)!;
             tipGraphics.fillColor = new Color(255, 250, 224, 222);
             tipGraphics.roundRect(-380, -35, 760, 70, 28);
@@ -2599,7 +2591,7 @@ export class GameController extends Component {
             tipGraphics.stroke();
         }
         this.artLoadingTipLabel = this.createLabel(content, 'LoadingTipText', LOADING_TIPS[0],
-            0, -222, 650, 52, 18, new Color(91, 79, 51, 255));
+            0, LOADING_TIP_PANEL_Y, 650, 52, 18, new Color(91, 79, 51, 255));
         this.applyLoadingUiFont(this.artLoadingTipLabel);
         this.artLoadingTipLabel.overflow = Label.Overflow.SHRINK;
         this.artLoadingTipOpacity = this.artLoadingTipLabel.node.addComponent(UIOpacity);
@@ -2808,7 +2800,6 @@ export class GameController extends Component {
 
     private applyArtLoadingVisualProgress(ratio: number): void {
         const clamped = Math.max(0, Math.min(1, ratio));
-        if (this.artLoadingFillSprite) this.artLoadingFillSprite.fillRange = clamped;
         this.artLoadingFillFallback?.setScale(clamped, 1, 1);
         if (this.artLoadingLabel && !this.artLoadingFailed) {
             this.artLoadingLabel.string = `正在准备四线战场… ${Math.round(clamped * 100)}%`;
