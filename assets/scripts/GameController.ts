@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish05-ui15-layout01';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish05-ui15-layout01';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish05-ui15-layout01';
+const GAME_VERSION = 'v1.3.0-dev-polish06-ui16';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish06-ui16';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish06-ui16';
 const BATTLEFIELD_CENTER_X = -90;
 // Rebalance the battle screen into three non-overlapping columns. Every
 // lane-owned visual and interaction axis consumes this same translation.
@@ -148,15 +148,25 @@ const LEVEL_BADGE_CONTENT_HEIGHT = 42;
 const LEVEL_BADGE_X = -DESIGN_WIDTH / 2 + HUD_SAFE_MARGIN + LEVEL_BADGE_WIDTH / 2;
 const LEVEL_BADGE_Y = TOP_HUD_Y;
 const PAUSE_PANEL_WIDTH = 760;
-const PAUSE_PANEL_HEIGHT = 650;
+const PAUSE_PANEL_HEIGHT = 700;
 const PAUSE_PANEL_ART_WIDTH = 740;
 const PAUSE_CONTENT_ROOT_WIDTH = 430;
-const PAUSE_CONTENT_ROOT_HEIGHT = 548;
-const PAUSE_ACTION_BUTTON_WIDTH = 184;
-const PAUSE_ACTION_BUTTON_HEIGHT = 76;
-const PAUSE_ACTION_COLUMN_X = 100;
+const PAUSE_CONTENT_ROOT_HEIGHT = 620;
+const PAUSE_ACTION_BUTTON_WIDTH = 196;
+const PAUSE_ACTION_BUTTON_HEIGHT = 96;
+const PAUSE_ACTION_COLUMN_X = 108;
+const PAUSE_TITLE_Y = 252;
+const PAUSE_HINT_Y = 204;
+const PAUSE_ACTION_FIRST_ROW_Y = 131;
+const PAUSE_ACTION_SECOND_ROW_Y = 21;
+const PAUSE_BGM_CENTER_Y = -123;
+const PAUSE_VOLUME_CENTER_Y = -253;
 const PAUSE_SETTINGS_ROW_WIDTH = 430;
-const PAUSE_BGM_ROW_HEIGHT = 200;
+const PAUSE_BGM_ROW_HEIGHT = 176;
+const PAUSE_BGM_CARD_WIDTH = 400;
+const PAUSE_BGM_CARD_HEIGHT = 60;
+const PAUSE_BGM_FIRST_CARD_Y = 14;
+const PAUSE_BGM_SECOND_CARD_Y = -60;
 const PAUSE_VOLUME_ROW_WIDTH = 211;
 const PAUSE_VOLUME_ROW_HEIGHT = 56;
 const TACTIC_HEADER_Y = PAUSE_BUTTON_Y - PAUSE_BUTTON_HEIGHT / 2
@@ -276,7 +286,6 @@ type TargetTypographyRole =
     | 'BgmSectionHint'
     | 'BgmCardTitle'
     | 'BgmCardBody'
-    | 'BgmCardSource'
     | 'BgmCardState'
     | 'VolumeTitle'
     | 'VolumePercent'
@@ -448,16 +457,6 @@ const TARGET_TYPOGRAPHY_STYLES: Readonly<Record<TargetTypographyRole, TargetTypo
         horizontalAlign: HorizontalTextAlignment.LEFT,
         verticalAlign: VerticalTextAlignment.CENTER,
     },
-    BgmCardSource: {
-        fontSize: 12,
-        lineHeight: 15,
-        isBold: false,
-        color: new Color(120, 96, 57, 230),
-        overflow: Label.Overflow.SHRINK,
-        enableWrapText: false,
-        horizontalAlign: HorizontalTextAlignment.LEFT,
-        verticalAlign: VerticalTextAlignment.CENTER,
-    },
     BgmCardState: {
         fontSize: 13,
         lineHeight: 16,
@@ -559,10 +558,10 @@ const UNIT_CARD_GAP = 10;
 const UNIT_CARD_PORTRAIT_RATIO = 0.4;
 const UNIT_CARD_TEXT_RATIO = 0.32;
 const UNIT_CARD_ART_SLICE_INSET = 16;
-const UNIT_CARD_PORTRAIT_CROP_X_RATIO = 0.035;
-const UNIT_CARD_PORTRAIT_CROP_Y_RATIO = 0.06;
-const UNIT_CARD_PORTRAIT_CROP_WIDTH_RATIO = 0.36;
-const UNIT_CARD_PORTRAIT_CROP_HEIGHT_RATIO = 0.88;
+const UNIT_CARD_PORTRAIT_CROP_X_RATIO = 0.005;
+const UNIT_CARD_PORTRAIT_CROP_Y_RATIO = 0.025;
+const UNIT_CARD_PORTRAIT_CROP_WIDTH_RATIO = 0.44;
+const UNIT_CARD_PORTRAIT_CROP_HEIGHT_RATIO = 0.94;
 const UNIT_CARD_LABEL_FONT_SIZE = 16;
 const UNIT_CARD_LABEL_LINE_HEIGHT = 21;
 const PLAYER_HUD_VISIBLE_HALF_HEIGHT = Math.max(
@@ -968,7 +967,6 @@ interface BgmStyleOptionView {
     readonly graphics: Graphics;
     readonly titleLabel: Label;
     readonly subtitleLabel: Label;
-    readonly auxiliaryLabel: Label;
     readonly statusLabel: Label;
     readonly checkNode: Node;
     readonly checkGraphics: Graphics;
@@ -982,14 +980,13 @@ interface UnitTypeButtonView extends ButtonView {
     readonly tierBadgeNode: Node;
     readonly tierBadgeGraphics: Graphics;
     readonly tierBadgeLabel: Label;
-    readonly statusBackgroundNode: Node;
-    readonly statusBackgroundGraphics: Graphics;
+    readonly dividerNode: Node;
+    readonly dividerGraphics: Graphics;
     readonly stateLabel: Label;
-    readonly portraitBackdropNode: Node;
-    readonly portraitBackdropGraphics: Graphics;
     artSprite?: Sprite;
     artSelectionGraphics?: Graphics;
     portraitSprite?: Sprite;
+    portraitSourceFrame?: SpriteFrame;
     portraitFrame?: SpriteFrame;
     portraitUniformScale: number;
     pressed: boolean;
@@ -1029,6 +1026,7 @@ interface VolumeControlView {
 interface EnergyBarView {
     readonly node: Node;
     readonly trackNode: Node;
+    readonly fillClipNode: Node;
     readonly fillNode: Node;
     readonly label: Label;
     readonly shadowLabel: Label;
@@ -2559,10 +2557,11 @@ export class GameController extends Component {
             const button = this.typeButtons.get(type);
             if (button) {
                 const cardSize = button.node.getComponent(UITransform)!.contentSize;
+                button.portraitSourceFrame = this.artResourceManager.getFrame(unitCardKeys[type]);
                 button.artSprite = this.applyTacticRegionSprite(
                     button.node,
                     'UnitCardBackgroundSprite',
-                    unitCardKeys[type],
+                    ArtPilotResourceKey.UnitCardShell,
                     cardSize.width,
                     cardSize.height,
                     true,
@@ -3279,7 +3278,7 @@ export class GameController extends Component {
     ): void {
         if (!formalReady || !frame || !icon) return;
         bar.trackNode.setSiblingIndex(0);
-        bar.fillNode.setSiblingIndex(1);
+        bar.fillClipNode.setSiblingIndex(1);
         frame.node.setSiblingIndex(2);
         icon.node.setSiblingIndex(3);
         bar.shadowLabel.node.setSiblingIndex(bar.node.children.length - 1);
@@ -5220,7 +5219,9 @@ export class GameController extends Component {
             bar,
         );
         const trackGraphics = trackNode.getComponent(Graphics)!;
-        trackGraphics.fillColor = new Color(36, 47, 46, 255);
+        // Keep both factions on one neutral warm slot. The former near-black
+        // backing made the AI meter look like a second heavy frame at 40%.
+        trackGraphics.fillColor = new Color(66, 56, 46, 255);
         trackGraphics.roundRect(
             -ENERGY_BAR_TRACK_WIDTH / 2,
             -ENERGY_BAR_TRACK_HEIGHT / 2,
@@ -5230,7 +5231,7 @@ export class GameController extends Component {
         );
         trackGraphics.fill();
         trackGraphics.lineWidth = 1.5;
-        trackGraphics.strokeColor = new Color(73, 65, 52, 220);
+        trackGraphics.strokeColor = new Color(132, 100, 62, 220);
         trackGraphics.roundRect(
             -ENERGY_BAR_TRACK_WIDTH / 2 + 0.75,
             -ENERGY_BAR_TRACK_HEIGHT / 2 + 0.75,
@@ -5240,12 +5241,26 @@ export class GameController extends Component {
         );
         trackGraphics.stroke();
 
+        const fillClipNode = new Node('FillClip');
+        fillClipNode.setParent(bar);
+        fillClipNode.setPosition(
+            ENERGY_BAR_FILL_LEFT + ENERGY_BAR_FILL_WIDTH / 2,
+            ENERGY_BAR_FILL_CENTER_Y,
+            0,
+        );
+        fillClipNode.addComponent(UITransform).setContentSize(
+            ENERGY_BAR_FILL_WIDTH,
+            ENERGY_BAR_FILL_HEIGHT,
+        );
+        const fillMask = fillClipNode.addComponent(Mask);
+        fillMask.type = Mask.Type.GRAPHICS_RECT;
+
         const fillNode = new Node('Fill');
-        fillNode.setParent(bar);
+        fillNode.setParent(fillClipNode);
         const fillTransform = fillNode.addComponent(UITransform);
         fillTransform.setContentSize(ENERGY_BAR_FILL_WIDTH, ENERGY_BAR_FILL_HEIGHT);
         fillTransform.setAnchorPoint(0, 0.5);
-        fillNode.setPosition(ENERGY_BAR_FILL_LEFT, ENERGY_BAR_FILL_CENTER_Y, 0);
+        fillNode.setPosition(-ENERGY_BAR_FILL_WIDTH / 2, 0, 0);
         const fillGraphics = fillNode.addComponent(Graphics);
         fillGraphics.fillColor = fillColor;
         fillGraphics.roundRect(0, -ENERGY_BAR_FILL_HEIGHT / 2, ENERGY_BAR_FILL_WIDTH, ENERGY_BAR_FILL_HEIGHT, 9);
@@ -5262,6 +5277,7 @@ export class GameController extends Component {
         return {
             node: bar,
             trackNode,
+            fillClipNode,
             fillNode,
             label,
             shadowLabel,
@@ -5733,7 +5749,7 @@ export class GameController extends Component {
             button.node.getComponent(UITransform)?.setContentSize(layout.width, UNIT_CARD_HEIGHT);
             button.node.setPosition(0, firstCardY - index * (UNIT_CARD_HEIGHT + UNIT_CARD_GAP), 0);
             button.artSprite?.node.getComponent(UITransform)?.setContentSize(layout.width, UNIT_CARD_HEIGHT);
-            button.artSelectionGraphics?.node.getComponent(UITransform)?.setContentSize(layout.width, UNIT_CARD_HEIGHT);
+            button.artSelectionGraphics?.node.getComponent(UITransform)?.setContentSize(layout.width + 6, UNIT_CARD_HEIGHT + 6);
             this.applyUnitCardContentLayout(button, layout.width, UNIT_ORDER[index]);
         }
         this.lastUnitButtonState = '';
@@ -5741,29 +5757,31 @@ export class GameController extends Component {
     }
 
     private applyUnitCardContentLayout(button: UnitTypeButtonView, cardWidth: number, type: SheepType): void {
-        const outerMargin = cardWidth >= 170 ? 10 : 6;
+        const outerMargin = cardWidth >= 170 ? 8 : 6;
         const innerWidth = cardWidth - outerMargin * 2;
         const portraitWidth = Math.round(innerWidth * UNIT_CARD_PORTRAIT_RATIO);
         const textWidth = Math.round(innerWidth * UNIT_CARD_TEXT_RATIO);
-        const tierSize = cardWidth >= 170 ? 28 : 24;
+        const tierSize = cardWidth >= 170 ? 24 : 22;
         const statusWidth = Math.max(32, innerWidth - portraitWidth - textWidth);
-        const statusHeight = UNIT_CARD_HEIGHT - 18;
+        const contentHeight = UNIT_CARD_HEIGHT - outerMargin * 2;
         const portraitCenterX = -cardWidth / 2 + outerMargin + portraitWidth / 2;
         const textCenterX = portraitCenterX + portraitWidth / 2 + textWidth / 2;
         const tierCenterX = -cardWidth / 2 + outerMargin + tierSize / 2;
         const statusCenterX = cardWidth / 2 - outerMargin - statusWidth / 2;
+        const portraitDividerX = -cardWidth / 2 + outerMargin + portraitWidth;
+        const statusDividerX = cardWidth / 2 - outerMargin - statusWidth;
 
         button.tierBadgeNode.setPosition(tierCenterX, UNIT_CARD_HEIGHT / 2 - outerMargin - tierSize / 2, 0);
         button.tierBadgeNode.getComponent(UITransform)?.setContentSize(tierSize, tierSize);
         button.tierBadgeNode.getChildByName('TierBadgeArt')
             ?.getComponent(UITransform)?.setContentSize(tierSize - 5, tierSize - 5);
         this.resizeAndPositionLabel(button.tierBadgeLabel, 0, 0, tierSize - 2, tierSize - 2);
-        button.tierBadgeLabel.fontSize = cardWidth >= 170 ? 14 : 12;
+        button.tierBadgeLabel.fontSize = cardWidth >= 170 ? 13 : 12;
         button.tierBadgeLabel.lineHeight = button.tierBadgeLabel.fontSize + 2;
         this.drawTierBadge(button.tierBadgeGraphics, button.tierBadgeLabel, type, tierSize - 2);
 
         this.layoutUnitCardPortrait(button, type, portraitCenterX, portraitWidth);
-        this.resizeAndPositionLabel(button.label, textCenterX, 0, textWidth, UNIT_CARD_HEIGHT - 14);
+        this.resizeAndPositionLabel(button.label, textCenterX, 0, Math.max(36, textWidth - 8), contentHeight);
         button.label.fontSize = UNIT_CARD_LABEL_FONT_SIZE;
         button.label.lineHeight = UNIT_CARD_LABEL_LINE_HEIGHT;
         button.label.overflow = Label.Overflow.CLAMP;
@@ -5771,18 +5789,25 @@ export class GameController extends Component {
         button.label.horizontalAlign = HorizontalTextAlignment.CENTER;
         button.label.verticalAlign = VerticalTextAlignment.CENTER;
 
-        button.statusBackgroundNode.setPosition(statusCenterX, 0, 0);
-        button.statusBackgroundNode.getComponent(UITransform)?.setContentSize(Math.max(22, statusWidth - 12), statusHeight);
-        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, Math.max(24, statusWidth - 8), statusHeight - 6);
-        button.stateLabel.fontSize = 11;
-        button.stateLabel.lineHeight = 13;
+        button.dividerNode.getComponent(UITransform)?.setContentSize(cardWidth, UNIT_CARD_HEIGHT);
+        button.dividerGraphics.clear();
+        button.dividerGraphics.lineWidth = 1.25;
+        button.dividerGraphics.strokeColor = new Color(169, 127, 69, 145);
+        for (const dividerX of [portraitDividerX, statusDividerX]) {
+            button.dividerGraphics.moveTo(dividerX, -contentHeight / 2 + 2);
+            button.dividerGraphics.lineTo(dividerX, contentHeight / 2 - 2);
+        }
+        button.dividerGraphics.stroke();
+
+        this.resizeAndPositionLabel(button.stateLabel, statusCenterX, 0, Math.max(24, statusWidth - 10), contentHeight);
+        button.stateLabel.fontSize = 12;
+        button.stateLabel.lineHeight = 15;
         button.stateLabel.overflow = Label.Overflow.CLAMP;
     }
 
     private applyUnitCardPortrait(button: UnitTypeButtonView, type: SheepType): void {
-        const sourceFrame = button.artSprite?.spriteFrame;
+        const sourceFrame = button.portraitSourceFrame;
         if (!sourceFrame?.texture) {
-            button.portraitBackdropNode.active = false;
             if (button.portraitSprite) button.portraitSprite.node.active = false;
             return;
         }
@@ -5815,7 +5840,6 @@ export class GameController extends Component {
         button.portraitSprite.spriteFrame = button.portraitFrame;
         button.portraitSprite.sizeMode = Sprite.SizeMode.CUSTOM;
         button.portraitSprite.type = Sprite.Type.SIMPLE;
-        button.portraitBackdropNode.active = true;
         button.portraitSprite.node.active = true;
         const cardWidth = button.node.getComponent(UITransform)?.contentSize.width ?? UNIT_CARD_MIN_WIDTH;
         this.applyUnitCardContentLayout(button, cardWidth, type);
@@ -5827,31 +5851,10 @@ export class GameController extends Component {
         centerX: number,
         regionWidth: number,
     ): void {
-        const backdropWidth = Math.max(30, regionWidth - 2);
-        const backdropHeight = UNIT_CARD_HEIGHT - 8;
-        button.portraitBackdropNode.setPosition(centerX, 0, 0);
-        button.portraitBackdropNode.getComponent(UITransform)?.setContentSize(backdropWidth, backdropHeight);
-        const backdropColors: Record<SheepType, Color> = {
-            [SheepType.Small]: new Color(184, 226, 218, 255),
-            [SheepType.Medium]: new Color(169, 218, 211, 255),
-            [SheepType.Large]: new Color(241, 216, 166, 255),
-            [SheepType.Giant]: new Color(216, 202, 235, 255),
-        };
-        button.portraitBackdropGraphics.clear();
-        button.portraitBackdropGraphics.fillColor = backdropColors[type];
-        button.portraitBackdropGraphics.roundRect(
-            -backdropWidth / 2,
-            -backdropHeight / 2,
-            backdropWidth,
-            backdropHeight,
-            8,
-        );
-        button.portraitBackdropGraphics.fill();
-
         const portraitSprite = button.portraitSprite;
         const sourceSize = button.portraitFrame?.originalSize;
         if (!portraitSprite || !sourceSize || sourceSize.width <= 0 || sourceSize.height <= 0) return;
-        const availableWidth = Math.max(1, regionWidth - 12);
+        const availableWidth = Math.max(1, regionWidth - 8);
         const availableHeight = UNIT_CARD_HEIGHT - 12;
         const uniformScale = Math.min(availableWidth / sourceSize.width, availableHeight / sourceSize.height);
         button.portraitUniformScale = uniformScale;
@@ -5894,7 +5897,7 @@ export class GameController extends Component {
             let artSelectionGraphics: Graphics | undefined;
             if (ART_PILOT_ENABLED) {
                 const selectionNode = this.createGraphicsNode('UnitCardSelection',
-                    layout.width, UNIT_CARD_HEIGHT, 0, 0, button.node);
+                    layout.width + 6, UNIT_CARD_HEIGHT + 6, 0, 0, button.node);
                 selectionNode.setSiblingIndex(0);
                 artSelectionGraphics = selectionNode.getComponent(Graphics)!;
                 selectionNode.active = false;
@@ -5916,13 +5919,9 @@ export class GameController extends Component {
             const tierBadgeNode = this.createGraphicsNode('TierBadge', 32, 32, 0, 0, button.node);
             tierBadgeNode.addComponent(UIOpacity);
             const tierBadgeLabel = this.createLabel(tierBadgeNode, 'TierLabel', '', 0, 0, 30, 30, 15, Color.WHITE);
-            const statusBackgroundNode = this.createGraphicsNode('StatusBackground',
-                48, UNIT_CARD_HEIGHT - 10, 0, 0, button.node);
-            const statusBackgroundGraphics = statusBackgroundNode.getComponent(Graphics)!;
-            const portraitBackdropNode = this.createGraphicsNode('UnitCardPortraitBackdrop',
-                40, UNIT_CARD_HEIGHT - 8, 0, 0, button.node);
-            const portraitBackdropGraphics = portraitBackdropNode.getComponent(Graphics)!;
-            portraitBackdropNode.active = false;
+            const dividerNode = this.createGraphicsNode('UnitCardDividers',
+                layout.width, UNIT_CARD_HEIGHT, 0, 0, button.node);
+            const dividerGraphics = dividerNode.getComponent(Graphics)!;
             const stateLabel = this.createLabel(button.node, 'UnitCardState', '',
                 0, 0, 46, UNIT_CARD_HEIGHT - 12, 11, UI_TEXT_SECONDARY);
             stateLabel.lineHeight = 13;
@@ -5935,11 +5934,9 @@ export class GameController extends Component {
                 tierBadgeNode,
                 tierBadgeGraphics: tierBadgeNode.getComponent(Graphics)!,
                 tierBadgeLabel,
-                statusBackgroundNode,
-                statusBackgroundGraphics,
+                dividerNode,
+                dividerGraphics,
                 stateLabel,
-                portraitBackdropNode,
-                portraitBackdropGraphics,
                 artSelectionGraphics,
                 portraitUniformScale: 1,
                 pressed: false,
@@ -11059,24 +11056,24 @@ export class GameController extends Component {
         this.pauseContentRoot.addComponent(UITransform).setContentSize(PAUSE_CONTENT_ROOT_WIDTH, PAUSE_CONTENT_ROOT_HEIGHT);
         this.pauseContentRoot.setPosition(0, 0, 0);
 
-        this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, 291, 410, 46, 34, UI_TEXT_PRIMARY);
-        this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, 251, 410, 24, 16, UI_TEXT_SECONDARY);
-        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, 195,
+        this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, PAUSE_TITLE_Y, 410, 46, 34, UI_TEXT_PRIMARY);
+        this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, PAUSE_HINT_Y, 410, 24, 16, UI_TEXT_SECONDARY);
+        this.createButton(this.pauseContentRoot, 'ResumeButton', '\u7EE7\u7EED\u6218\u6597', -PAUSE_ACTION_COLUMN_X, PAUSE_ACTION_FIRST_ROW_Y,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.resumeGame());
-        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, 195,
+        this.createButton(this.pauseContentRoot, 'PauseRestartButton', '\u91CD\u65B0\u5F00\u59CB', PAUSE_ACTION_COLUMN_X, PAUSE_ACTION_FIRST_ROW_Y,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.restartGame());
-        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, 103,
+        this.createButton(this.pauseContentRoot, 'HelpButton', '\u73A9\u6CD5\u8BF4\u660E', -PAUSE_ACTION_COLUMN_X, PAUSE_ACTION_SECOND_ROW_Y,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.openHelpPanel());
-        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, 103,
+        this.createButton(this.pauseContentRoot, 'ReturnTitleButton', '\u8FD4\u56DE\u6807\u9898', PAUSE_ACTION_COLUMN_X, PAUSE_ACTION_SECOND_ROW_Y,
             PAUSE_ACTION_BUTTON_WIDTH, PAUSE_ACTION_BUTTON_HEIGHT, 20, () => this.returnToTitle());
-        this.createBgmTrackSelector(this.pauseContentRoot, -46);
+        this.createBgmTrackSelector(this.pauseContentRoot, PAUSE_BGM_CENTER_Y);
         this.musicVolumeControl = this.createVolumeControl(
             this.pauseContentRoot,
             'MusicVolume',
             'music',
             '\u97F3\u4E50',
             -109,
-            -186,
+            PAUSE_VOLUME_CENTER_Y,
             new Color(111, 148, 213, 255),
         );
         this.sfxVolumeControl = this.createVolumeControl(
@@ -11085,7 +11082,7 @@ export class GameController extends Component {
             'sfx',
             '\u97F3\u6548',
             109,
-            -186,
+            PAUSE_VOLUME_CENTER_Y,
             new Color(77, 174, 144, 255),
         );
         this.refreshAudioVolumeControls();
@@ -11279,8 +11276,8 @@ export class GameController extends Component {
                 option.track.id === this.audioManager.getSelectedBgmId()
                     ? ArtPilotResourceKey.LevelCardSelected
                     : ArtPilotResourceKey.LevelCardUnlocked,
-                400,
-                68,
+                PAUSE_BGM_CARD_WIDTH,
+                PAUSE_BGM_CARD_HEIGHT,
                 true,
                 18,
             );
@@ -11396,21 +11393,26 @@ export class GameController extends Component {
         graphics.roundRect(-PAUSE_SETTINGS_ROW_WIDTH / 2 + 0.75, -PAUSE_BGM_ROW_HEIGHT / 2 + 0.75,
             PAUSE_SETTINGS_ROW_WIDTH - 1.5, PAUSE_BGM_ROW_HEIGHT - 1.5, 15);
         graphics.stroke();
-        const title = this.createLabel(selector, 'BgmTrackTitle', '背景音乐风格', -111, 82, 176, 30, 22,
+        const title = this.createLabel(selector, 'BgmTrackTitle', '背景音乐风格', -111, 70, 176, 30, 22,
             new Color(74, 56, 39, 255));
         this.applyTargetTypography(title, 'BgmSectionTitle');
-        const hint = this.createLabel(selector, 'BgmTrackHint', '点击卡片立即试听并保存', 95, 82, 208, 24, 14,
+        const hint = this.createLabel(selector, 'BgmTrackHint', '点击卡片立即试听并保存', 95, 70, 208, 24, 14,
             new Color(116, 100, 82, 255));
         this.applyTargetTypography(hint, 'BgmSectionHint');
 
         const cardsContainer = new Node('BgmStyleCards');
         cardsContainer.setParent(selector);
         cardsContainer.setPosition(0, 0, 0);
-        cardsContainer.addComponent(UITransform).setContentSize(400, 146);
+        cardsContainer.addComponent(UITransform).setContentSize(PAUSE_BGM_CARD_WIDTH, 134);
         const tracks = this.audioManager.getAvailableBgmTracks();
         for (let index = 0; index < tracks.length; index += 1) {
             const track = tracks[index];
-            const option = this.createBgmStyleOption(cardsContainer, track, 0, index === 0 ? 24 : -54);
+            const option = this.createBgmStyleOption(
+                cardsContainer,
+                track,
+                0,
+                index === 0 ? PAUSE_BGM_FIRST_CARD_Y : PAUSE_BGM_SECOND_CARD_Y,
+            );
             this.bgmStyleOptions.set(track.id, option);
         }
         this.refreshBgmTrackSelector();
@@ -11422,18 +11424,16 @@ export class GameController extends Component {
         x: number,
         y: number,
     ): BgmStyleOptionView {
-        const root = this.createGraphicsNode(`BgmStyle_${track.id}`, 400, 68, x, y, parent);
+        const root = this.createGraphicsNode(`BgmStyle_${track.id}`,
+            PAUSE_BGM_CARD_WIDTH, PAUSE_BGM_CARD_HEIGHT, x, y, parent);
         const optionGraphics = root.getComponent(Graphics)!;
-        const titleLabel = this.createLabel(root, 'Title', track.displayName, -10, 18, 236, 22, 18,
+        const titleLabel = this.createLabel(root, 'Title', track.displayName, -10, 13, 236, 22, 18,
             new Color(74, 56, 39, 255));
         this.applyTargetTypography(titleLabel, 'BgmCardTitle');
-        const subtitleLabel = this.createLabel(root, 'Subtitle', track.subtitle, -10, 0, 236, 18, 14,
+        const subtitleLabel = this.createLabel(root, 'Subtitle', track.subtitle, -10, -13, 236, 18, 14,
             new Color(100, 87, 61, 255));
         this.applyTargetTypography(subtitleLabel, 'BgmCardBody');
-        const auxiliaryLabel = this.createLabel(root, 'Auxiliary', track.auxiliaryName ?? '', -10, -18, 236, 16, 12,
-            new Color(120, 96, 57, 230));
-        this.applyTargetTypography(auxiliaryLabel, 'BgmCardSource');
-        const statusLabel = this.createLabel(root, 'Status', '', 156, -12, 66, 20, 13,
+        const statusLabel = this.createLabel(root, 'Status', '', 156, 0, 66, 24, 13,
             new Color(126, 84, 25, 255));
         this.applyTargetTypography(statusLabel, 'BgmCardState');
         const checkNode = this.createGraphicsNode('SelectedCheck', 22, 22, 178, 17, root);
@@ -11442,7 +11442,7 @@ export class GameController extends Component {
         this.applyTargetTypography(checkLabel, 'BgmCardState', Color.WHITE);
         const touchArea = new Node('TouchArea');
         touchArea.setParent(root);
-        touchArea.addComponent(UITransform).setContentSize(400, 68);
+        touchArea.addComponent(UITransform).setContentSize(PAUSE_BGM_CARD_WIDTH, PAUSE_BGM_CARD_HEIGHT);
         touchArea.on(NodeEventType.TOUCH_START, () => root.setScale(0.985, 0.985, 1), this);
         touchArea.on(NodeEventType.TOUCH_CANCEL, () => root.setScale(1, 1, 1), this);
         touchArea.on(NodeEventType.TOUCH_END, () => {
@@ -11456,7 +11456,6 @@ export class GameController extends Component {
             graphics: optionGraphics,
             titleLabel,
             subtitleLabel,
-            auxiliaryLabel,
             statusLabel,
             checkNode,
             checkGraphics,
@@ -11504,20 +11503,32 @@ export class GameController extends Component {
                 graphics.fillColor = selected
                     ? new Color(255, 244, 192, 255)
                     : new Color(240, 249, 232, 255);
-                graphics.roundRect(-200, -34, 400, 68, 14);
+                graphics.roundRect(
+                    -PAUSE_BGM_CARD_WIDTH / 2,
+                    -PAUSE_BGM_CARD_HEIGHT / 2,
+                    PAUSE_BGM_CARD_WIDTH,
+                    PAUSE_BGM_CARD_HEIGHT,
+                    14,
+                );
                 graphics.fill();
                 graphics.lineWidth = selected ? 3 : 2;
                 graphics.strokeColor = selected
                     ? new Color(229, 174, 43, 255) : new Color(89, 177, 176, 220);
-                graphics.roundRect(-199, -33, 398, 66, 13);
+                graphics.roundRect(
+                    -PAUSE_BGM_CARD_WIDTH / 2 + 1,
+                    -PAUSE_BGM_CARD_HEIGHT / 2 + 1,
+                    PAUSE_BGM_CARD_WIDTH - 2,
+                    PAUSE_BGM_CARD_HEIGHT - 2,
+                    13,
+                );
                 graphics.stroke();
                 graphics.lineWidth = 1;
                 graphics.strokeColor = selected
                     ? new Color(188, 137, 26, 180) : new Color(85, 165, 145, 170);
-                graphics.moveTo(-148, -25);
-                graphics.lineTo(-148, 25);
-                graphics.moveTo(120, -25);
-                graphics.lineTo(120, 25);
+                graphics.moveTo(-148, -22);
+                graphics.lineTo(-148, 22);
+                graphics.moveTo(120, -22);
+                graphics.lineTo(120, 22);
                 graphics.stroke();
             }
             option.statusLabel.string = selected ? '当前使用' : '点击试听';
@@ -14919,9 +14930,12 @@ export class GameController extends Component {
             const usesPilotCard = !!button.artSprite?.node.active && !!button.artSprite.spriteFrame;
             if (usesPilotCard && button.artSprite) {
                 button.graphics.enabled = false;
-                const cardTint = isAvailable
-                    ? (state === 'pressed' ? new Color(225, 235, 226, 255) : Color.WHITE)
-                    : state === 'locked' ? new Color(142, 142, 138, 255) : new Color(178, 180, 174, 255);
+                const shellFrame = this.artResourceManager.getFrame(ArtPilotResourceKey.UnitCardShell);
+                if (shellFrame) button.artSprite.spriteFrame = shellFrame;
+                const cardTint = state === 'pressed'
+                    ? new Color(234, 224, 198, 255)
+                    : state === 'locked' ? new Color(158, 153, 143, 255)
+                        : state === 'insufficient' ? new Color(232, 215, 199, 255) : Color.WHITE;
                 button.artSprite.color = cardTint;
                 if (button.portraitSprite?.node.active) button.portraitSprite.color = cardTint;
                 if (button.artSelectionGraphics) {
@@ -14932,23 +14946,14 @@ export class GameController extends Component {
                         const cardSize = button.node.getComponent(UITransform)?.contentSize;
                         const cardWidth = cardSize?.width ?? UNIT_CARD_MIN_WIDTH;
                         const cardHeight = cardSize?.height ?? UNIT_CARD_HEIGHT;
-                        button.artSelectionGraphics.fillColor = new Color(255, 223, 115, 92);
-                        button.artSelectionGraphics.roundRect(
-                            -cardWidth / 2 + 1,
-                            -cardHeight / 2 + 1,
-                            cardWidth - 2,
-                            cardHeight - 2,
-                            11,
-                        );
-                        button.artSelectionGraphics.fill();
-                        button.artSelectionGraphics.lineWidth = 4;
+                        button.artSelectionGraphics.lineWidth = 3;
                         button.artSelectionGraphics.strokeColor = new Color(245, 190, 47, 255);
                         button.artSelectionGraphics.roundRect(
-                            -cardWidth / 2 + 1.5,
-                            -cardHeight / 2 + 1.5,
-                            cardWidth - 3,
-                            cardHeight - 3,
-                            10,
+                            -cardWidth / 2 - 2,
+                            -cardHeight / 2 - 2,
+                            cardWidth + 4,
+                            cardHeight + 4,
+                            16,
                         );
                         button.artSelectionGraphics.stroke();
                     }
@@ -14973,42 +14978,22 @@ export class GameController extends Component {
                 : statusState === 'insufficient' ? '\u7F3A\u80FD'
                     : statusState === 'selected-insufficient' ? '\u5DF2\u9009\n\u7F3A\u80FD'
                         : statusState === 'selected' ? '\u5DF2\u9009' : '\u53EF\u7528';
-            this.drawUnitCardStatus(button, statusState);
+            this.applyUnitCardStatusStyle(button, statusState);
             button.tierBadgeNode.getComponent(UIOpacity)!.opacity = isUnlocked ? 255 : 185;
             this.orderUnitCardChildren(button);
         }
     }
 
-    private drawUnitCardStatus(button: UnitTypeButtonView, state: UnitCardVisualState): void {
-        const graphics = button.statusBackgroundGraphics;
-        const statusSize = button.statusBackgroundNode.getComponent(UITransform)?.contentSize;
-        const statusWidth = statusSize?.width ?? 34;
-        const statusHeight = statusSize?.height ?? UNIT_CARD_HEIGHT - 16;
-        const palette = state === 'insufficient'
-                ? { fill: new Color(255, 222, 199, 112), border: new Color(205, 111, 78, 205), text: new Color(174, 67, 43, 255) }
-                : state === 'selected-insufficient'
-                    ? { fill: new Color(255, 226, 154, 126), border: new Color(190, 126, 21, 220), text: new Color(139, 66, 25, 255) }
-                    : state === 'selected'
-                        ? { fill: new Color(255, 238, 166, 118), border: new Color(190, 126, 21, 220), text: new Color(103, 69, 22, 255) }
+    private applyUnitCardStatusStyle(button: UnitTypeButtonView, state: UnitCardVisualState): void {
+        button.stateLabel.color = state === 'insufficient'
+            ? new Color(174, 67, 43, 255)
+            : state === 'selected-insufficient'
+                ? new Color(139, 66, 25, 255)
+                : state === 'selected'
+                    ? new Color(103, 88, 22, 255)
                     : state === 'locked'
-                    ? { fill: new Color(113, 105, 98, 138), border: new Color(82, 76, 71, 205), text: new Color(239, 232, 219, 255) }
-                    : { fill: new Color(188, 231, 199, 98), border: new Color(76, 145, 91, 205), text: new Color(38, 91, 52, 255) };
-        graphics.clear();
-        graphics.fillColor = palette.fill;
-        graphics.roundRect(
-            -statusWidth / 2,
-            -statusHeight / 2,
-            statusWidth,
-            statusHeight,
-            9,
-        );
-        graphics.fill();
-        graphics.lineWidth = 1.5;
-        graphics.strokeColor = palette.border;
-        graphics.moveTo(-statusWidth / 2 + 1, -statusHeight / 2 + 7);
-        graphics.lineTo(-statusWidth / 2 + 1, statusHeight / 2 - 7);
-        graphics.stroke();
-        button.stateLabel.color = palette.text;
+                        ? new Color(104, 96, 86, 255)
+                        : new Color(38, 110, 60, 255);
     }
 
     private orderUnitCardChildren(button: UnitTypeButtonView): void {
@@ -15017,19 +15002,16 @@ export class GameController extends Component {
             button.artSprite.node.setSiblingIndex(nextIndex);
             nextIndex += 1;
         }
-        if (button.portraitBackdropNode.isValid) {
-            button.portraitBackdropNode.setSiblingIndex(nextIndex);
-            nextIndex += 1;
-        }
         if (button.portraitSprite?.node.isValid) {
             button.portraitSprite.node.setSiblingIndex(nextIndex);
             nextIndex += 1;
         }
+        button.dividerNode.setSiblingIndex(nextIndex);
+        nextIndex += 1;
         if (button.artSelectionGraphics?.node.isValid) {
             button.artSelectionGraphics.node.setSiblingIndex(nextIndex);
             nextIndex += 1;
         }
-        button.statusBackgroundNode.setSiblingIndex(nextIndex);
         button.tierBadgeNode.setSiblingIndex(button.node.children.length - 1);
         button.label.node.setSiblingIndex(button.node.children.length - 1);
         button.stateLabel.node.setSiblingIndex(button.node.children.length - 1);
