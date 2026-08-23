@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish08-ui18-help01';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish08-ui18-help01';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish08-ui18-help01';
+const GAME_VERSION = 'v1.3.0-dev-polish09-ui19-perf01-loading01';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish09-ui19-perf01-loading01';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish09-ui19-perf01-loading01';
 const BATTLEFIELD_CENTER_X = -90;
 // Rebalance the battle screen into three non-overlapping columns. Every
 // lane-owned visual and interaction axis consumes this same translation.
@@ -539,6 +539,7 @@ const UNIT_ENEMY_CONTACT_GAP = 3;
 const LANE_CONTACT_EPSILON = 0.01;
 const LANE_PROGRESS_POSITION_EPSILON = 0.05;
 const LANE_PROGRESS_VALUE_EPSILON = 0.001;
+const UNIT_HEALTH_RENDER_RATIO_EPSILON = 0.0001;
 const LANE_STALL_RECOVERY_SECONDS = 2;
 const MAX_LOGIC_DELTA_TIME = 0.1;
 // Root positions stay inside these bounds. The margin also reserves room for
@@ -850,6 +851,7 @@ interface BattleUnit {
     freezeVisualRefreshRemaining: number;
     health: number;
     displayHealth: number;
+    lastRenderedHealthRatio: number;
     attackCooldown: number;
     walkPhase: number;
     isMoving: boolean;
@@ -2658,6 +2660,15 @@ export class GameController extends Component {
         barGraphics.roundRect(-284, -15, 568, 30, 15);
         barGraphics.fill();
 
+        // The v02 frame's center slot is opaque. Keep it below the real fill;
+        // the fill is constrained to the 568 x 26 inner slot, so the wooden
+        // frame, flowers, wool and paw-print decorations remain untouched.
+        if (this.loadingProgressFrame) {
+            const frame = this.createSpriteSlot('LoadingProgressFrameArt', content, 620, 116, 0, -142);
+            frame.sprite.spriteFrame = this.loadingProgressFrame;
+            frame.node.active = true;
+        }
+
         // The formal fill texture contains a five-pixel, alpha-62 horizontal strip.
         // Rendering it over the track makes the bar look split on high-density
         // devices. Use one opaque procedural fill as the real fill layer while
@@ -2671,12 +2682,6 @@ export class GameController extends Component {
         fallbackFillGraphics.fill();
         fallbackFill.setScale(0, 1, 1);
         this.artLoadingFillFallback = fallbackFill;
-
-        if (this.loadingProgressFrame) {
-            const frame = this.createSpriteSlot('LoadingProgressFrameArt', content, 620, 116, 0, -142);
-            frame.sprite.spriteFrame = this.loadingProgressFrame;
-            frame.node.active = true;
-        }
         if (this.loadingTipPanelFrame) {
             const tipPanel = this.createSpriteSlot('LoadingTipPanelArt', content, 760, 76, 0, LOADING_TIP_PANEL_Y);
             tipPanel.sprite.spriteFrame = this.loadingTipPanelFrame;
@@ -10926,27 +10931,17 @@ export class GameController extends Component {
         this.pausePanel.setParent(this.modalLayer);
         this.pausePanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
         this.drawModalBackdropOnly(this.pausePanel);
-        const pauseShadow = this.createGraphicsNode('PausePanelShadow',
-            PAUSE_PANEL_WIDTH + 18, PAUSE_PANEL_HEIGHT + 18, 0, -7, this.pausePanel);
-        const pauseShadowGraphics = pauseShadow.getComponent(Graphics)!;
-        pauseShadowGraphics.fillColor = new Color(38, 28, 18, 82);
-        pauseShadowGraphics.roundRect(-(PAUSE_PANEL_WIDTH + 10) / 2, -(PAUSE_PANEL_HEIGHT + 10) / 2,
-            PAUSE_PANEL_WIDTH + 10, PAUSE_PANEL_HEIGHT + 10, 38);
-        pauseShadowGraphics.fill();
         this.pauseContent = this.createGraphicsNode('PauseContent', PAUSE_PANEL_WIDTH, PAUSE_PANEL_HEIGHT, 0, 0, this.pausePanel);
         const pauseContentGraphics = this.pauseContent.getComponent(Graphics)!;
-        pauseContentGraphics.fillColor = new Color(246, 231, 193, 255);
-        pauseContentGraphics.roundRect(-PAUSE_PANEL_WIDTH / 2, -PAUSE_PANEL_HEIGHT / 2, PAUSE_PANEL_WIDTH, PAUSE_PANEL_HEIGHT, 34);
-        pauseContentGraphics.fill();
-        pauseContentGraphics.lineWidth = 4;
-        pauseContentGraphics.strokeColor = new Color(151, 101, 52, 255);
-        pauseContentGraphics.roundRect(-PAUSE_PANEL_WIDTH / 2, -PAUSE_PANEL_HEIGHT / 2, PAUSE_PANEL_WIDTH, PAUSE_PANEL_HEIGHT, 34);
-        pauseContentGraphics.stroke();
+        // PausePanel is a single formal-art surface. A procedural fallback wider
+        // than the trimmed sprite exposes a translucent rectangle outside the
+        // wooden frame, so keep this container intentionally transparent.
+        pauseContentGraphics.clear();
+        pauseContentGraphics.enabled = false;
         this.pauseContentRoot = new Node('PauseContentRoot');
         this.pauseContentRoot.setParent(this.pauseContent);
         this.pauseContentRoot.addComponent(UITransform).setContentSize(PAUSE_CONTENT_ROOT_WIDTH, PAUSE_CONTENT_ROOT_HEIGHT);
         this.pauseContentRoot.setPosition(0, 0, 0);
-        this.drawPausePanelFinish();
 
         this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, PAUSE_TITLE_Y, 410, 46, 34, UI_TEXT_PRIMARY);
         this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, PAUSE_HINT_Y, 410, 24, 16, UI_TEXT_SECONDARY);
@@ -11184,7 +11179,6 @@ export class GameController extends Component {
             this.pauseContent.getComponent(Graphics)!.enabled = false;
             panelArt.node.setSiblingIndex(0);
         }
-        this.drawPausePanelFinish();
         this.applyFormalPaperModalArt(this.helpContent, 'HelpPanelArt', ArtPilotResourceKey.HelpPanel,
             HELP_PANEL_ART_WIDTH, HELP_PANEL_HEIGHT);
         this.applyFormalPaperModalArt(this.replayLevelOneTutorialConfirmContent,
@@ -11229,29 +11223,6 @@ export class GameController extends Component {
         this.applyGenericButtonSkins();
         this.applyPauseFormalStyles();
         this.refreshBgmTrackSelector();
-    }
-
-    private drawPausePanelFinish(): void {
-        if (!this.pauseContent?.isValid) return;
-        let finishNode = this.pauseContent.getChildByName('PausePanelFinish');
-        if (!finishNode) {
-            finishNode = this.createGraphicsNode('PausePanelFinish',
-                PAUSE_PANEL_ART_WIDTH, PAUSE_PANEL_HEIGHT, 0, 0, this.pauseContent);
-        }
-        const graphics = finishNode.getComponent(Graphics)!;
-        graphics.clear();
-        graphics.lineWidth = 1.5;
-        graphics.strokeColor = new Color(255, 251, 229, 105);
-        graphics.roundRect(-PAUSE_PANEL_ART_WIDTH / 2 + 25, -PAUSE_PANEL_HEIGHT / 2 + 23,
-            PAUSE_PANEL_ART_WIDTH - 50, PAUSE_PANEL_HEIGHT - 46, 26);
-        graphics.stroke();
-        graphics.lineWidth = 1;
-        graphics.strokeColor = new Color(126, 84, 43, 72);
-        graphics.roundRect(-PAUSE_PANEL_ART_WIDTH / 2 + 30, -PAUSE_PANEL_HEIGHT / 2 + 28,
-            PAUSE_PANEL_ART_WIDTH - 60, PAUSE_PANEL_HEIGHT - 56, 23);
-        graphics.stroke();
-        finishNode.setSiblingIndex(this.pauseContent.getChildByName('PausePanelArt') ? 1 : 0);
-        this.pauseContentRoot?.setSiblingIndex(this.pauseContent.children.length - 1);
     }
 
     private applyVolumeControlArt(control: VolumeControlView | undefined, iconKey: ArtPilotResourceKey): void {
@@ -12786,6 +12757,7 @@ export class GameController extends Component {
             freezeVisualRefreshRemaining: 0,
             health: definition.maxHealth,
             displayHealth: definition.maxHealth,
+            lastRenderedHealthRatio: Number.NaN,
             attackCooldown: 0,
             walkPhase: this.nextUnitId * 0.91,
             isMoving: false,
@@ -12868,6 +12840,7 @@ export class GameController extends Component {
         unit.laneBuffBadgeNode.active = team === Team.Player && this.getLaneType(lane) === 'flower';
         unit.health = definition.maxHealth;
         unit.displayHealth = definition.maxHealth;
+        unit.lastRenderedHealthRatio = Number.NaN;
         unit.attackCooldown = 0;
         unit.walkPhase = unit.id * 0.91;
         unit.isMoving = false;
@@ -14043,7 +14016,10 @@ export class GameController extends Component {
         for (const unit of this.dyingUnits) if (unit.node.isValid) orderedUnits.push(unit);
         orderedUnits.sort((a, b) => b.node.position.y - a.node.position.y || a.queueOrder - b.queueOrder);
         for (let index = 0; index < orderedUnits.length; index += 1) {
-            orderedUnits[index].node.setSiblingIndex(index);
+            const node = orderedUnits[index].node;
+            if (node.siblingIndex !== index) {
+                node.setSiblingIndex(index);
+            }
         }
     }
 
@@ -15039,25 +15015,62 @@ export class GameController extends Component {
         const alpha = state === 'locked' ? 112
             : state === 'insufficient' || state === 'selected-insufficient' ? 176 : 255;
         const accent = new Color(tierAccent.r, tierAccent.g, tierAccent.b, alpha);
-        const innerAccent = new Color(tierAccent.r, tierAccent.g, tierAccent.b, Math.round(alpha * 0.58));
         const halfWidth = size.width / 2;
         const halfHeight = size.height / 2;
+        const scale = size.width / UNIT_CARD_WIDTH;
+        const cream = { r: 255, g: 250, b: 232 };
+        const mixWithCream = (accentRatio: number, opacity: number): Color => new Color(
+            Math.round(cream.r * (1 - accentRatio) + tierAccent.r * accentRatio),
+            Math.round(cream.g * (1 - accentRatio) + tierAccent.g * accentRatio),
+            Math.round(cream.b * (1 - accentRatio) + tierAccent.b * accentRatio),
+            opacity,
+        );
+        const surfaceOpacity = state === 'locked' ? 220
+            : state === 'insufficient' || state === 'selected-insufficient' ? 232 : 244;
+        const contentLeft = -31 * scale;
+        const statePanelLeft = 49 * scale;
 
         graphics.clear();
-        graphics.lineWidth = 2.5;
+
+        // The formal v02 art keeps the portrait untouched. Its non-portrait UI
+        // regions are covered by a high-luminance tier surface derived from the
+        // one frozen accent source, so the card reads blue/green/purple/orange
+        // as a whole instead of inheriting the old teal/purple panel colors.
+        graphics.fillColor = mixWithCream(0.18, surfaceOpacity);
+        graphics.roundRect(
+            contentLeft,
+            -halfHeight + 5 * scale,
+            halfWidth - contentLeft - 5 * scale,
+            size.height - 10 * scale,
+            11 * scale,
+        );
+        graphics.fill();
+        graphics.fillColor = mixWithCream(0.36, surfaceOpacity);
+        graphics.roundRect(
+            statePanelLeft,
+            -halfHeight + 6 * scale,
+            halfWidth - statePanelLeft - 6 * scale,
+            size.height - 12 * scale,
+            10 * scale,
+        );
+        graphics.fill();
+
+        graphics.lineWidth = Math.max(3.5, 4 * scale);
         graphics.strokeColor = accent;
-        graphics.roundRect(-halfWidth + 1.5, -halfHeight + 1.5,
-            size.width - 3, size.height - 3, 14);
+        graphics.roundRect(-halfWidth + 2 * scale, -halfHeight + 2 * scale,
+            size.width - 4 * scale, size.height - 4 * scale, 14 * scale);
         graphics.stroke();
-        graphics.lineWidth = 1;
-        graphics.strokeColor = innerAccent;
-        graphics.roundRect(-halfWidth + 4.5, -halfHeight + 4.5,
-            size.width - 9, size.height - 9, 11);
-        graphics.stroke();
-        graphics.lineWidth = 3;
+
+        // Central information emphasis and state separator share the same tier
+        // color. Selection gold remains on the separate layer above this one.
+        graphics.fillColor = new Color(tierAccent.r, tierAccent.g, tierAccent.b,
+            state === 'locked' ? 128 : state === 'insufficient' || state === 'selected-insufficient' ? 176 : 218);
+        graphics.roundRect(-24 * scale, -halfHeight + 8 * scale, 66 * scale, 5 * scale, 2.5 * scale);
+        graphics.fill();
+        graphics.lineWidth = Math.max(3, 3.5 * scale);
         graphics.strokeColor = accent;
-        graphics.moveTo(halfWidth - 3, -halfHeight * 0.36);
-        graphics.lineTo(halfWidth - 3, halfHeight * 0.36);
+        graphics.moveTo(statePanelLeft, -halfHeight + 12 * scale);
+        graphics.lineTo(statePanelLeft, halfHeight - 12 * scale);
         graphics.stroke();
     }
 
@@ -15795,7 +15808,11 @@ export class GameController extends Component {
             unit.displayHealth += (targetHealth - unit.displayHealth) * factor;
         }
         const displayRatio = Math.max(0, Math.min(1, unit.displayHealth / unit.definition.maxHealth));
-        unit.healthFillNode.setScale(displayRatio, 1, 1);
+        if (!Number.isFinite(unit.lastRenderedHealthRatio)
+            || Math.abs(displayRatio - unit.lastRenderedHealthRatio) > UNIT_HEALTH_RENDER_RATIO_EPSILON) {
+            unit.healthFillNode.setScale(displayRatio, 1, 1);
+            unit.lastRenderedHealthRatio = displayRatio;
+        }
     }
 
     private drawSheepUnit(
