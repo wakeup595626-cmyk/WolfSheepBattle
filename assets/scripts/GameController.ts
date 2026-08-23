@@ -167,6 +167,12 @@ const PAUSE_BGM_CARD_WIDTH = 400;
 const PAUSE_BGM_CARD_HEIGHT = 56;
 const PAUSE_BGM_FIRST_CARD_Y = 9;
 const PAUSE_BGM_SECOND_CARD_Y = -55;
+const PAUSE_BGM_ICON_X = -173;
+const PAUSE_BGM_CONTENT_X = -10;
+const PAUSE_BGM_CONTENT_WIDTH = 236;
+const PAUSE_BGM_STATE_X = 153;
+const PAUSE_BGM_STATE_WIDTH = 64;
+const PAUSE_BGM_CHECK_X = 181;
 const PAUSE_VOLUME_ROW_WIDTH = 208;
 const PAUSE_VOLUME_ROW_HEIGHT = 56;
 const PAUSE_VOLUME_COLUMN_X = 110;
@@ -423,7 +429,7 @@ const TARGET_TYPOGRAPHY_STYLES: Readonly<Record<TargetTypographyRole, TargetTypo
         lineHeight: 27,
         isBold: true,
         color: UI_TEXT_PRIMARY,
-        overflow: Label.Overflow.SHRINK,
+        overflow: Label.Overflow.CLAMP,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.LEFT,
         verticalAlign: VerticalTextAlignment.CENTER,
@@ -433,7 +439,7 @@ const TARGET_TYPOGRAPHY_STYLES: Readonly<Record<TargetTypographyRole, TargetTypo
         lineHeight: 18,
         isBold: false,
         color: UI_TEXT_SECONDARY,
-        overflow: Label.Overflow.SHRINK,
+        overflow: Label.Overflow.CLAMP,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.RIGHT,
         verticalAlign: VerticalTextAlignment.CENTER,
@@ -453,7 +459,7 @@ const TARGET_TYPOGRAPHY_STYLES: Readonly<Record<TargetTypographyRole, TargetTypo
         lineHeight: 18,
         isBold: false,
         color: new Color(100, 87, 61, 255),
-        overflow: Label.Overflow.SHRINK,
+        overflow: Label.Overflow.CLAMP,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.LEFT,
         verticalAlign: VerticalTextAlignment.CENTER,
@@ -463,7 +469,7 @@ const TARGET_TYPOGRAPHY_STYLES: Readonly<Record<TargetTypographyRole, TargetTypo
         lineHeight: 16,
         isBold: true,
         color: new Color(126, 84, 25, 255),
-        overflow: Label.Overflow.SHRINK,
+        overflow: Label.Overflow.CLAMP,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.CENTER,
         verticalAlign: VerticalTextAlignment.CENTER,
@@ -10906,6 +10912,13 @@ export class GameController extends Component {
         this.pausePanel.setParent(this.modalLayer);
         this.pausePanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
         this.drawModalBackdropOnly(this.pausePanel);
+        const pauseShadow = this.createGraphicsNode('PausePanelShadow',
+            PAUSE_PANEL_WIDTH + 18, PAUSE_PANEL_HEIGHT + 18, 0, -7, this.pausePanel);
+        const pauseShadowGraphics = pauseShadow.getComponent(Graphics)!;
+        pauseShadowGraphics.fillColor = new Color(38, 28, 18, 82);
+        pauseShadowGraphics.roundRect(-(PAUSE_PANEL_WIDTH + 10) / 2, -(PAUSE_PANEL_HEIGHT + 10) / 2,
+            PAUSE_PANEL_WIDTH + 10, PAUSE_PANEL_HEIGHT + 10, 38);
+        pauseShadowGraphics.fill();
         this.pauseContent = this.createGraphicsNode('PauseContent', PAUSE_PANEL_WIDTH, PAUSE_PANEL_HEIGHT, 0, 0, this.pausePanel);
         const pauseContentGraphics = this.pauseContent.getComponent(Graphics)!;
         pauseContentGraphics.fillColor = new Color(246, 231, 193, 255);
@@ -10919,6 +10932,7 @@ export class GameController extends Component {
         this.pauseContentRoot.setParent(this.pauseContent);
         this.pauseContentRoot.addComponent(UITransform).setContentSize(PAUSE_CONTENT_ROOT_WIDTH, PAUSE_CONTENT_ROOT_HEIGHT);
         this.pauseContentRoot.setPosition(0, 0, 0);
+        this.drawPausePanelFinish();
 
         this.createLabel(this.pauseContentRoot, 'PauseTitle', '\u6E38\u620F\u5DF2\u6682\u505C', 0, PAUSE_TITLE_Y, 410, 46, 34, UI_TEXT_PRIMARY);
         this.createLabel(this.pauseContentRoot, 'PauseHint', '\u6218\u573A\u3001AI \u548C\u8D44\u6E90\u6062\u590D\u5747\u5DF2\u51BB\u7ED3', 0, PAUSE_HINT_Y, 410, 24, 16, UI_TEXT_SECONDARY);
@@ -11112,6 +11126,7 @@ export class GameController extends Component {
             this.pauseContent.getComponent(Graphics)!.enabled = false;
             panelArt.node.setSiblingIndex(0);
         }
+        this.drawPausePanelFinish();
         this.applyVolumeControlArt(this.musicVolumeControl, ArtPilotResourceKey.MusicIcon);
         this.applyVolumeControlArt(this.sfxVolumeControl, ArtPilotResourceKey.SfxIcon);
         const selectorNode = this.pauseContentRoot.getChildByName('BgmSelector');
@@ -11131,7 +11146,7 @@ export class GameController extends Component {
                 ArtPilotResourceKey.MusicIcon,
                 38,
                 38,
-                -173,
+                PAUSE_BGM_ICON_X,
                 0,
             );
             option.backgroundSprite = this.applyTacticRegionSprite(
@@ -11152,6 +11167,29 @@ export class GameController extends Component {
         this.applyGenericButtonSkins();
         this.applyPauseFormalStyles();
         this.refreshBgmTrackSelector();
+    }
+
+    private drawPausePanelFinish(): void {
+        if (!this.pauseContent?.isValid) return;
+        let finishNode = this.pauseContent.getChildByName('PausePanelFinish');
+        if (!finishNode) {
+            finishNode = this.createGraphicsNode('PausePanelFinish',
+                PAUSE_PANEL_ART_WIDTH, PAUSE_PANEL_HEIGHT, 0, 0, this.pauseContent);
+        }
+        const graphics = finishNode.getComponent(Graphics)!;
+        graphics.clear();
+        graphics.lineWidth = 1.5;
+        graphics.strokeColor = new Color(255, 251, 229, 105);
+        graphics.roundRect(-PAUSE_PANEL_ART_WIDTH / 2 + 25, -PAUSE_PANEL_HEIGHT / 2 + 23,
+            PAUSE_PANEL_ART_WIDTH - 50, PAUSE_PANEL_HEIGHT - 46, 26);
+        graphics.stroke();
+        graphics.lineWidth = 1;
+        graphics.strokeColor = new Color(126, 84, 43, 72);
+        graphics.roundRect(-PAUSE_PANEL_ART_WIDTH / 2 + 30, -PAUSE_PANEL_HEIGHT / 2 + 28,
+            PAUSE_PANEL_ART_WIDTH - 60, PAUSE_PANEL_HEIGHT - 56, 23);
+        graphics.stroke();
+        finishNode.setSiblingIndex(this.pauseContent.getChildByName('PausePanelArt') ? 1 : 0);
+        this.pauseContentRoot?.setSiblingIndex(this.pauseContent.children.length - 1);
     }
 
     private applyVolumeControlArt(control: VolumeControlView | undefined, iconKey: ArtPilotResourceKey): void {
@@ -11291,16 +11329,19 @@ export class GameController extends Component {
         const root = this.createGraphicsNode(`BgmStyle_${track.id}`,
             PAUSE_BGM_CARD_WIDTH, PAUSE_BGM_CARD_HEIGHT, x, y, parent);
         const optionGraphics = root.getComponent(Graphics)!;
-        const titleLabel = this.createLabel(root, 'Title', track.displayName, -10, 13, 236, 22, 18,
+        const titleLabel = this.createLabel(root, 'Title', track.displayName,
+            PAUSE_BGM_CONTENT_X, 14, PAUSE_BGM_CONTENT_WIDTH, 22, 18,
             new Color(74, 56, 39, 255));
         this.applyTargetTypography(titleLabel, 'BgmCardTitle');
-        const subtitleLabel = this.createLabel(root, 'Subtitle', track.subtitle, -10, -13, 236, 18, 14,
+        const subtitleLabel = this.createLabel(root, 'Subtitle', track.subtitle,
+            PAUSE_BGM_CONTENT_X, -14, PAUSE_BGM_CONTENT_WIDTH, 18, 14,
             new Color(100, 87, 61, 255));
         this.applyTargetTypography(subtitleLabel, 'BgmCardBody');
-        const statusLabel = this.createLabel(root, 'Status', '', 156, 0, 66, 24, 13,
+        const statusLabel = this.createLabel(root, 'Status', '',
+            PAUSE_BGM_STATE_X, -12, PAUSE_BGM_STATE_WIDTH, 18, 13,
             new Color(126, 84, 25, 255));
         this.applyTargetTypography(statusLabel, 'BgmCardState');
-        const checkNode = this.createGraphicsNode('SelectedCheck', 22, 22, 178, 17, root);
+        const checkNode = this.createGraphicsNode('SelectedCheck', 22, 22, PAUSE_BGM_CHECK_X, 17, root);
         const checkGraphics = checkNode.getComponent(Graphics)!;
         const checkLabel = this.createLabel(checkNode, 'Check', '✓', 0, 0, 18, 18, 13, Color.WHITE);
         this.applyTargetTypography(checkLabel, 'BgmCardState', Color.WHITE);
@@ -11389,10 +11430,10 @@ export class GameController extends Component {
                 graphics.lineWidth = 1;
                 graphics.strokeColor = selected
                     ? new Color(188, 137, 26, 180) : new Color(85, 165, 145, 170);
-                graphics.moveTo(-148, -22);
-                graphics.lineTo(-148, 22);
-                graphics.moveTo(120, -22);
-                graphics.lineTo(120, 22);
+                graphics.moveTo(-148, -21);
+                graphics.lineTo(-148, 21);
+                graphics.moveTo(112, -21);
+                graphics.lineTo(112, 21);
                 graphics.stroke();
             }
             option.statusLabel.string = selected ? '当前使用' : '点击试听';
