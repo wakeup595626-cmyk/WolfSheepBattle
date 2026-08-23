@@ -974,6 +974,7 @@ interface UnitTypeButtonView {
     readonly label: Label;
     readonly stateLabel: Label;
     artSprite?: Sprite;
+    tierAccentGraphics?: Graphics;
     artSelectionGraphics?: Graphics;
     pressed: boolean;
     visualState: UnitCardVisualState;
@@ -5720,6 +5721,7 @@ export class GameController extends Component {
             button.node.getComponent(UITransform)?.setContentSize(layout.width, layout.cardHeight);
             button.node.setPosition(0, firstCardY - index * (layout.cardHeight + layout.gap), 0);
             button.artSprite?.node.getComponent(UITransform)?.setContentSize(layout.width, layout.cardHeight);
+            button.tierAccentGraphics?.node.getComponent(UITransform)?.setContentSize(layout.width, layout.cardHeight);
             button.artSelectionGraphics?.node.getComponent(UITransform)?.setContentSize(layout.width + 6, layout.cardHeight + 6);
             this.applyUnitCardContentLayout(button, layout.width, layout.cardHeight);
         }
@@ -5785,6 +5787,9 @@ export class GameController extends Component {
             selectionNode.setSiblingIndex(0);
             const artSelectionGraphics = selectionNode.getComponent(Graphics)!;
             selectionNode.active = false;
+            const tierAccentNode = this.createGraphicsNode('UnitCardTierAccent',
+                layout.width, layout.cardHeight, 0, 0, node);
+            const tierAccentGraphics = tierAccentNode.getComponent(Graphics)!;
             const stateLabel = this.createLabel(node, 'UnitCardState', '',
                 0, 0, 40, 70, 11, UI_TEXT_SECONDARY);
             stateLabel.lineHeight = 13;
@@ -5796,6 +5801,7 @@ export class GameController extends Component {
                 node,
                 label,
                 stateLabel,
+                tierAccentGraphics,
                 artSelectionGraphics,
                 pressed: false,
                 visualState: 'available',
@@ -14771,6 +14777,7 @@ export class GameController extends Component {
                 ? LEVEL_ONE_TUTORIAL_DEPLOYMENTS[this.tutorialDeploymentIndex] : undefined;
             const isTutorialCardTarget = tutorialExpected?.type === type && this.selectedSheepType !== type;
             button.visualState = state;
+            this.drawUnitCardTierAccent(button, type, statusState);
             const isSelected = state === 'selected' || state === 'selected-insufficient';
             const isAvailable = state === 'available' || state === 'selected' || state === 'pressed';
             const usesPilotCard = !!button.artSprite?.node.active && !!button.artSprite.spriteFrame;
@@ -14835,10 +14842,48 @@ export class GameController extends Component {
                         : new Color(38, 110, 60, 255);
     }
 
+    private drawUnitCardTierAccent(
+        button: UnitTypeButtonView,
+        type: SheepType,
+        state: UnitCardVisualState,
+    ): void {
+        const graphics = button.tierAccentGraphics;
+        const size = button.node.getComponent(UITransform)?.contentSize;
+        if (!graphics || !size) return;
+        const tierAccent = UNIT_TIER_VISUALS[type].accentColor;
+        const alpha = state === 'locked' ? 112
+            : state === 'insufficient' || state === 'selected-insufficient' ? 176 : 255;
+        const accent = new Color(tierAccent.r, tierAccent.g, tierAccent.b, alpha);
+        const innerAccent = new Color(tierAccent.r, tierAccent.g, tierAccent.b, Math.round(alpha * 0.58));
+        const halfWidth = size.width / 2;
+        const halfHeight = size.height / 2;
+
+        graphics.clear();
+        graphics.lineWidth = 2.5;
+        graphics.strokeColor = accent;
+        graphics.roundRect(-halfWidth + 1.5, -halfHeight + 1.5,
+            size.width - 3, size.height - 3, 14);
+        graphics.stroke();
+        graphics.lineWidth = 1;
+        graphics.strokeColor = innerAccent;
+        graphics.roundRect(-halfWidth + 4.5, -halfHeight + 4.5,
+            size.width - 9, size.height - 9, 11);
+        graphics.stroke();
+        graphics.lineWidth = 3;
+        graphics.strokeColor = accent;
+        graphics.moveTo(halfWidth - 3, -halfHeight * 0.36);
+        graphics.lineTo(halfWidth - 3, halfHeight * 0.36);
+        graphics.stroke();
+    }
+
     private orderUnitCardChildren(button: UnitTypeButtonView): void {
         let nextIndex = 0;
         if (button.artSprite?.node.isValid) {
             button.artSprite.node.setSiblingIndex(nextIndex);
+            nextIndex += 1;
+        }
+        if (button.tierAccentGraphics?.node.isValid) {
+            button.tierAccentGraphics.node.setSiblingIndex(nextIndex);
             nextIndex += 1;
         }
         if (button.artSelectionGraphics?.node.isValid) {
