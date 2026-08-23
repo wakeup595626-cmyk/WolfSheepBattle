@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish07-ui17-card02';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish07-ui17-card02';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish07-ui17-card02';
+const GAME_VERSION = 'v1.3.0-dev-polish08-ui18-help01';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish08-ui18-help01';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish08-ui18-help01';
 const BATTLEFIELD_CENTER_X = -90;
 // Rebalance the battle screen into three non-overlapping columns. Every
 // lane-owned visual and interaction axis consumes this same translation.
@@ -176,6 +176,16 @@ const PAUSE_BGM_CHECK_X = 181;
 const PAUSE_VOLUME_ROW_WIDTH = 208;
 const PAUSE_VOLUME_ROW_HEIGHT = 56;
 const PAUSE_VOLUME_COLUMN_X = 110;
+const HELP_PANEL_WIDTH = 780;
+const HELP_PANEL_HEIGHT = 620;
+const HELP_PANEL_ART_WIDTH = 760;
+const HELP_CONTENT_ROOT_WIDTH = 680;
+const HELP_RULES_CARD_HEIGHT = 148;
+const HELP_TIER_CARD_WIDTH = 326;
+const HELP_TIER_CARD_HEIGHT = 74;
+const HELP_TIER_CARD_GAP_X = 14;
+const HELP_TIER_CARD_GAP_Y = 10;
+const HELP_ACTION_Y = -252;
 const TACTIC_HEADER_Y = PAUSE_BUTTON_Y - PAUSE_BUTTON_HEIGHT / 2
     - PAUSE_TACTIC_VERTICAL_GAP - TACTIC_HEADER_HEIGHT / 2;
 const TACTIC_CARD_HEIGHT = 116;
@@ -1784,7 +1794,11 @@ export class GameController extends Component {
     private pauseContent!: Node;
     private pauseContentRoot!: Node;
     private helpPanel!: Node;
+    private helpContent!: Node;
+    private helpContentRoot!: Node;
     private helpTextLabel!: Label;
+    private helpBackButton!: ButtonView;
+    private replayLevelOneTutorialConfirmContent!: Node;
     private playerSprintCard!: TacticCardView;
     private playerHealCard!: TacticCardView;
     private playerShockCard!: TacticCardView;
@@ -3094,7 +3108,7 @@ export class GameController extends Component {
             FUNCTION_SIDEBAR_WIDTH, TACTIC_HEADER_HEIGHT);
         this.applyChildSprite(this.pauseButton?.node, 'PauseButtonArt', ArtPilotResourceKey.PauseButton,
             38, 38, -78, 0);
-        this.applyChildSprite(this.helpPanel?.getChildByName('HelpBackButton'), 'CloseArt', ArtPilotResourceKey.ButtonClose,
+        this.applyChildSprite(this.helpBackButton?.node, 'CloseArt', ArtPilotResourceKey.ButtonClose,
             28, 28, -96, 0);
 
         this.applyTacticCardArt(this.playerSprintCard);
@@ -10970,44 +10984,76 @@ export class GameController extends Component {
         this.helpPanel = new Node('HelpPanel');
         this.helpPanel.setParent(this.modalLayer);
         this.helpPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
-        this.drawModalBackground(this.helpPanel, 780, 600);
-        this.createLabel(this.helpPanel, 'HelpTitle', '\u73A9\u6CD5\u8BF4\u660E', 0, 245, 620, 48, 32, new Color(255, 244, 207, 255));
-        this.helpTextLabel = this.createLabel(this.helpPanel, 'HelpText', '', 0, 154, 650, 120, 19,
-            new Color(226, 233, 240, 255));
+        this.drawModalBackdropOnly(this.helpPanel);
+        this.helpContent = this.createFormalPaperModalContent(
+            this.helpPanel, 'HelpContent', HELP_PANEL_WIDTH, HELP_PANEL_HEIGHT);
+        this.helpContentRoot = new Node('HelpContentRoot');
+        this.helpContentRoot.setParent(this.helpContent);
+        this.helpContentRoot.addComponent(UITransform).setContentSize(HELP_CONTENT_ROOT_WIDTH, 560);
+        const helpTitle = this.createLabel(this.helpContentRoot, 'HelpTitle', '\u73A9\u6CD5\u8BF4\u660E',
+            0, 250, 620, 48, 34, UI_TEXT_PRIMARY);
+        helpTitle.isBold = true;
+        helpTitle.lineHeight = 42;
+        helpTitle.overflow = Label.Overflow.CLAMP;
+        const rulesCard = this.createGraphicsNode('HelpRulesCard', HELP_CONTENT_ROOT_WIDTH,
+            HELP_RULES_CARD_HEIGHT, 0, 143, this.helpContentRoot);
+        const rulesGraphics = rulesCard.getComponent(Graphics)!;
+        rulesGraphics.fillColor = new Color(255, 249, 229, 238);
+        rulesGraphics.roundRect(-HELP_CONTENT_ROOT_WIDTH / 2, -HELP_RULES_CARD_HEIGHT / 2,
+            HELP_CONTENT_ROOT_WIDTH, HELP_RULES_CARD_HEIGHT, 16);
+        rulesGraphics.fill();
+        rulesGraphics.lineWidth = 2;
+        rulesGraphics.strokeColor = new Color(198, 151, 79, 205);
+        rulesGraphics.roundRect(-HELP_CONTENT_ROOT_WIDTH / 2 + 1, -HELP_RULES_CARD_HEIGHT / 2 + 1,
+            HELP_CONTENT_ROOT_WIDTH - 2, HELP_RULES_CARD_HEIGHT - 2, 15);
+        rulesGraphics.stroke();
+        const rulesTitle = this.createLabel(rulesCard, 'HelpRulesTitle', '\u672C\u5173\u89C4\u5219',
+            -272, 50, 112, 28, 20, UI_TEXT_PRIMARY);
+        rulesTitle.isBold = true;
+        rulesTitle.horizontalAlign = HorizontalTextAlignment.LEFT;
+        this.helpTextLabel = this.createLabel(rulesCard, 'HelpText', '', 0, -17, 630, 108, 17,
+            new Color(91, 72, 50, 255));
+        this.helpTextLabel.verticalAlign = VerticalTextAlignment.TOP;
         this.refreshHelpText();
-        this.createLabel(this.helpPanel, 'TierLegendTitle', '\u56DB\u6863\u5355\u4F4D', 0, 80, 620, 32, 20, new Color(255, 231, 157, 255));
-        this.createUnitTierLegend(this.helpPanel, 42);
+        const tierTitle = this.createLabel(this.helpContentRoot, 'TierLegendTitle', '\u56DB\u6863\u5355\u4F4D',
+            0, 50, 620, 30, 22, UI_TEXT_PRIMARY);
+        tierTitle.isBold = true;
+        this.createUnitTierLegend(this.helpContentRoot, -2);
         this.replayLevelOneTutorialButton = this.createButton(
-            this.helpPanel,
+            this.helpContentRoot,
             'ReplayLevelOneTutorialButton',
             '重看第1关引导',
-            0,
-            -185,
-            250,
-            46,
-            18,
+            -145,
+            HELP_ACTION_Y,
+            260,
+            54,
+            20,
             () => this.requestLevelOneTutorialReplay(),
         );
-        this.createButton(this.helpPanel, 'HelpBackButton', '\u8FD4\u56DE\u6682\u505C\u83DC\u5355', 0, -252, 250, 50, 19, () => this.closeHelpPanel());
+        this.helpBackButton = this.createButton(this.helpContentRoot, 'HelpBackButton',
+            '\u8FD4\u56DE\u6682\u505C\u83DC\u5355', 145, HELP_ACTION_Y, 260, 54, 20, () => this.closeHelpPanel());
         this.helpPanel.active = false;
 
         this.replayLevelOneTutorialConfirmPanel = new Node('ReplayLevelOneTutorialConfirmPanel');
         this.replayLevelOneTutorialConfirmPanel.setParent(this.modalLayer);
         this.replayLevelOneTutorialConfirmPanel.addComponent(UITransform).setContentSize(DESIGN_WIDTH, DESIGN_HEIGHT);
-        this.drawModalBackground(this.replayLevelOneTutorialConfirmPanel, 650, 270);
-        this.createLabel(
-            this.replayLevelOneTutorialConfirmPanel,
+        this.drawModalBackdropOnly(this.replayLevelOneTutorialConfirmPanel);
+        this.replayLevelOneTutorialConfirmContent = this.createFormalPaperModalContent(
+            this.replayLevelOneTutorialConfirmPanel, 'ReplayTutorialConfirmContent', 650, 300);
+        const replayConfirmTitle = this.createLabel(
+            this.replayLevelOneTutorialConfirmContent,
             'ReplayTutorialConfirmTitle',
             '重看第1关引导',
             0,
-            76,
+            82,
             530,
             42,
             28,
-            new Color(255, 244, 207, 255),
+            UI_TEXT_PRIMARY,
         );
+        replayConfirmTitle.isBold = true;
         const replayConfirmBody = this.createLabel(
-            this.replayLevelOneTutorialConfirmPanel,
+            this.replayLevelOneTutorialConfirmContent,
             'ReplayTutorialConfirmBody',
             '重看引导将重新开始第1关，当前战斗进度不会保留，是否继续？',
             0,
@@ -11015,7 +11061,7 @@ export class GameController extends Component {
             530,
             70,
             18,
-            new Color(226, 233, 240, 255),
+            new Color(91, 72, 50, 255),
         );
         replayConfirmBody.horizontalAlign = HorizontalTextAlignment.CENTER;
         replayConfirmBody.verticalAlign = VerticalTextAlignment.CENTER;
@@ -11023,22 +11069,22 @@ export class GameController extends Component {
         replayConfirmBody.overflow = Label.Overflow.CLAMP;
         replayConfirmBody.lineHeight = 24;
         this.createButton(
-            this.replayLevelOneTutorialConfirmPanel,
+            this.replayLevelOneTutorialConfirmContent,
             'ReplayTutorialCancelButton',
             '取消',
             -118,
-            -82,
+            -88,
             180,
             48,
             18,
             () => this.cancelLevelOneTutorialReplay(),
         );
         this.createButton(
-            this.replayLevelOneTutorialConfirmPanel,
+            this.replayLevelOneTutorialConfirmContent,
             'ReplayTutorialConfirmButton',
             '确认重看',
             118,
-            -82,
+            -88,
             180,
             48,
             18,
@@ -11054,30 +11100,42 @@ export class GameController extends Component {
             [SheepType.Large]: '\u751F\u547D\u548C\u653B\u51FB\u8F83\u9AD8',
             [SheepType.Giant]: '\u6700\u5F3A\u4F46\u80FD\u91CF\u6D88\u8017\u6700\u9AD8',
         };
-        const rowWidth = 650;
-        const rowHeight = 36;
-        const rowGap = 5;
         for (let index = 0; index < UNIT_ORDER.length; index += 1) {
             const type = UNIT_ORDER[index];
             const tier = UNIT_TIER_VISUALS[type];
-            const rowY = topY - index * (rowHeight + rowGap);
-            const row = this.createGraphicsNode(`TierLegend${type}`, rowWidth, rowHeight, 0, rowY, parent);
+            const column = index % 2;
+            const rowIndex = Math.floor(index / 2);
+            const cardX = (column === 0 ? -1 : 1) * (HELP_TIER_CARD_WIDTH + HELP_TIER_CARD_GAP_X) / 2;
+            const cardY = topY - rowIndex * (HELP_TIER_CARD_HEIGHT + HELP_TIER_CARD_GAP_Y);
+            const row = this.createGraphicsNode(`TierLegend${type}`,
+                HELP_TIER_CARD_WIDTH, HELP_TIER_CARD_HEIGHT, cardX, cardY, parent);
             const rowGraphics = row.getComponent(Graphics)!;
-            rowGraphics.fillColor = new Color(14, 25, 40, 225);
-            rowGraphics.roundRect(-rowWidth / 2, -rowHeight / 2, rowWidth, rowHeight, 9);
+            rowGraphics.fillColor = new Color(255, 250, 232, 245);
+            rowGraphics.roundRect(-HELP_TIER_CARD_WIDTH / 2, -HELP_TIER_CARD_HEIGHT / 2,
+                HELP_TIER_CARD_WIDTH, HELP_TIER_CARD_HEIGHT, 14);
             rowGraphics.fill();
-            rowGraphics.lineWidth = 1;
-            rowGraphics.strokeColor = new Color(tier.accentColor.r, tier.accentColor.g, tier.accentColor.b, 115);
-            rowGraphics.roundRect(-rowWidth / 2, -rowHeight / 2, rowWidth, rowHeight, 9);
+            rowGraphics.lineWidth = 2;
+            rowGraphics.strokeColor = tier.accentColor;
+            rowGraphics.roundRect(-HELP_TIER_CARD_WIDTH / 2 + 1, -HELP_TIER_CARD_HEIGHT / 2 + 1,
+                HELP_TIER_CARD_WIDTH - 2, HELP_TIER_CARD_HEIGHT - 2, 13);
+            rowGraphics.stroke();
+            rowGraphics.lineWidth = 4;
+            rowGraphics.moveTo(-HELP_TIER_CARD_WIDTH / 2 + 4, -18);
+            rowGraphics.lineTo(-HELP_TIER_CARD_WIDTH / 2 + 4, 18);
             rowGraphics.stroke();
 
-            const badge = this.createGraphicsNode('TierBadge', 30, 30, -292, 0, row);
-            const badgeLabel = this.createLabel(badge, 'TierLabel', '', 0, 0, 26, 28, 15, tier.accentColor);
-            this.drawTierBadge(badge.getComponent(Graphics)!, badgeLabel, type, 28);
-            this.createLabel(row, 'Roman', tier.roman, -244, 0, 44, rowHeight, 18, tier.accentColor);
-            const description = this.createLabel(row, 'Description', descriptions[type], 36, 0, 490, rowHeight, 16,
-                new Color(223, 232, 241, 255));
+            const badge = this.createGraphicsNode('TierBadge', 38, 38, -132, 0, row);
+            const badgeLabel = this.createLabel(badge, 'TierLabel', '', 0, 0, 34, 36, 17, tier.accentColor);
+            this.drawTierBadge(badge.getComponent(Graphics)!, badgeLabel, type, 36);
+            const name = this.createLabel(row, 'TierName', tier.displayName.sheep,
+                -83, 0, 64, HELP_TIER_CARD_HEIGHT - 12, 18, UI_TEXT_PRIMARY);
+            name.isBold = true;
+            const description = this.createLabel(row, 'Description', descriptions[type],
+                50, 0, 194, HELP_TIER_CARD_HEIGHT - 14, 15, new Color(91, 72, 50, 255));
             description.horizontalAlign = HorizontalTextAlignment.LEFT;
+            description.enableWrapText = true;
+            description.overflow = Label.Overflow.CLAMP;
+            description.lineHeight = 19;
         }
     }
 
@@ -11127,6 +11185,10 @@ export class GameController extends Component {
             panelArt.node.setSiblingIndex(0);
         }
         this.drawPausePanelFinish();
+        this.applyFormalPaperModalArt(this.helpContent, 'HelpPanelArt', ArtPilotResourceKey.HelpPanel,
+            HELP_PANEL_ART_WIDTH, HELP_PANEL_HEIGHT);
+        this.applyFormalPaperModalArt(this.replayLevelOneTutorialConfirmContent,
+            'ReplayTutorialConfirmPanelArt', ArtPilotResourceKey.HelpPanel, 630, 300);
         this.applyVolumeControlArt(this.musicVolumeControl, ArtPilotResourceKey.MusicIcon);
         this.applyVolumeControlArt(this.sfxVolumeControl, ArtPilotResourceKey.SfxIcon);
         const selectorNode = this.pauseContentRoot.getChildByName('BgmSelector');
@@ -11734,11 +11796,12 @@ export class GameController extends Component {
                 : this.currentLevel === 6
                     ? `${baseText}\n• 黄金补给线12秒首次出现，之后每20秒轮换，生效14秒。\n• 补给强化：下一次黄金占领与守点奖励各额外+1。`
                     : baseText;
-        this.helpTextLabel.fontSize = this.currentLevel >= 4 ? 16 : 19;
-        this.helpTextLabel.lineHeight = this.currentLevel >= 4 ? 20 : 23;
+        this.helpTextLabel.fontSize = 17;
+        this.helpTextLabel.lineHeight = 21;
         this.helpTextLabel.enableWrapText = true;
         this.helpTextLabel.overflow = Label.Overflow.CLAMP;
         this.helpTextLabel.horizontalAlign = HorizontalTextAlignment.LEFT;
+        this.helpTextLabel.verticalAlign = VerticalTextAlignment.TOP;
         this.refreshLevelOneTutorialReplayButton();
     }
 
@@ -11755,7 +11818,11 @@ export class GameController extends Component {
 
     private refreshLevelOneTutorialReplayButton(): void {
         if (!this.replayLevelOneTutorialButton?.node?.isValid) return;
-        this.replayLevelOneTutorialButton.node.active = this.currentLevel === 1 && this.isPaused;
+        const showReplay = this.currentLevel === 1 && this.isPaused;
+        this.replayLevelOneTutorialButton.node.active = showReplay;
+        if (this.helpBackButton?.node?.isValid) {
+            this.helpBackButton.node.setPosition(showReplay ? 145 : 0, HELP_ACTION_Y, 0);
+        }
     }
 
     private requestLevelOneTutorialReplay(): void {
@@ -11825,6 +11892,83 @@ export class GameController extends Component {
         this.showModal(this.startPanel);
         this.statusToast.active = false;
         this.refreshStartPanel();
+    }
+
+    private createFormalPaperModalContent(
+        panel: Node,
+        name: string,
+        cardWidth: number,
+        cardHeight: number,
+    ): Node {
+        const shadow = this.createGraphicsNode(`${name}Shadow`, cardWidth + 18, cardHeight + 18, 0, -7, panel);
+        const shadowGraphics = shadow.getComponent(Graphics)!;
+        shadowGraphics.fillColor = new Color(38, 28, 18, 92);
+        shadowGraphics.roundRect(-(cardWidth + 10) / 2, -(cardHeight + 10) / 2,
+            cardWidth + 10, cardHeight + 10, 34);
+        shadowGraphics.fill();
+
+        const content = this.createGraphicsNode(name, cardWidth, cardHeight, 0, 0, panel);
+        const graphics = content.getComponent(Graphics)!;
+        graphics.fillColor = new Color(250, 238, 203, 255);
+        graphics.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 32);
+        graphics.fill();
+        graphics.lineWidth = 7;
+        graphics.strokeColor = new Color(174, 116, 57, 255);
+        graphics.roundRect(-cardWidth / 2 + 3.5, -cardHeight / 2 + 3.5,
+            cardWidth - 7, cardHeight - 7, 29);
+        graphics.stroke();
+        graphics.lineWidth = 2;
+        graphics.strokeColor = new Color(255, 250, 222, 230);
+        graphics.roundRect(-cardWidth / 2 + 13, -cardHeight / 2 + 13,
+            cardWidth - 26, cardHeight - 26, 23);
+        graphics.stroke();
+        this.drawFormalPaperPanelFinish(content, cardWidth, cardHeight);
+        return content;
+    }
+
+    private applyFormalPaperModalArt(
+        content: Node | undefined,
+        spriteName: string,
+        key: ArtPilotResourceKey,
+        artWidth: number,
+        artHeight: number,
+    ): void {
+        if (!content?.isValid) return;
+        const art = this.applyChildSprite(content, spriteName, key, artWidth, artHeight);
+        if (art) {
+            content.getComponent(Graphics)!.enabled = false;
+            art.node.setSiblingIndex(0);
+        }
+        this.drawFormalPaperPanelFinish(content, artWidth, artHeight);
+    }
+
+    private drawFormalPaperPanelFinish(content: Node, cardWidth: number, cardHeight: number): void {
+        let finish = content.getChildByName('FormalPaperPanelFinish');
+        if (!finish) {
+            finish = this.createGraphicsNode('FormalPaperPanelFinish', cardWidth, cardHeight, 0, 0, content);
+        }
+        finish.getComponent(UITransform)?.setContentSize(cardWidth, cardHeight);
+        const graphics = finish.getComponent(Graphics)!;
+        graphics.clear();
+        graphics.lineWidth = 1.5;
+        graphics.strokeColor = new Color(255, 252, 230, 112);
+        graphics.roundRect(-cardWidth / 2 + 24, -cardHeight / 2 + 22,
+            cardWidth - 48, cardHeight - 44, 23);
+        graphics.stroke();
+        graphics.fillColor = new Color(104, 154, 70, 178);
+        graphics.circle(-cardWidth / 2 + 48, cardHeight / 2 - 42, 6);
+        graphics.circle(-cardWidth / 2 + 59, cardHeight / 2 - 48, 5);
+        graphics.circle(cardWidth / 2 - 48, cardHeight / 2 - 42, 6);
+        graphics.circle(cardWidth / 2 - 59, cardHeight / 2 - 48, 5);
+        graphics.fill();
+        graphics.fillColor = new Color(244, 193, 73, 205);
+        graphics.circle(-cardWidth / 2 + 70, cardHeight / 2 - 42, 3);
+        graphics.circle(cardWidth / 2 - 70, cardHeight / 2 - 42, 3);
+        graphics.fill();
+        finish.setSiblingIndex(content.getChildByName('HelpPanelArt')
+            || content.getChildByName('ReplayTutorialConfirmPanelArt') ? 1 : 0);
+        const contentRoot = content.getChildByName('HelpContentRoot');
+        contentRoot?.setSiblingIndex(content.children.length - 1);
     }
 
     private drawModalBackground(panel: Node, cardWidth: number, cardHeight: number): void {
