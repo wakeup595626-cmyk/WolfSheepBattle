@@ -26,3 +26,8 @@ node_modules/
 # Local files created when the Cocos source project is opened in WeChat DevTools.
 project.config.json
 project.private.config.json
+
+# 开源后追加：防止大体积过程产物重新进入仓库
+art_source/qa/
+release_evidence/
+tmp/
