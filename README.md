@@ -13,6 +13,12 @@
 
 项目已完整包含游戏源码、场景、美术源文件与音频运行时资源，可以直接用 Cocos Creator 打开、预览和构建。
 
+###  在线试玩
+
+**不用安装任何东西，点开就能玩**  **https://wakeup595626-cmyk.github.io/WolfSheepBattle/**
+
+（H5 版由同一份源码构建，托管在 GitHub Pages 上；微信小游戏构建包见 [Releases](https://github.com/wakeup595626-cmyk/WolfSheepBattle/releases)）
+
 ### 怎么跑起来
 
 1. 安装 **Cocos Creator 3.8.8**（版本需匹配，见 `package.json` 的 `creator.version`）
@@ -53,6 +59,12 @@
 *WolfSheepBattle* is a turn-based tactics game for the WeChat Mini Game platform. Players deploy units across four battle lines and fight turn by turn using tactic cards and unit synergies.
 
 The repository contains the complete game source, scenes, art source files and runtime audio  you can open it with Cocos Creator, preview it, and build it.
+
+###  Play in your browser
+
+**No install required  just click and play**  **https://wakeup595626-cmyk.github.io/WolfSheepBattle/**
+
+(The H5 build comes from the same source and is hosted on GitHub Pages. The WeChat Mini Game build is available in [Releases](https://github.com/wakeup595626-cmyk/WolfSheepBattle/releases).)
 
 ### Getting started
 
