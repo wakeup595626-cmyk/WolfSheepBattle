@@ -57,9 +57,9 @@ const { ccclass, property } = _decorator;
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 const GAME_NAME = '羊狼四线战';
-const GAME_VERSION = 'v1.3.0-dev-polish09-ui19-perf01-loading01';
-const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish09-ui19-perf01-loading01';
-const REQUESTED_TASK_ID = 'v1.3.0-dev-polish09-ui19-perf01-loading01';
+const GAME_VERSION = 'v1.3.0-dev-polish16-ui26-bgmalign01';
+const DEVELOPMENT_BATCH = 'v1.3.0-dev-polish16-ui26-bgmalign01';
+const REQUESTED_TASK_ID = 'v1.3.0-dev-polish16-ui26-bgmalign01';
 const BATTLEFIELD_CENTER_X = -90;
 // Rebalance the battle screen into three non-overlapping columns. Every
 // lane-owned visual and interaction axis consumes this same translation.
@@ -162,15 +162,18 @@ const PAUSE_ACTION_SECOND_ROW_Y = 17;
 const PAUSE_BGM_CENTER_Y = -130;
 const PAUSE_VOLUME_CENTER_Y = -252;
 const PAUSE_SETTINGS_ROW_WIDTH = 430;
-const PAUSE_BGM_ROW_HEIGHT = 166;
+const PAUSE_BGM_ROW_HEIGHT = 176;
 const PAUSE_BGM_CARD_WIDTH = 400;
 const PAUSE_BGM_CARD_HEIGHT = 56;
-const PAUSE_BGM_FIRST_CARD_Y = 9;
-const PAUSE_BGM_SECOND_CARD_Y = -55;
+const PAUSE_BGM_FIRST_CARD_Y = 10;
+const PAUSE_BGM_SECOND_CARD_Y = -54;
 const PAUSE_BGM_ICON_X = -173;
-const PAUSE_BGM_CONTENT_X = -10;
-const PAUSE_BGM_CONTENT_WIDTH = 236;
-const PAUSE_BGM_STATE_X = 153;
+// Match the two vertical separators baked into the sliced level-card art.
+const PAUSE_BGM_LEFT_DIVIDER_X = -143;
+const PAUSE_BGM_RIGHT_DIVIDER_X = 116;
+const PAUSE_BGM_CONTENT_X = -14;
+const PAUSE_BGM_CONTENT_WIDTH = 230;
+const PAUSE_BGM_STATE_X = 154;
 const PAUSE_BGM_STATE_WIDTH = 64;
 const PAUSE_BGM_CHECK_X = 181;
 const PAUSE_VOLUME_ROW_WIDTH = 208;
@@ -439,7 +442,7 @@ const TARGET_TYPOGRAPHY_STYLES: Readonly<Record<TargetTypographyRole, TargetTypo
         lineHeight: 27,
         isBold: true,
         color: UI_TEXT_PRIMARY,
-        overflow: Label.Overflow.CLAMP,
+        overflow: Label.Overflow.SHRINK,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.LEFT,
         verticalAlign: VerticalTextAlignment.CENTER,
@@ -449,37 +452,37 @@ const TARGET_TYPOGRAPHY_STYLES: Readonly<Record<TargetTypographyRole, TargetTypo
         lineHeight: 18,
         isBold: false,
         color: UI_TEXT_SECONDARY,
-        overflow: Label.Overflow.CLAMP,
+        overflow: Label.Overflow.SHRINK,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.RIGHT,
         verticalAlign: VerticalTextAlignment.CENTER,
     },
     BgmCardTitle: {
-        fontSize: 18,
-        lineHeight: 23,
+        fontSize: 17,
+        lineHeight: 20,
         isBold: true,
         color: new Color(74, 56, 39, 255),
-        overflow: Label.Overflow.CLAMP,
+        overflow: Label.Overflow.SHRINK,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.LEFT,
         verticalAlign: VerticalTextAlignment.CENTER,
     },
     BgmCardBody: {
-        fontSize: 14,
-        lineHeight: 18,
+        fontSize: 13,
+        lineHeight: 16,
         isBold: false,
         color: new Color(100, 87, 61, 255),
-        overflow: Label.Overflow.CLAMP,
+        overflow: Label.Overflow.SHRINK,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.LEFT,
         verticalAlign: VerticalTextAlignment.CENTER,
     },
     BgmCardState: {
-        fontSize: 13,
-        lineHeight: 16,
+        fontSize: 12,
+        lineHeight: 15,
         isBold: true,
         color: new Color(126, 84, 25, 255),
-        overflow: Label.Overflow.CLAMP,
+        overflow: Label.Overflow.SHRINK,
         enableWrapText: false,
         horizontalAlign: HorizontalTextAlignment.CENTER,
         verticalAlign: VerticalTextAlignment.CENTER,
@@ -542,6 +545,11 @@ const LANE_PROGRESS_VALUE_EPSILON = 0.001;
 const UNIT_HEALTH_RENDER_RATIO_EPSILON = 0.0001;
 const LANE_STALL_RECOVERY_SECONDS = 2;
 const MAX_LOGIC_DELTA_TIME = 0.1;
+// Web previews commonly run on 120/144/165 Hz displays. The engine default of
+// 60 Hz made slow lane motion hold for several display refreshes and then jump.
+// Mini-game runtimes keep their platform-selected cadence; the browser alone
+// requests 120 Hz while still using delta-time-based gameplay movement.
+const BROWSER_TARGET_FRAME_RATE = 120;
 // Root positions stay inside these bounds. The margin also reserves room for
 // the health bar and keeps units away from the surrounding HUD/base visuals.
 const UNIT_ROAD_SAFETY_MARGIN = 22;
@@ -1902,6 +1910,13 @@ export class GameController extends Component {
         if (!this.node.getComponent(Canvas)) {
             console.error('[WolfSheepBattle] GameController 必须挂在 Canvas 节点上。');
             return;
+        }
+        if (sys.isBrowser) {
+            const configuredFrameRate = Number(game.frameRate);
+            game.frameRate = Math.max(
+                Number.isFinite(configuredFrameRate) ? configuredFrameRate : 60,
+                BROWSER_TARGET_FRAME_RATE,
+            );
         }
 
         WeChatShareManager.initialize(GAME_VERSION);
@@ -11328,10 +11343,10 @@ export class GameController extends Component {
         graphics.roundRect(-PAUSE_SETTINGS_ROW_WIDTH / 2 + 0.75, -PAUSE_BGM_ROW_HEIGHT / 2 + 0.75,
             PAUSE_SETTINGS_ROW_WIDTH - 1.5, PAUSE_BGM_ROW_HEIGHT - 1.5, 15);
         graphics.stroke();
-        const title = this.createLabel(selector, 'BgmTrackTitle', '背景音乐风格', -111, 65, 176, 30, 22,
+        const title = this.createLabel(selector, 'BgmTrackTitle', '背景音乐风格', -111, 67, 176, 26, 22,
             new Color(74, 56, 39, 255));
         this.applyTargetTypography(title, 'BgmSectionTitle');
-        const hint = this.createLabel(selector, 'BgmTrackHint', '点击卡片立即试听并保存', 95, 65, 208, 24, 14,
+        const hint = this.createLabel(selector, 'BgmTrackHint', '点击卡片立即试听并保存', 95, 67, 208, 22, 14,
             new Color(116, 100, 82, 255));
         this.applyTargetTypography(hint, 'BgmSectionHint');
 
@@ -11363,20 +11378,20 @@ export class GameController extends Component {
             PAUSE_BGM_CARD_WIDTH, PAUSE_BGM_CARD_HEIGHT, x, y, parent);
         const optionGraphics = root.getComponent(Graphics)!;
         const titleLabel = this.createLabel(root, 'Title', track.displayName,
-            PAUSE_BGM_CONTENT_X, 14, PAUSE_BGM_CONTENT_WIDTH, 22, 18,
+            PAUSE_BGM_CONTENT_X, 11, PAUSE_BGM_CONTENT_WIDTH, 20, 17,
             new Color(74, 56, 39, 255));
         this.applyTargetTypography(titleLabel, 'BgmCardTitle');
         const subtitleLabel = this.createLabel(root, 'Subtitle', track.subtitle,
-            PAUSE_BGM_CONTENT_X, -14, PAUSE_BGM_CONTENT_WIDTH, 18, 14,
+            PAUSE_BGM_CONTENT_X, -12, PAUSE_BGM_CONTENT_WIDTH, 18, 13,
             new Color(100, 87, 61, 255));
         this.applyTargetTypography(subtitleLabel, 'BgmCardBody');
         const statusLabel = this.createLabel(root, 'Status', '',
-            PAUSE_BGM_STATE_X, -12, PAUSE_BGM_STATE_WIDTH, 18, 13,
+            PAUSE_BGM_STATE_X, -12, PAUSE_BGM_STATE_WIDTH, 16, 12,
             new Color(126, 84, 25, 255));
         this.applyTargetTypography(statusLabel, 'BgmCardState');
-        const checkNode = this.createGraphicsNode('SelectedCheck', 22, 22, PAUSE_BGM_CHECK_X, 17, root);
+        const checkNode = this.createGraphicsNode('SelectedCheck', 20, 20, PAUSE_BGM_CHECK_X, 12, root);
         const checkGraphics = checkNode.getComponent(Graphics)!;
-        const checkLabel = this.createLabel(checkNode, 'Check', '✓', 0, 0, 18, 18, 13, Color.WHITE);
+        const checkLabel = this.createLabel(checkNode, 'Check', '✓', 0, 0, 16, 16, 12, Color.WHITE);
         this.applyTargetTypography(checkLabel, 'BgmCardState', Color.WHITE);
         const touchArea = new Node('TouchArea');
         touchArea.setParent(root);
@@ -11463,10 +11478,10 @@ export class GameController extends Component {
                 graphics.lineWidth = 1;
                 graphics.strokeColor = selected
                     ? new Color(188, 137, 26, 180) : new Color(85, 165, 145, 170);
-                graphics.moveTo(-148, -21);
-                graphics.lineTo(-148, 21);
-                graphics.moveTo(112, -21);
-                graphics.lineTo(112, 21);
+                graphics.moveTo(PAUSE_BGM_LEFT_DIVIDER_X, -21);
+                graphics.lineTo(PAUSE_BGM_LEFT_DIVIDER_X, 21);
+                graphics.moveTo(PAUSE_BGM_RIGHT_DIVIDER_X, -21);
+                graphics.lineTo(PAUSE_BGM_RIGHT_DIVIDER_X, 21);
                 graphics.stroke();
             }
             option.statusLabel.string = selected ? '当前使用' : '点击试听';
@@ -11474,11 +11489,11 @@ export class GameController extends Component {
             option.checkGraphics.clear();
             if (selected) {
                 option.checkGraphics.fillColor = new Color(226, 171, 38, 255);
-                option.checkGraphics.circle(0, 0, 10);
+                option.checkGraphics.circle(0, 0, 9);
                 option.checkGraphics.fill();
                 option.checkGraphics.lineWidth = 1.5;
                 option.checkGraphics.strokeColor = new Color(255, 247, 205, 255);
-                option.checkGraphics.circle(0, 0, 10);
+                option.checkGraphics.circle(0, 0, 9);
                 option.checkGraphics.stroke();
             }
             option.root.setScale(1, 1, 1);
@@ -13141,6 +13156,9 @@ export class GameController extends Component {
             ? y
             : unit.team === Team.Player ? bounds.minY : bounds.maxY);
         const previousY = unit.node.position.y;
+        if (Number.isFinite(previousY) && Math.abs(safeY - previousY) <= LANE_PROGRESS_VALUE_EPSILON) {
+            return;
+        }
         unit.node.setPosition(unit.node.position.x, safeY);
         if (Number.isFinite(previousY) && Math.abs(safeY - previousY) > LANE_PROGRESS_VALUE_EPSILON) {
             unit.isMoving = true;
@@ -13983,7 +14001,13 @@ export class GameController extends Component {
             const forward = unit.team === Team.Player ? 1 : -1;
             const attackKick = Math.sin(Math.PI * unit.attackKickRemaining / UNIT_IMPACT_DURATION) * 1.7;
             const hitRecoil = Math.sin(Math.PI * unit.hitRecoilRemaining / UNIT_IMPACT_DURATION) * 1.3;
-            const visualY = Math.sin(unit.walkPhase) * bobAmplitude + forward * (attackKick - hitRecoil);
+            // Formal sprite sheets already contain locomotion posture changes.
+            // Adding a second sine bob made the portrait oscillate independently
+            // from the UnitRoot/HealthUI pair and read as vertical jitter. Keep
+            // the fallback procedural character bob only; impact offsets remain
+            // local to VisualNode for both render paths.
+            const locomotionBob = unit.artAnimator ? 0 : Math.sin(unit.walkPhase) * bobAmplitude;
+            const visualY = locomotionBob + forward * (attackKick - hitRecoil);
             const tierScale = UNIT_TIER_VISUALS[unit.definition.type].visualScale;
             const depthScale = this.getUnitVisualDepthScale(unit.node.position.y);
             const visualScale = tierScale * depthScale * (1 + hitRecoil * 0.022);
@@ -14017,7 +14041,7 @@ export class GameController extends Component {
         orderedUnits.sort((a, b) => b.node.position.y - a.node.position.y || a.queueOrder - b.queueOrder);
         for (let index = 0; index < orderedUnits.length; index += 1) {
             const node = orderedUnits[index].node;
-            if (node.siblingIndex !== index) {
+            if (node.getSiblingIndex() !== index) {
                 node.setSiblingIndex(index);
             }
         }
@@ -14943,11 +14967,11 @@ export class GameController extends Component {
             const isAvailable = state === 'available' || state === 'selected' || state === 'pressed';
             const usesPilotCard = !!button.artSprite?.node.active && !!button.artSprite.spriteFrame;
             if (usesPilotCard && button.artSprite) {
-                const cardTint = state === 'pressed'
-                    ? new Color(234, 224, 198, 255)
-                    : state === 'locked' ? new Color(158, 153, 143, 255)
-                        : state === 'insufficient' ? new Color(232, 215, 199, 255) : Color.WHITE;
-                button.artSprite.color = cardTint;
+                // The integrated sprite already contains the authored portrait,
+                // wool, flowers, leaves, gold frame and paper texture. Never tint
+                // the complete card: tier color is authored into the PNG, while
+                // state feedback uses text and the existing gold selection frame.
+                button.artSprite.color = Color.WHITE;
                 if (button.artSelectionGraphics) {
                     const selectionNode = button.artSelectionGraphics.node;
                     selectionNode.active = isSelected;
@@ -14993,85 +15017,26 @@ export class GameController extends Component {
 
     private applyUnitCardStatusStyle(button: UnitTypeButtonView, state: UnitCardVisualState): void {
         button.stateLabel.color = state === 'insufficient'
-            ? new Color(174, 67, 43, 255)
+            ? new Color(143, 58, 42, 255)
             : state === 'selected-insufficient'
-                ? new Color(139, 66, 25, 255)
+                ? new Color(126, 54, 31, 255)
                 : state === 'selected'
-                    ? new Color(103, 88, 22, 255)
+                    ? new Color(105, 72, 18, 255)
                     : state === 'locked'
-                        ? new Color(104, 96, 86, 255)
-                        : new Color(38, 110, 60, 255);
+                        ? new Color(100, 92, 82, 255)
+                        : new Color(72, 56, 41, 255);
     }
 
     private drawUnitCardTierAccent(
         button: UnitTypeButtonView,
-        type: SheepType,
-        state: UnitCardVisualState,
+        _type: SheepType,
+        _state: UnitCardVisualState,
     ): void {
         const graphics = button.tierAccentGraphics;
-        const size = button.node.getComponent(UITransform)?.contentSize;
-        if (!graphics || !size) return;
-        const tierAccent = UNIT_TIER_VISUALS[type].accentColor;
-        const alpha = state === 'locked' ? 112
-            : state === 'insufficient' || state === 'selected-insufficient' ? 176 : 255;
-        const accent = new Color(tierAccent.r, tierAccent.g, tierAccent.b, alpha);
-        const halfWidth = size.width / 2;
-        const halfHeight = size.height / 2;
-        const scale = size.width / UNIT_CARD_WIDTH;
-        const cream = { r: 255, g: 250, b: 232 };
-        const mixWithCream = (accentRatio: number, opacity: number): Color => new Color(
-            Math.round(cream.r * (1 - accentRatio) + tierAccent.r * accentRatio),
-            Math.round(cream.g * (1 - accentRatio) + tierAccent.g * accentRatio),
-            Math.round(cream.b * (1 - accentRatio) + tierAccent.b * accentRatio),
-            opacity,
-        );
-        const surfaceOpacity = state === 'locked' ? 220
-            : state === 'insufficient' || state === 'selected-insufficient' ? 232 : 244;
-        const contentLeft = -31 * scale;
-        const statePanelLeft = 49 * scale;
-
+        if (!graphics) return;
         graphics.clear();
-
-        // The formal v02 art keeps the portrait untouched. Its non-portrait UI
-        // regions are covered by a high-luminance tier surface derived from the
-        // one frozen accent source, so the card reads blue/green/purple/orange
-        // as a whole instead of inheriting the old teal/purple panel colors.
-        graphics.fillColor = mixWithCream(0.18, surfaceOpacity);
-        graphics.roundRect(
-            contentLeft,
-            -halfHeight + 5 * scale,
-            halfWidth - contentLeft - 5 * scale,
-            size.height - 10 * scale,
-            11 * scale,
-        );
-        graphics.fill();
-        graphics.fillColor = mixWithCream(0.36, surfaceOpacity);
-        graphics.roundRect(
-            statePanelLeft,
-            -halfHeight + 6 * scale,
-            halfWidth - statePanelLeft - 6 * scale,
-            size.height - 12 * scale,
-            10 * scale,
-        );
-        graphics.fill();
-
-        graphics.lineWidth = Math.max(3.5, 4 * scale);
-        graphics.strokeColor = accent;
-        graphics.roundRect(-halfWidth + 2 * scale, -halfHeight + 2 * scale,
-            size.width - 4 * scale, size.height - 4 * scale, 14 * scale);
-        graphics.stroke();
-
-        // Central information emphasis and state separator share the same tier
-        // color. Selection gold remains on the separate layer above this one.
-        graphics.fillColor = new Color(tierAccent.r, tierAccent.g, tierAccent.b,
-            state === 'locked' ? 128 : state === 'insufficient' || state === 'selected-insufficient' ? 176 : 218);
-        graphics.roundRect(-24 * scale, -halfHeight + 8 * scale, 66 * scale, 5 * scale, 2.5 * scale);
-        graphics.fill();
-        graphics.lineWidth = Math.max(3, 3.5 * scale);
-        graphics.strokeColor = accent;
-        graphics.moveTo(statePanelLeft, -halfHeight + 12 * scale);
-        graphics.lineTo(statePanelLeft, halfHeight - 12 * scale);
-        graphics.stroke();
+        // Tier hue and paper relief are authored into the integrated PNG.  Keep
+        // this legacy layer empty so it cannot flatten the status-well texture.
     }
 
     private orderUnitCardChildren(button: UnitTypeButtonView): void {
