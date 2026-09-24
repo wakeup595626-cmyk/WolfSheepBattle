@@ -6,9 +6,9 @@ Thank you for your interest in WolfSheepBattle!
 
 ## Ways to contribute
 
-- **Report a bug**  open a [GitHub Issue](https://github.com/wakeup595626-cmyk/WolfSheepBattle/issues) with your Cocos Creator and WeChat DevTools versions, reproduction steps and what you expected.
-- **Suggest a balance or level change**  please describe the gameplay problem you observed, not only the numbers you would change.
-- **Improve the docs**  the README exists in English and Chinese; corrections to either side are welcome.
+- **Report a bug** — open a [GitHub Issue](https://github.com/wakeup595626-cmyk/WolfSheepBattle/issues) with your Cocos Creator and WeChat DevTools versions, reproduction steps and what you expected.
+- **Suggest a balance or level change** — please describe the gameplay problem you observed, not only the numbers you would change.
+- **Improve the docs** — the README exists in English and Chinese; corrections to either side are welcome.
 
 ## Development
 

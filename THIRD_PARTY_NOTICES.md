@@ -4,7 +4,7 @@ WolfSheepBattle is distributed under the [MIT](LICENSE) license. The notices bel
 
 ## Engine
 
-**Cocos Creator 3.8.8**  the project is built with Cocos Creator. The engine itself is not redistributed in this repository; build outputs contain engine code governed by the Cocos Creator license.
+**Cocos Creator 3.8.8** — the project is built with Cocos Creator. The engine itself is not redistributed in this repository; build outputs contain engine code governed by the Cocos Creator license.
 
 ## Fonts
 

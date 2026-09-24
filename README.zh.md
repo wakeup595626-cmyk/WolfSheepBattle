@@ -17,7 +17,7 @@
 1. 安装 **Cocos Creator 3.8.8**（版本固定在 `package.json` 的 `creator.version`）。
 2. 用 Cocos Creator 打开本目录它会自动生成 `library/`、`temp/` 与 `build/`。
 3. 打开 `assets/scenes/Battle.scene` 即可在编辑器内预览。
-4. 构建：**项目  构建发布**，平台选择「微信小游戏」（或「Web Mobile」）。
+4. 构建：**项目 — 构建发布**，平台选择「微信小游戏」（或「Web Mobile」）。
 
 > 构建前请把 AppID 换成你自己的。历史 QA 记录中出现的 AppID 属于原作者，缺少对应上传密钥无法使用，但也请勿误用。
 

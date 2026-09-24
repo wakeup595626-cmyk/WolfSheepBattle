@@ -6,9 +6,9 @@
 
 ## 可以怎么贡献
 
-- **报告问题**  在 [GitHub Issues](https://github.com/wakeup595626-cmyk/WolfSheepBattle/issues) 提交，请附上你的 Cocos Creator 与微信开发者工具版本、复现步骤与期望结果。
-- **建议平衡性或关卡调整**  欢迎描述你观察到的玩法问题，而不只是你想改的数值。
-- **改进文档**  README 同时提供英文与中文，任何一侧的修正都欢迎。
+- **报告问题** — 在 [GitHub Issues](https://github.com/wakeup595626-cmyk/WolfSheepBattle/issues) 提交，请附上你的 Cocos Creator 与微信开发者工具版本、复现步骤与期望结果。
+- **建议平衡性或关卡调整** — 欢迎描述你观察到的玩法问题，而不只是你想改的数值。
+- **改进文档** — README 同时提供英文与中文，任何一侧的修正都欢迎。
 
 ## 本地开发
 

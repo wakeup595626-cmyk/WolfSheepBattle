@@ -4,7 +4,7 @@
 
 ## 引擎
 
-**Cocos Creator 3.8.8**  本项目使用 Cocos Creator 构建。引擎本身未在本仓库中再分发；构建产物中包含的引擎代码受 Cocos Creator 许可协议约束。
+**Cocos Creator 3.8.8** — 本项目使用 Cocos Creator 构建。引擎本身未在本仓库中再分发；构建产物中包含的引擎代码受 Cocos Creator 许可协议约束。
 
 ## 字体
 
