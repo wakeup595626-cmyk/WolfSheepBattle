@@ -1,0 +1,29 @@
+# Normalize line endings
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.zip binary
+*.tgz binary
+*.psd binary
+*.fbx binary
+*.uasset binary
+*.umap binary
+
+# Documentation
+*.md text eol=lf
+
+# Linguist: keep generated build trees out of language stats
+build/** linguist-generated=true
