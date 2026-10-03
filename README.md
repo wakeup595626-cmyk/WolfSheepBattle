@@ -1,53 +1,52 @@
 # 羊狼四线战 (WolfSheepBattle)
 
-English | [中文](README.zh.md)
+**中文** | [English](README.en.md)
 
-A turn-based tactics mini-game for the WeChat Mini Game platform, built with **Cocos Creator 3.8.8**.
+一款基于 **Cocos Creator 3.8.8** 开发、面向微信小游戏平台的回合制战棋游戏。
 
-Players deploy units across four battle lines and fight turn by turn, combining troop composition with tactic cards. The repository contains the complete game source — scenes, TypeScript gameplay code, runtime art, audio and the original art source files.
+玩家在四条战线上布置单位、回合制对抗，通过兵种搭配与战术卡牌取胜。本仓库包含完整游戏源码：场景、TypeScript 玩法代码、运行时美术与音频资源，以及美术创作源文件。
 
-## Play
+## 试玩
 
-**Play in your browser** (no install required): **https://wakeup595626-cmyk.github.io/WolfSheepBattle/**
+**浏览器直接玩**（无需安装）：**https://wakeup595626-cmyk.github.io/WolfSheepBattle/**
 
-The WeChat Mini Game build is available under [Releases](https://github.com/wakeup595626-cmyk/WolfSheepBattle/releases). Download the archive, import the extracted folder into WeChat DevTools, and supply your own AppID.
+微信小游戏构建包见 [Releases](https://github.com/wakeup595626-cmyk/WolfSheepBattle/releases)。下载解压后，用微信开发者工具导入，并填入你自己的 AppID。
 
-## Build from source
+## 从源码构建
 
-1. Install **Cocos Creator 3.8.8** (the version is pinned in `package.json` under `creator.version`).
-2. Open this folder with Cocos Creator — it will regenerate `library/`, `temp/` and `build/`.
-3. Open `assets/scenes/Battle.scene` to preview inside the editor.
-4. To build: **Project — Build** and pick the *WeChat Mini Game* (or *Web Mobile*) platform.
+1. 安装 **Cocos Creator 3.8.8**（版本固定在 `package.json` 的 `creator.version`）。
+2. 用 Cocos Creator 打开本目录——它会自动生成 `library/`、`temp/` 与 `build/`。
+3. 打开 `assets/scenes/Battle.scene` 即可在编辑器内预览。
+4. 构建：**项目 — 构建发布**，平台选择「微信小游戏」（或「Web Mobile」）。
 
-> Replace the AppID with your own before building. The AppIDs appearing in historical QA records belong to the original author; they are useless without the matching upload key, but please do not reuse them.
+> 构建前请把 AppID 换成你自己的。历史 QA 记录中出现的 AppID 属于原作者，缺少对应上传密钥无法使用，但也请勿误用。
 
-## Project layout
+## 目录结构
 
-| Path | Description |
+| 路径 | 说明 |
 |---|---|
-| `assets/` | The game project: scenes, TypeScript scripts, prefabs, runtime assets |
-| `art_source/` | Original art source files (characters, UI, battlefield, VFX) |
-| `tools/` | Build, QA and release-validation scripts |
-| `THIRD_PARTY_LICENSES/` | Font licenses |
-| `THIRD_PARTY_AUDIO.md` | Per-track BGM provenance (source, author, SHA-256) |
-| `*_REPORT.md` | Per-version development reports, kept as a development record |
+| `assets/` | 游戏工程主体：场景、TypeScript 脚本、Prefab、运行时资源 |
+| `art_source/` | 美术创作源文件（角色、UI、战场、VFX） |
+| `tools/` | 构建、QA 与发布校验脚本 |
+| `THIRD_PARTY_LICENSES/` | 字体许可原文 |
+| `THIRD_PARTY_AUDIO.md` | 逐首 BGM 溯源（来源、作者、SHA-256） |
+| `*_REPORT.md` | 各版本开发报告，作为开发过程记录保留 |
 
-## Third-party notices
+## 第三方声明
 
-Fonts are licensed under the terms in `THIRD_PARTY_LICENSES/`. Background music comes from **Pixabay** (free for commercial use) and each track is documented in `THIRD_PARTY_AUDIO.md`. Everything else — code and art — is original work.
+字体授权见 `THIRD_PARTY_LICENSES/`；背景音乐来自 **Pixabay**（免费可商用），逐首记录在 `THIRD_PARTY_AUDIO.md`。除此之外的代码与美术资源均为原创。
 
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+详见 [THIRD_PARTY_NOTICES.zh.md](THIRD_PARTY_NOTICES.zh.md)（[English](THIRD_PARTY_NOTICES.md)）。
 
-## Community and support
+## 社区与支持
 
-- Report bugs through [GitHub Issues](https://github.com/wakeup595626-cmyk/WolfSheepBattle/issues).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your own plugin repository for discoverability.
+- 通过 [GitHub Issues](https://github.com/wakeup595626-cmyk/WolfSheepBattle/issues) 报告问题。
 
-## Contributing
+## 参与贡献
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+参见 [CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)（[English](CONTRIBUTING.md)）。
 
-## Citation
+## 引用
 
 ```bibtex
 @misc{wolfsheepbattle,
@@ -59,6 +58,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 }
 ```
 
-## License
+## 许可证
 
 [MIT](LICENSE)
