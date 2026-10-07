@@ -131,7 +131,7 @@
 ## 8. 图像生成记录
 
 - 使用方式：Codex 内置 ImageGen。
-- 最终生成原图：`C:\Users\25653\.codex\generated_images\019fa5a1-e967-71a3-9855-32721b9d6cb3\call_ohIxQiOsmAvFwDJeldjIyN3V.png`
+- 最终生成原图：`<CODEX_HOME>\generated_images\019fa5a1-e967-71a3-9855-32721b9d6cb3\call_ohIxQiOsmAvFwDJeldjIyN3V.png`
 - 项目内优化结果：`assets/art/branding/loading/loading_bg_meadow_v02.jpg`
 - 最终提示词：
 

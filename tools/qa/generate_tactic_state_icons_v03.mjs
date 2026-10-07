@@ -6,9 +6,11 @@ import { pathToFileURL } from 'node:url';
 const projectRoot = process.argv[2];
 if (!projectRoot) throw new Error('project root is required');
 
-const sharpPath = process.env.CODEX_SHARP_MODULE
-    ?? 'C:/Users/25653/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/sharp/lib/index.js';
-const { default: sharp } = await import(pathToFileURL(sharpPath).href);
+const sharp = (await import(
+    process.env.CODEX_SHARP_MODULE
+        ? pathToFileURL(process.env.CODEX_SHARP_MODULE).href
+        : 'sharp'
+)).default;
 
 const sourceDir = path.join(projectRoot, 'art_source', 'ui', 'tactic_cards', 'status_icons');
 const runtimeDir = path.join(projectRoot, 'assets', 'bundles', 'art_ui', 'ui', 'tactic_cards', 'status_icons');

@@ -11,7 +11,7 @@
 - 游戏内名称：赛博欢乐
 - 曲目ID：`cyberwave_upbeat`
 - 项目运行时资源：`assets/bundles/audio_bgm/bgm/bgm_cyberwave_upbeat_runtime_v01.mp3`
-- 原始文件绝对路径：`D:\Users\25653\Desktop\game_bgm\cyberwave-orchestra-fun-game-upbeat-happy-video-game-music-249646.mp3`
+- 原始文件绝对路径：`<本地素材目录>\cyberwave-orchestra-fun-game-upbeat-happy-video-game-music-249646.mp3`
 - 运行时文件绝对路径：`D:\GameProjects\WolfSheepBattle\assets\bundles\audio_bgm\bgm\bgm_cyberwave_upbeat_runtime_v01.mp3`
 - 原始文件名：`cyberwave-orchestra-fun-game-upbeat-happy-video-game-music-249646.mp3`
 - 原文件SHA-256：`890879DC602A5D120F38B0AA58D97D19D93AB19E7C316CAFD032FB58C7565DBF`
@@ -53,7 +53,7 @@
 - 游戏内名称：轻松欢快
 - 曲目ID：`cheerful_lighthearted`
 - 项目运行时资源：`assets/bundles/audio_bgm/bgm/bgm_cheerful_lighthearted_runtime_v01.mp3`
-- 原始文件绝对路径：`D:\Users\25653\Desktop\game_bgm\cheerful and lighthearted_耳聆网.mp3`
+- 原始文件绝对路径：`<本地素材目录>\cheerful and lighthearted_耳聆网.mp3`
 - 运行时文件绝对路径：`D:\GameProjects\WolfSheepBattle\assets\bundles\audio_bgm\bgm\bgm_cheerful_lighthearted_runtime_v01.mp3`
 - 原始文件名：`cheerful and lighthearted_耳聆网.mp3`
 - 原文件SHA-256：`6147CCEB95E78CE2AFCACCCD4CBAA020CB8A0809B981A606A7F5078E7B443994`

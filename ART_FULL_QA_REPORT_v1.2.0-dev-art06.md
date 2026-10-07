@@ -299,9 +299,9 @@ Cocos 3.8 官方微信发布文档说明小游戏包存在严格包体限制，�
 
 关键截图：
 
-- `C:\Users\25653\.codex\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\art06-eight-units.png`
-- `C:\Users\25653\.codex\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\art06-pause.png`
-- `C:\Users\25653\.codex\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\art06-40-sprite-stress.png`
+- `<CODEX_HOME>\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\art06-eight-units.png`
+- `<CODEX_HOME>\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\art06-pause.png`
+- `<CODEX_HOME>\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\art06-40-sprite-stress.png`
 
 ## 12. 微信小游戏构建结果
 

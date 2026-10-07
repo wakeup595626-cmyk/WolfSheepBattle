@@ -28,7 +28,7 @@
 
 本轮浏览器验证截图位于：
 
-`C:\Users\25653\.codex\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\`
+`<CODEX_HOME>\visualizations\2026\07\26\019f9fa3-c8c0-7813-9a96-4089df662072\`
 
 关键文件：
 

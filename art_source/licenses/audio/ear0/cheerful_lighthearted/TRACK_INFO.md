@@ -13,7 +13,7 @@
 - 采样率：44100 Hz
 - 声道：立体声（2 声道）
 - 原始文件名：`cheerful and lighthearted_耳聆网.mp3`
-- 原始文件：`D:\Users\25653\Desktop\game_bgm\cheerful and lighthearted_耳聆网.mp3`
+- 原始文件：`<本地素材目录>\cheerful and lighthearted_耳聆网.mp3`
 - 原始文件大小：2,143,295 字节
 - 原始文件 SHA-256：`6147CCEB95E78CE2AFCACCCD4CBAA020CB8A0809B981A606A7F5078E7B443994`
 - 运行时文件：`D:\GameProjects\WolfSheepBattle\assets\bundles\audio_bgm\bgm\bgm_cheerful_lighthearted_runtime_v01.mp3`

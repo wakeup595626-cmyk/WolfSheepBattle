@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { chromium } from 'file:///C:/Users/25653/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 const outputDir = path.resolve(process.argv[2] ?? 'release_evidence/v1.3.0-dev-opt01/realtime-stress');
 const previewUrl = process.argv[3] ?? 'http://127.0.0.1:8765';

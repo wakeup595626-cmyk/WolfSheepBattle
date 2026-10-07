@@ -89,7 +89,7 @@ GameLayer
 
 > Using the supplied current battlefield image only as a color and healing-cartoon style reference, create a brand-new 1280×720 landscape battlefield ground seen from a high 60-degree top-down 2.5D angle. No sky, no horizon, no distant mountains, no buildings, no bases, no characters, no UI, no text. Integrate exactly four parallel vertical dirt lanes into one continuous grassy terrain, with calm low-detail grass at the far right for a functional sidebar. Keep the lane centers visually aligned for x = 145, 415, 685, 955 in a 1280-wide canvas. Warm soft lighting, hand-painted casual mobile game style, clear ground texture without overpowering units.
 
-- ImageGen 内置生成结果：`C:\Users\25653\.codex\generated_images\019f9fa3-c8c0-7813-9a96-4089df662072\exec-229ce1f8-dc5e-4d9d-8490-6c5f3a4cce44.png`
+- ImageGen 内置生成结果：`<CODEX_HOME>\generated_images\019f9fa3-c8c0-7813-9a96-4089df662072\exec-229ce1f8-dc5e-4d9d-8490-6c5f3a4cce44.png`
 - 校准后的高质量源图：`art_source/battlefield/backgrounds/battlefield_ground_topdown_v02.png`，1280×720，1,320,192 bytes。
 - 运行时地面：`assets/bundles/art_battlefield/battlefield/backgrounds/battlefield_ground_topdown_runtime_v01.jpg`，1280×720，263,969 bytes，JPEG q89 4:4:4。
 - 阴影源图：`art_source/characters/shared/unit_ground_shadow_v01.png`，256×128，5,524 bytes。
