@@ -49,7 +49,7 @@
 
 选中效果：
 
-![黄色选中卡](art_source/qa/art08-04/selected_medium_yellow.png)
+![黄色选中卡](../../art_source/qa/art08-04/selected_medium_yellow.png)
 
 ## 4. 补给站三态
 
@@ -72,7 +72,7 @@
 
 三态截图（第1/4路中立，第2路羊，第3路狼）：
 
-![补给站三态](art_source/qa/art08-04/supply_neutral_sheep_wolf.png)
+![补给站三态](../../art_source/qa/art08-04/supply_neutral_sheep_wolf.png)
 
 ## 5. 关卡徽章
 
@@ -83,11 +83,11 @@
 
 修改前：
 
-![修改前关卡徽章](art_source/qa/art08-04/before_level_badge.png)
+![修改前关卡徽章](../../art_source/qa/art08-04/before_level_badge.png)
 
 修改后：
 
-![修改后关卡徽章](art_source/qa/art08-04/after_level_badge.png)
+![修改后关卡徽章](../../art_source/qa/art08-04/after_level_badge.png)
 
 ## 6. 八个出兵门中心误差
 
@@ -156,11 +156,11 @@ AI 门四帧 alpha 主体平均比纹理中心偏左 0.375 像素；按 72 设�
 
 修改前：
 
-![修改前完整战斗](art_source/qa/art08-04/before_battle_reference.png)
+![修改前完整战斗](../../art_source/qa/art08-04/before_battle_reference.png)
 
 修改后：
 
-![修改后完整战斗](art_source/qa/art08-04/after_battle_1280x720.png)
+![修改后完整战斗](../../art_source/qa/art08-04/after_battle_1280x720.png)
 
 宽屏验证：`art_source/qa/art08-04/after_battle_wide_1800x720.png`。
 

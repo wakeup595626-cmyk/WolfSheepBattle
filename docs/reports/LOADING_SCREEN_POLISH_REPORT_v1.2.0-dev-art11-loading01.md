@@ -65,25 +65,25 @@
 
 ### 进度五态
 
-![0/25/50/87/100 五态](tmp/art11/screenshots/loading_progress_states_contact.png)
+![0/25/50/87/100 五态](../../tmp/art11/screenshots/loading_progress_states_contact.png)
 
-- [0%](tmp/art11/screenshots/loading_progress_000_1280x720.png)
-- [25%](tmp/art11/screenshots/loading_progress_025_1280x720.png)
-- [50%](tmp/art11/screenshots/loading_progress_050_1280x720.png)
-- [87%](tmp/art11/screenshots/loading_progress_087_1280x720.png)
-- [100%](tmp/art11/screenshots/loading_progress_100_1280x720.png)
+- [0%](../../tmp/art11/screenshots/loading_progress_000_1280x720.png)
+- [25%](../../tmp/art11/screenshots/loading_progress_025_1280x720.png)
+- [50%](../../tmp/art11/screenshots/loading_progress_050_1280x720.png)
+- [87%](../../tmp/art11/screenshots/loading_progress_087_1280x720.png)
+- [100%](../../tmp/art11/screenshots/loading_progress_100_1280x720.png)
 
 452 像素有效填充槽对应五态宽度分别为 0、113、226、393、452 像素，百分比与填充一致。
 
 ### 16:9、18:9、19.5:9、20:9
 
-![横屏比例对照](tmp/art11/screenshots/loading_aspect_ratios_contact.png)
+![横屏比例对照](../../tmp/art11/screenshots/loading_aspect_ratios_contact.png)
 
-- [1280×720 / 16:9](tmp/art11/screenshots/loading_ratio_16x9_1280x720.png)
-- [1440×720 / 18:9](tmp/art11/screenshots/loading_ratio_18x9_1440x720.png)
-- [1560×720 / 19.5:9](tmp/art11/screenshots/loading_ratio_19_5x9_1560x720.png)
-- [1600×720 / 20:9（含右上角胶囊避让审计标记）](tmp/art11/screenshots/loading_ratio_20x9_1600x720.png)
-- [加载失败与重试状态](tmp/art11/screenshots/loading_failure_retry_1280x720.png)
+- [1280×720 / 16:9](../../tmp/art11/screenshots/loading_ratio_16x9_1280x720.png)
+- [1440×720 / 18:9](../../tmp/art11/screenshots/loading_ratio_18x9_1440x720.png)
+- [1560×720 / 19.5:9](../../tmp/art11/screenshots/loading_ratio_19_5x9_1560x720.png)
+- [1600×720 / 20:9（含右上角胶囊避让审计标记）](../../tmp/art11/screenshots/loading_ratio_20x9_1600x720.png)
+- [加载失败与重试状态](../../tmp/art11/screenshots/loading_failure_retry_1280x720.png)
 
 离线检查结果：背景全部 Cover，无黑边和非等比拉伸；标题、角色、进度和提示的包围框均在屏幕内；20:9 右上角胶囊审计框与中央内容无重叠。
 

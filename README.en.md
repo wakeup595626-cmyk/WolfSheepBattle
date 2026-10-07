@@ -30,7 +30,7 @@ The WeChat Mini Game build is available under [Releases](https://github.com/wake
 | `tools/` | Build, QA and release-validation scripts |
 | `THIRD_PARTY_LICENSES/` | Font licenses |
 | `THIRD_PARTY_AUDIO.md` | Per-track BGM provenance (source, author, SHA-256) |
-| `*_REPORT.md` | Per-version development reports, kept as a development record |
+| `docs/reports/*.md` | Per-version development reports, kept as a development record |
 
 ## Third-party notices
 

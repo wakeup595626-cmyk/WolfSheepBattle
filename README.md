@@ -30,7 +30,7 @@
 | `tools/` | 构建、QA 与发布校验脚本 |
 | `THIRD_PARTY_LICENSES/` | 字体许可原文 |
 | `THIRD_PARTY_AUDIO.md` | 逐首 BGM 溯源（来源、作者、SHA-256） |
-| `*_REPORT.md` | 各版本开发报告，作为开发过程记录保留 |
+| `docs/reports/*.md` | 各版本开发报告，作为开发过程记录保留 |
 
 ## 第三方声明
 

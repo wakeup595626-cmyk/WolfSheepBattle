@@ -37,11 +37,11 @@ GuideList (700×244, x=0, y=16)
 
 修改前：
 
-![修改前新手引导](art_source/qa/art08-03/before_tutorial_reference.png)
+![修改前新手引导](../../art_source/qa/art08-03/before_tutorial_reference.png)
 
 修改后：
 
-![修改后新手引导](art_source/qa/art08-03/after_tutorial_1280x720.png)
+![修改后新手引导](../../art_source/qa/art08-03/after_tutorial_1280x720.png)
 
 ## 3. HUD 共享三列
 
@@ -123,17 +123,17 @@ GuideList (700×244, x=0, y=16)
 
 四路全兵种实测共 16 个覆盖项全部通过：每路均生成小/中/大/巨羊，运行时 `UnitRoot.x` 始终精确等于该路 `LANE_X`，所有 `UnitRoot.scale=(1,1,1)`；小羊四路同时存活时没有偏移、卡路或越界。详细数据：`art_source/qa/art08-03/gameplay_validation.json`。
 
-![四路同时出兵](art_source/qa/art08-03/after_four_lane_spawn_1280x720.png)
+![四路同时出兵](../../art_source/qa/art08-03/after_four_lane_spawn_1280x720.png)
 
 ## 7. 画面对比与回归
 
 修改前战斗：
 
-![修改前战斗](art_source/qa/art08-03/before_battle_reference.png)
+![修改前战斗](../../art_source/qa/art08-03/before_battle_reference.png)
 
 修改后战斗：
 
-![修改后战斗](art_source/qa/art08-03/after_battle_1280x720.png)
+![修改后战斗](../../art_source/qa/art08-03/after_battle_1280x720.png)
 
 其他截图：
 
