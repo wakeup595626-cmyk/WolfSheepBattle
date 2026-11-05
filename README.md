@@ -6,6 +6,14 @@
 
 玩家在四条战线上布置单位、回合制对抗，通过兵种搭配与战术卡牌取胜。本仓库包含完整游戏源码：场景、TypeScript 玩法代码、运行时美术与音频资源，以及美术创作源文件。
 
+![游戏主菜单](docs/hero.png)
+
+[![在线试玩](https://img.shields.io/badge/play-browser-2ea44f.svg)](https://wakeup595626-cmyk.github.io/WolfSheepBattle/)
+[![Release](https://img.shields.io/github/v/release/wakeup595626-cmyk/WolfSheepBattle?label=release)](https://github.com/wakeup595626-cmyk/WolfSheepBattle/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Cocos Creator](https://img.shields.io/badge/Cocos%20Creator-3.8.8-2b7de9.svg)](package.json)
+[![WeChat Mini Game](https://img.shields.io/badge/platform-WeChat%20Mini%20Game-07c160.svg)](README.md#从源码构建)
+
 ## 试玩
 
 **浏览器直接玩**（无需安装）：**https://wakeup595626-cmyk.github.io/WolfSheepBattle/**
@@ -51,7 +59,7 @@
 ```bibtex
 @misc{wolfsheepbattle,
   title={WolfSheepBattle (羊狼四线战)},
-  author={wakeUp595626-cmyk},
+  author={wakeup595626-cmyk},
   year={2026},
   publisher={GitHub},
   howpublished={\url{https://github.com/wakeup595626-cmyk/WolfSheepBattle}},

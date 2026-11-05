@@ -6,6 +6,14 @@ A turn-based tactics mini-game for the WeChat Mini Game platform, built with **C
 
 Players deploy units across four battle lines and fight turn by turn, combining troop composition with tactic cards. The repository contains the complete game source — scenes, TypeScript gameplay code, runtime art, audio and the original art source files.
 
+![Game main menu](docs/hero.png)
+
+[![Play in browser](https://img.shields.io/badge/play-browser-2ea44f.svg)](https://wakeup595626-cmyk.github.io/WolfSheepBattle/)
+[![Release](https://img.shields.io/github/v/release/wakeup595626-cmyk/WolfSheepBattle?label=release)](https://github.com/wakeup595626-cmyk/WolfSheepBattle/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Cocos Creator](https://img.shields.io/badge/Cocos%20Creator-3.8.8-2b7de9.svg)](package.json)
+[![WeChat Mini Game](https://img.shields.io/badge/platform-WeChat%20Mini%20Game-07c160.svg)](#build-from-source)
+
 ## Play
 
 **Play in your browser** (no install required): **https://wakeup595626-cmyk.github.io/WolfSheepBattle/**
@@ -51,7 +59,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ```bibtex
 @misc{wolfsheepbattle,
   title={WolfSheepBattle (羊狼四线战)},
-  author={wakeUp595626-cmyk},
+  author={wakeup595626-cmyk},
   year={2026},
   publisher={GitHub},
   howpublished={\url{https://github.com/wakeup595626-cmyk/WolfSheepBattle}},
